@@ -12,9 +12,9 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="stylesheet" href="vendor/toastify.css">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
   <script src="vendor/toastify.js"></script>
-  <script type="module" src="app.js?v=9"></script>
+  <script type="module" src="app.js?v=10"></script>
 </head>
 <body>
   <header class="topbar">
@@ -111,6 +111,21 @@
     <div slot="actions" class="acoes">
       <md-text-button data-fechar>Continuar comprando</md-text-button>
       <md-filled-button id="enviar"><md-icon slot="icon">send</md-icon>Pedir no WhatsApp</md-filled-button>
+    </div>
+  </md-dialog>
+
+  <!-- Pix copia e cola -->
+  <md-dialog id="pixDialog">
+    <div slot="headline" class="headline"><span>Pague com Pix</span>
+      <md-icon-button data-fechar aria-label="Fechar"><md-icon>close</md-icon></md-icon-button></div>
+    <div slot="content" class="pix">
+      <p id="pixInfo"></p>
+      <textarea id="pixCodigo" readonly rows="4" aria-label="Código Pix copia e cola"></textarea>
+      <p class="nota">Depois de pagar, mande o comprovante na conversa do pedido.</p>
+    </div>
+    <div slot="actions" class="acoes">
+      <md-text-button data-fechar>Fechar</md-text-button>
+      <md-filled-button id="pixCopiar"><md-icon slot="icon">content_copy</md-icon>Copiar código</md-filled-button>
     </div>
   </md-dialog>
 </body>

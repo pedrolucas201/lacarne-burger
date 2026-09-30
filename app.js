@@ -1,8 +1,10 @@
 import './vendor/material.js';
-import { HORARIO, aberto, proximaAbertura } from './horario.js?v=9';
+import { HORARIO, aberto, proximaAbertura } from './horario.js?v=10';
+import { pix } from './pix.js?v=10';
 
 // ===== Configuração da loja (edite aqui) =====
-const LOJA = { nome: 'La Carne Burger', whatsapp: '5581984793839', cidade: 'Vitória de Santo Antão - PE' };
+const LOJA = { nome: 'La Carne Burger', whatsapp: '5581984793839', cidade: 'Vitória de Santo Antão - PE',
+  pix: '+5581984793839' }; // chave Pix (telefone com +55); vazio = sem Pix copia e cola
 const PONTO = { titulo: 'Ponto da carne', itens: ['Mal passado', 'Ao ponto', 'Bem passado'] };
 const MENU = [
   { id: 'manso', nome: 'Manso', preco: 20, emoji: '🍔', escolhas: [PONTO],
@@ -205,17 +207,33 @@ $('#enviar').onclick = () => {
 
   const c = Object.fromEntries(CAMPOS.map(k => [k, f(k)]));
   store.set('cliente', c);
+  const cod = Date.now().toString(36).slice(-5).toUpperCase();
+  const comPix = pag === 'Pix' && LOJA.pix;
   // api.whatsapp.com direto: o redirect do wa.me corrompe emojis
-  const url = `https://api.whatsapp.com/send?phone=${LOJA.whatsapp}&text=${encodeURIComponent(mensagem(c, entrega, pag, troco, total, f('obsGeral')))}`;
+  const url = `https://api.whatsapp.com/send?phone=${LOJA.whatsapp}&text=${encodeURIComponent(mensagem(c, entrega, pag, troco, total, f('obsGeral'), cod, comPix))}`;
   window.open(url, '_blank', 'noopener');
   carrinho = [];
   salvar();
   dCart.close();
   toast('Pedido pronto! É só enviar no WhatsApp ✅');
+  if (comPix) abrirPix(entrega ? null : total, cod);
 };
 
-function mensagem(c, entrega, pag, troco, total, obs) {
-  const cod = Date.now().toString(36).slice(-5).toUpperCase();
+// ---------- Pix copia e cola ----------
+// ponytail: na entrega o código vai sem valor porque a taxa ainda é "a confirmar"; com a taxa por bairro, passar o total sempre
+function abrirPix(valor, cod) {
+  $('#pixCodigo').value = pix({ chave: LOJA.pix, nome: LOJA.nome, cidade: LOJA.cidade.split(' - ')[0], valor, txid: cod });
+  $('#pixInfo').textContent = valor
+    ? `Valor: ${brl(valor)}. Copie o código e cole na opção "Pix copia e cola" do app do seu banco.`
+    : 'Confirme o valor com a taxa de entrega no WhatsApp, depois copie o código, cole na opção "Pix copia e cola" do app do seu banco e digite o valor.';
+  $('#pixDialog').show();
+}
+$('#pixCopiar').onclick = async () => {
+  try { await navigator.clipboard.writeText($('#pixCodigo').value); toast('Código Pix copiado ✅'); }
+  catch { $('#pixCodigo').select(); toast('Selecione o código e copie', true); }
+};
+
+function mensagem(c, entrega, pag, troco, total, obs, cod, comPix) {
   const endereco = `${c.rua}, ${c.numero}, ${c.bairro}, ${LOJA.cidade}`;
   const linha = '-------------------------------';
   return [
@@ -257,6 +275,7 @@ function mensagem(c, entrega, pag, troco, total, obs) {
     'PAGAMENTO',
     `*${pag}*`,
     pag === 'Dinheiro' ? (troco ? `Troco para ${brl(troco)}` : 'Não precisa de troco') : null,
+    comPix ? 'Vou mandar o comprovante aqui' : null,
     ...(obs ? ['', '📝   Observações', obs] : []),
   ].filter(x => x !== null).join('\n');
 }
