@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function admin(loja) {
+      return request.auth != null && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/lojas/$(loja)/admins/$(request.auth.token.email));
+    }
+    function texto(v, max) { return v is string && v.size() <= max; }
+
+    // ponytail: conteúdo de cada item não é validado (regras não fazem laço); o painel escapa tudo e confere o valor
+    function pedidoValido(p) {
+      let campos = ['cod', 'criadoEm', 'status', 'entrega', 'pag', 'troco', 'obs', 'cliente', 'itens', 'subtotal', 'taxa'];
+      let c = p.cliente;
+      return p.keys().hasOnly(campos) && p.keys().hasAll(campos)
+        && p.status == 'novo' && p.criadoEm == request.time
+        && texto(p.cod, 10) && p.entrega is bool && texto(p.obs, 300)
+        && p.pag in ['Pix', 'Cartão de crédito', 'Cartão de débito', 'Dinheiro']
+        && p.troco is number && p.troco >= 0 && p.troco <= 1000
+        && c is map && c.keys().hasOnly(['nome', 'fone', 'rua', 'numero', 'bairro', 'compl', 'ref'])
+        && texto(c.nome, 60) && c.nome.size() > 0 && texto(c.fone, 16)
+        && texto(c.get('rua', ''), 100) && texto(c.get('numero', ''), 10) && texto(c.get('bairro', ''), 60)
+        && texto(c.get('compl', ''), 60) && texto(c.get('ref', ''), 100)
+        && p.itens is list && p.itens.size() >= 1 && p.itens.size() <= 30
+        && p.subtotal is number && p.subtotal > 0 && p.subtotal <= 5000
+        && (p.taxa == null || (p.taxa is number && p.taxa >= 0 && p.taxa <= 50));
+    }
+
+    match /lojas/{loja} {
+      allow read: if true;
+      allow write: if admin(loja);
+
+      match /admins/{email} {
+        allow read: if request.auth != null && request.auth.token.email == email;
+      }
+      match /clientes/{fone} {
+        allow read, write: if admin(loja);
+      }
+      match /pedidos/{id} {
+        allow create: if pedidoValido(request.resource.data);
+        allow read: if admin(loja);
+        allow update: if admin(loja)
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'aceitoEm', 'saiuEm', 'entregueEm', 'canceladoEm', 'motivo'])
+          && request.resource.data.status in ['novo', 'preparo', 'saiu', 'entregue', 'cancelado'];
+      }
+    }
+  }
+}
