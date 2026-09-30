@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>La Carne Burger · Delivery</title>
+  <meta name="description" content="Pra cada personalidade, um hambúrguer. Peça pelo WhatsApp.">
+  <link rel="icon" href="logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="stylesheet" href="vendor/toastify.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="vendor/toastify.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <img src="logo.png" alt="">
+    <h1>LA CARNE</h1>
+    <div class="bag">
+      <md-icon-button id="cartBtn" aria-label="Abrir sacola"><md-icon>shopping_bag</md-icon></md-icon-button>
+      <span id="badge" hidden>0</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-txt">
+      <p class="kicker">Hambúrguer artesanal · Delivery</p>
+      <h2>Pra cada personalidade,<br>um hambúrguer.<br><span>Qual o teu?</span></h2>
+      <md-filled-button href="#cardapio"><md-icon slot="icon">lunch_dining</md-icon>Ver cardápio</md-filled-button>
+    </div>
+    <div class="foto">
+      <img src="img/hero.webp" alt="Hambúrguer artesanal com fritas" width="1200" height="800">
+      <div class="ring"><img src="logo.png" alt="Logo La Carne"></div>
+    </div>
+  </section>
+
+  <main id="cardapio">
+    <h2 class="titulo">Cardápio</h2>
+    <div id="menu" class="grid"></div>
+  </main>
+
+  <footer>
+    <p><strong>LA CARNE</strong> Burger</p>
+    <p>
+      <a href="https://wa.me/5581984793839" target="_blank" rel="noopener">WhatsApp (81) 9 8479-3839</a> ·
+      <a href="https://instagram.com/lacarne.burger" target="_blank" rel="noopener">@lacarne.burger</a>
+    </p>
+  </footer>
+
+  <div id="cartBar" class="cart-bar">
+    <md-filled-button id="cartBarBtn"><md-icon slot="icon">shopping_bag</md-icon><span id="cartBarTxt"></span></md-filled-button>
+  </div>
+
+  <!-- Personalizar item -->
+  <md-dialog id="itemDialog">
+    <div slot="headline" class="headline"><span id="itemTitulo"></span>
+      <md-icon-button data-fechar aria-label="Fechar"><md-icon>close</md-icon></md-icon-button></div>
+    <div slot="content" id="itemCorpo"></div>
+    <div slot="actions" class="acoes">
+      <div class="stepper">
+        <md-icon-button id="menos" aria-label="Diminuir"><md-icon>remove</md-icon></md-icon-button>
+        <span id="itemQtd">1</span>
+        <md-icon-button id="mais" aria-label="Aumentar"><md-icon>add</md-icon></md-icon-button>
+      </div>
+      <md-filled-button id="itemAdd">Adicionar · <span id="itemTotal"></span></md-filled-button>
+    </div>
+  </md-dialog>
+
+  <!-- Sacola + checkout -->
+  <md-dialog id="cartDialog">
+    <div slot="headline" class="headline"><span>Sua sacola</span>
+      <md-icon-button data-fechar aria-label="Fechar"><md-icon>close</md-icon></md-icon-button></div>
+    <div slot="content" class="checkout">
+      <ul id="cartItens"></ul>
+
+      <h3>Seus dados</h3>
+      <md-outlined-text-field id="nome" label="Nome" maxlength="60" required autocomplete="name"></md-outlined-text-field>
+      <md-outlined-text-field id="fone" maxlength="20" label="Telefone / WhatsApp" type="tel" required autocomplete="tel" placeholder="(81) 9 0000-0000"></md-outlined-text-field>
+
+      <h3>Como quer receber?</h3>
+      <div class="radios">
+        <label><md-radio name="tipo" value="Entrega" checked></md-radio>Entrega</label>
+        <label><md-radio name="tipo" value="Retirada"></md-radio>Retirar no local</label>
+      </div>
+      <div id="endereco" class="grid2">
+        <md-outlined-text-field id="rua" maxlength="100" class="span2" label="Rua / Avenida" required autocomplete="address-line1"></md-outlined-text-field>
+        <md-outlined-text-field id="numero" maxlength="10" label="Número" required></md-outlined-text-field>
+        <md-outlined-text-field id="bairro" maxlength="60" label="Bairro" required></md-outlined-text-field>
+        <md-outlined-text-field id="compl" maxlength="60" label="Complemento (opcional)" placeholder="Apto, bloco…"></md-outlined-text-field>
+        <md-outlined-text-field id="ref" maxlength="100" label="Ponto de referência" ></md-outlined-text-field>
+      </div>
+
+      <h3>Pagamento</h3>
+      <div class="radios">
+        <label><md-radio name="pag" value="Pix"></md-radio>Pix</label>
+        <label><md-radio name="pag" value="Cartão de crédito"></md-radio>Crédito</label>
+        <label><md-radio name="pag" value="Cartão de débito"></md-radio>Débito</label>
+        <label><md-radio name="pag" value="Dinheiro"></md-radio>Dinheiro</label>
+      </div>
+      <md-outlined-text-field id="troco" max="1000" label="Troco para quanto?" prefix-text="R$ " type="number" min="0" hidden
+        supporting-text="Deixe vazio se não precisar de troco"></md-outlined-text-field>
+
+      <md-outlined-text-field id="obsGeral" maxlength="300" label="Observações do pedido (opcional)" type="textarea" rows="2"></md-outlined-text-field>
+      <div id="totais"></div>
+    </div>
+    <div slot="actions" class="acoes">
+      <md-text-button data-fechar>Continuar comprando</md-text-button>
+      <md-filled-button id="enviar"><md-icon slot="icon">send</md-icon>Pedir no WhatsApp</md-filled-button>
+    </div>
+  </md-dialog>
+</body>
+</html>
