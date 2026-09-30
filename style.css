@@ -61,6 +61,15 @@ h1, h2, .titulo, .card h3 { font-family: 'Bebas Neue', 'Poppins', sans-serif; fo
     radial-gradient(circle at 85% 80%, var(--creme), transparent 50%);
 }
 .kicker { margin: 0; color: var(--md-sys-color-primary); font-weight: 600; text-transform: uppercase; font-size: .8rem; letter-spacing: 1.5px; }
+.status {
+  display: inline-flex; align-items: center; gap: 8px; margin: 12px 0 0;
+  padding: 6px 14px; border-radius: 999px; font-size: .85rem; font-weight: 600;
+}
+.status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.status.on { background: #dff5e3; color: #1b7a35; }
+.status.on::before { animation: pulsar 1.6s ease-out infinite; }
+.status.off { background: var(--rosa); color: var(--md-sys-color-primary); }
+@keyframes pulsar { 0% { box-shadow: 0 0 0 0 rgb(27 122 53 / .6); } 100% { box-shadow: 0 0 0 8px rgb(27 122 53 / 0); } }
 .hero h2 { margin: 8px 0 24px; font-size: clamp(2.6rem, 7vw, 4.4rem); line-height: .95; }
 .hero h2 span { color: var(--md-sys-color-primary); }
 .hero-txt { animation: surgir .6s both; }

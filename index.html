@@ -12,9 +12,9 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="stylesheet" href="vendor/toastify.css">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
   <script src="vendor/toastify.js"></script>
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=6"></script>
 </head>
 <body>
   <header class="topbar">
@@ -29,6 +29,7 @@
   <section class="hero">
     <div class="hero-txt">
       <p class="kicker">Hambúrguer artesanal · Delivery</p>
+      <p id="status" class="status"></p>
       <h2>Pra cada personalidade,<br>um hambúrguer.<br><span>Qual o teu?</span></h2>
       <md-filled-button href="#cardapio"><md-icon slot="icon">lunch_dining</md-icon>Ver cardápio</md-filled-button>
     </div>
@@ -44,7 +45,7 @@
   </main>
 
   <footer>
-    <p><strong>LA CARNE</strong> Burger</p>
+    <p><strong>LA CARNE</strong> Burger · <span class="horario"></span></p>
     <p>
       <a href="https://wa.me/5581984793839" target="_blank" rel="noopener">WhatsApp (81) 9 8479-3839</a> ·
       <a href="https://instagram.com/lacarne.burger" target="_blank" rel="noopener">@lacarne.burger</a>

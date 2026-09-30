@@ -1,4 +1,5 @@
 import './vendor/material.js';
+import { HORARIO, aberto, proximaAbertura } from './horario.js?v=6';
 
 // ===== Configuração da loja (edite aqui) =====
 const LOJA = { nome: 'La Carne Burger', whatsapp: '5581984793839', cidade: 'Vitória de Santo Antão - PE' };
@@ -41,6 +42,17 @@ let carrinho = store.get('carrinho', []).flatMap(i => {
 });
 let atual = null;
 
+// ---------- horário ----------
+const fechadoMsg = () => `Estamos fechados agora 🌙 Abrimos ${proximaAbertura()}.`;
+function status() {
+  const on = aberto();
+  $('#status').className = `status ${on ? 'on' : 'off'}`;
+  $('#status').textContent = on ? `Aberto agora · até ${HORARIO.fecha}h` : `Fechado · abre ${proximaAbertura()}`;
+}
+document.querySelectorAll('.horario').forEach(el => el.textContent = HORARIO.texto);
+status();
+setInterval(status, 30000);
+
 // ---------- cardápio ----------
 $('#menu').innerHTML = MENU.map((i, n) => `
   <article class="card" style="--d:${n * 80}ms">
@@ -60,6 +72,7 @@ $('#menu').addEventListener('click', e => {
 // ---------- personalizar item ----------
 const dItem = $('#itemDialog');
 function abrirItem(item) {
+  if (!aberto()) return toast(fechadoMsg(), true);
   atual = { item, qtd: 1 };
   $('#itemTitulo').textContent = item.nome;
   $('#itemCorpo').innerHTML = `
@@ -176,6 +189,7 @@ $('#fone').addEventListener('input', e => { e.target.value = mascaraFone(e.targe
 // ---------- enviar para o WhatsApp ----------
 $('#enviar').onclick = () => {
   if (!carrinho.length) return toast('Sua sacola está vazia', true);
+  if (!aberto()) return toast(fechadoMsg(), true);
   const f = id => $('#' + id).value.trim();
   const entrega = radio('tipo') === 'Entrega';
   const pag = radio('pag');
