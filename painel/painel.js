@@ -93,7 +93,7 @@ function renderPedidos() {
       ${l.map(p => `<button class="pedido" data-id="${esc(p.id)}">
         <span><strong>#${esc(p.cod)} · ${esc(p.cliente.nome)}</strong>
           <small>${hora(p.criadoEm)} · ${p.entrega ? esc(p.cliente.bairro) : 'Retirada'} · ${esc(p.pag)}</small></span>
-        <span class="valor">${brl(total(p))}${conferir(p, loja).ok ? '' : ' ⚠'}</span>
+        <span class="valor">${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}${conferir(p, loja).ok ? '' : ' ⚠'}</span>
       </button>`).join('')}
     </details>`).join('') : '<p class="vazio">Nenhum pedido hoje ainda.</p>';
   if (atualId && $('#pedidoDialog').open) abrirPedido(atualId); // detalhe aberto acompanha a mudança
@@ -124,7 +124,7 @@ function abrirPedido(id) {
       ${i.sem?.length ? `<br><small>Sem: ${esc(i.sem.join(', '))}</small>` : ''}
       ${i.obs ? `<br><small>Obs: ${esc(i.obs)}</small>` : ''}</li>`).join('')}</ul>
     <p>Subtotal ${brl(p.subtotal)} · Entrega ${p.entrega ? (p.taxa === null ? 'a confirmar' : brl(p.taxa)) : '—'}
-      <br><strong>Total ${brl(total(p))}</strong> · ${esc(p.pag)}${p.pag === 'Dinheiro' && p.troco ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
+      <br><strong>Total ${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}</strong> · ${esc(p.pag)}${p.pag === 'Dinheiro' && p.troco ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
     ${p.obs ? `<p>📝 ${esc(p.obs)}</p>` : ''}
     ${p.status === 'cancelado' ? `<p>Motivo: ${esc(p.motivo)}</p>` : ''}`;
   const prox = PROXIMA[p.status];
