@@ -1,7 +1,7 @@
 import { initializeApp, getFirestore, connectFirestoreEmulator, initializeAppCheck, ReCaptchaV3Provider } from './vendor/firebase/base.js';
 
 // Config do app web (preenchida na Task 13). Não é segredo: quem protege são as regras e o App Check.
-const CONFIG = null;
+const CONFIG = { apiKey: 'AIzaSyCXB5TxyhhAZUM6O5JbQwmh-_MBzrxUhvE', projectId: 'pede-direto-app', appId: '1:413453137627:web:4420b6f646e6841d43fefe', messagingSenderId: '413453137627' };
 const RECAPTCHA = ''; // chave de site reCAPTCHA v3 do App Check (Task 13); vazio = sem App Check
 export const LOJA_ID = 'lacarne';
 export const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
