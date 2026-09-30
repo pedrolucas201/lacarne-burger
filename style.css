@@ -110,8 +110,10 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 .rodape { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .rodape strong { font-size: 1.2rem; }
 
-footer { margin-top: 56px; padding: 24px 16px 96px; text-align: center; font-size: .9rem; background: var(--creme); }
+footer { margin-top: 56px; padding: 24px 16px; text-align: center; font-size: .9rem; background: var(--creme); }
 footer p { margin: 4px 0; }
+/* só abre espaço quando a barra da sacola aparece, pra ela não cobrir os links */
+body:has(.cart-bar.on) footer { padding-bottom: 96px; }
 footer a { color: var(--md-sys-color-primary); }
 
 /* barra flutuante da sacola */
