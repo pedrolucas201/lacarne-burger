@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bundle": "esbuild vendor-src/material.js --bundle --minify --format=esm --outfile=vendor/material.js && esbuild vendor-src/base.js vendor-src/auth.js --bundle --minify --splitting --format=esm --outdir=vendor/firebase",
+    "test": "node --test testes/horario.test.mjs testes/pedido.test.mjs testes/numeros.test.mjs",
+    "test:regras": "firebase emulators:exec --only firestore --project demo-lacarne \"node --test testes/regras.test.mjs\"",
+    "dev": "firebase emulators:start --only firestore,auth,hosting --project demo-lacarne",
+    "seed:local": "node scripts/seed.mjs --local --admin dono@teste.com",
+    "e2e": "firebase emulators:exec --only firestore,auth,hosting --project demo-lacarne \"node scripts/seed.mjs --local --admin dono@teste.com && node testes/e2e.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@material/web": "^2.5.0",
+    "esbuild": "^0.28.2",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.5.0",
+    "puppeteer-core": "^25.12.0"
+  }
+}
