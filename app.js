@@ -1,5 +1,5 @@
 import './vendor/material.js';
-import { HORARIO, aberto, proximaAbertura } from './horario.js?v=6';
+import { HORARIO, aberto, proximaAbertura } from './horario.js?v=7';
 
 // ===== Configuração da loja (edite aqui) =====
 const LOJA = { nome: 'La Carne Burger', whatsapp: '5581984793839', cidade: 'Vitória de Santo Antão - PE' };
@@ -56,7 +56,7 @@ setInterval(status, 30000);
 // ---------- cardápio ----------
 $('#menu').innerHTML = MENU.map((i, n) => `
   <article class="card" style="--d:${n * 80}ms">
-    <div class="emoji"><img src="img/burger.webp" alt="" loading="lazy"><span>${i.emoji}</span></div>
+    <div class="emoji"><img src="img/burger.webp" alt=""><span>${i.emoji}</span></div>
     <h3>${i.nome}</h3>
     <p>${i.desc}</p>
     <div class="rodape">
