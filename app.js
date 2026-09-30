@@ -1,5 +1,5 @@
 import './vendor/material.js';
-import { HORARIO, aberto, proximaAbertura } from './horario.js?v=7';
+import { HORARIO, aberto, proximaAbertura } from './horario.js?v=8';
 
 // ===== Configuração da loja (edite aqui) =====
 const LOJA = { nome: 'La Carne Burger', whatsapp: '5581984793839', cidade: 'Vitória de Santo Antão - PE' };
