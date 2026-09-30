@@ -160,6 +160,13 @@ legend { font-weight: 600; margin-bottom: 6px; }
 .opt:has(md-radio:focus-within), .opt:active { border-color: var(--md-sys-color-primary); }
 .radios { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 8px; }
 md-outlined-text-field { width: 100%; }
+#bairro {
+  width: 100%; min-width: 0; height: 56px; padding: 0 12px; font: inherit; font-size: 1rem;
+  color: var(--md-sys-color-on-surface); background: transparent;
+  border: 1px solid var(--md-sys-color-outline); border-radius: 4px;
+}
+#bairro:focus { outline: none; border: 2px solid var(--md-sys-color-primary); padding: 0 11px; }
+#bairro:has(option[value=""]:checked) { color: var(--md-sys-color-on-surface-variant); }
 
 .checkout { display: flex; flex-direction: column; gap: 12px; }
 .checkout h3 { margin: 12px 0 0; font-size: 1rem; }

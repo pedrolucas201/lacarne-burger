@@ -1,10 +1,22 @@
 import './vendor/material.js';
-import { HORARIO, aberto, proximaAbertura } from './horario.js?v=10';
-import { pix } from './pix.js?v=10';
+import { HORARIO, aberto, proximaAbertura } from './horario.js?v=11';
+import { pix } from './pix.js?v=11';
 
 // ===== Configuração da loja (edite aqui) =====
 const LOJA = { nome: 'La Carne Burger', whatsapp: '5581984793839', cidade: 'Vitória de Santo Antão - PE',
   pix: '+5581984793839' }; // chave Pix (telefone com +55); vazio = sem Pix copia e cola
+// taxa de entrega por bairro (tabela da MotoJá); bairro fora da lista = "a confirmar no WhatsApp"
+const TAXAS = {
+  'Água Branca': 7, 'Alto do Cigano': 7, 'Alto José Leal (até o Mercado do Lar)': 7, 'Amparo': 6, 'Atacarejo': 9,
+  'Bairro Nobre': 8, 'Bairro Novo': 7, 'Bairro Treze': 5, 'Balança': 7, 'Bela Vista': 7, 'Bela Vista 2': 8,
+  'Belo Horizonte': 7, 'Borges': 6, 'Privê Borges': 7, 'Caic': 7, 'Caiçara 1': 7, 'Caiçara 2 e 3': 8, 'Cajá': 7,
+  'Cajueiro': 9, 'Campinas': 8, 'Colorado': 8, 'Cond. Águas Claras': 8, 'Cond. Bela Vista 2': 8, 'Doutor Alvinho': 7,
+  'Irã': 7, 'Iraque 1': 7, 'Iraque 2': 8, 'Jardim Ipiranga': 7, 'Jardim São Pedro': 7, 'José de Lemos': 7,
+  'Lagoa Redonda': 7, 'Lídia Queiroz': 7, 'Livramento': 5, 'Lot. de Baú': 8, 'Lot. Paraíso': 7, 'Lot. Real': 7,
+  'Lot. Tropical': 7, 'Lot. Veneza': 8, 'Mangueira': 5, 'Maranhão': 7, 'Mário Bezerra': 7, 'Matadouro': 7,
+  'Matriz': 5, 'Maués': 8, 'Militina': 8, 'Natuba': 10, 'Petrobras': 7, 'Pinga Fogo': 6, 'Privê Shopping': 10,
+  'Redenção': 7, 'Santana': 9, 'Shopping (fora)': 8, 'Shopping (dentro)': 10, 'Sítio do Meio': 7, 'Trajanos': 7,
+};
 const PONTO = { titulo: 'Ponto da carne', itens: ['Mal passado', 'Ao ponto', 'Bem passado'] };
 const MENU = [
   { id: 'manso', nome: 'Manso', preco: 20, emoji: '🍔', escolhas: [PONTO],
@@ -129,6 +141,8 @@ $('#itemAdd').onclick = () => {
 // ---------- sacola ----------
 const dCart = $('#cartDialog');
 const subtotal = () => carrinho.reduce((s, i) => s + i.unit * i.qtd, 0);
+// 0 na retirada, null se o bairro não foi escolhido ou está fora da tabela
+const taxa = () => radio('tipo') !== 'Entrega' ? 0 : TAXAS[$('#bairro').value] ?? null;
 const detalhes = i => [
   ...i.escolhas.map(([t, v]) => `${t}: ${v}`),
   i.sem.length ? `Sem: ${i.sem.join(', ').toLowerCase()}` : null,
@@ -152,10 +166,11 @@ function salvar() {
       </div>
       <span class="preco">${brl(i.unit * i.qtd)}</span>
     </li>`).join('') : '<li class="vazio">Sua sacola está vazia 🍟</li>';
+  const tx = taxa(), aConfirmar = $('#bairro').value === 'outro' ? 'a confirmar no WhatsApp' : 'escolha o bairro';
   $('#totais').innerHTML = `
     <div><span>Subtotal</span><span>${brl(subtotal())}</span></div>
-    ${radio('tipo') === 'Entrega' ? '<div class="nota"><span>Taxa de entrega</span><span>a confirmar no WhatsApp</span></div>' : ''}
-    <div class="total"><span>Total</span><span>${brl(subtotal())}</span></div>`;
+    ${radio('tipo') === 'Entrega' ? `<div class="nota"><span>Taxa de entrega</span><span>${tx === null ? aConfirmar : brl(tx)}</span></div>` : ''}
+    <div class="total"><span>Total</span><span>${brl(subtotal() + (tx ?? 0))}${tx === null ? ' + entrega' : ''}</span></div>`;
 }
 $('#cartItens').addEventListener('click', e => {
   const b = e.target.closest('[data-k]');
@@ -168,6 +183,7 @@ $('#cartItens').addEventListener('click', e => {
 dCart.addEventListener('change', () => {
   $('#endereco').hidden = radio('tipo') !== 'Entrega';
   $('#troco').hidden = radio('pag') !== 'Dinheiro';
+  $('#bairroOutro').hidden = $('#bairro').value !== 'outro';
   salvar();
 });
 const abrirSacola = () => carrinho.length ? dCart.show() : toast('Sua sacola está vazia. Escolha um burger! 🍔', true);
@@ -175,10 +191,15 @@ $('#cartBtn').onclick = abrirSacola;
 $('#cartBarBtn').onclick = abrirSacola;
 document.querySelectorAll('[data-fechar]').forEach(b => b.onclick = () => b.closest('md-dialog').close());
 
+$('#bairro').insertAdjacentHTML('beforeend', Object.entries(TAXAS)
+  .map(([b, t]) => `<option value="${esc(b)}">${esc(b)} · ${brl(t)}</option>`).join('')
+  + '<option value="outro">Outro bairro (taxa a confirmar)</option>');
+
 // lembra os dados do cliente para o próximo pedido
-const CAMPOS = ['nome', 'fone', 'rua', 'numero', 'bairro', 'compl', 'ref'];
+const CAMPOS = ['nome', 'fone', 'rua', 'numero', 'bairro', 'bairroOutro', 'compl', 'ref'];
 const cliente = store.get('cliente', {});
 CAMPOS.forEach(k => { if (cliente[k]) $('#' + k).value = cliente[k]; });
+$('#bairroOutro').hidden = $('#bairro').value !== 'outro';
 
 // (81) 9 8479-3839 para celular, (81) 3333-4444 para fixo
 function mascaraFone(v) {
@@ -198,11 +219,11 @@ $('#enviar').onclick = () => {
   const f = id => $('#' + id).value.trim();
   const entrega = radio('tipo') === 'Entrega';
   const pag = radio('pag');
-  const vazio = ['nome', 'fone', ...(entrega ? ['rua', 'numero', 'bairro'] : [])].find(id => !f(id));
-  if (vazio) { $('#' + vazio).reportValidity(); $('#' + vazio).focus(); return toast(`Preencha: ${$('#' + vazio).label}`, true); }
+  const vazio = ['nome', 'fone', ...(entrega ? ['rua', 'numero', 'bairro'] : []), ...(entrega && f('bairro') === 'outro' ? ['bairroOutro'] : [])].find(id => !f(id));
+  if (vazio) { $('#' + vazio).reportValidity(); $('#' + vazio).focus(); return toast(`Preencha: ${$('#' + vazio).label || $('#' + vazio).ariaLabel}`, true); }
   if (f('fone').replace(/\D/g, '').length < 10) { $('#fone').focus(); return toast('Telefone inválido (inclua o DDD)', true); }
   if (!pag) return toast('Escolha a forma de pagamento', true);
-  const total = subtotal(), troco = +f('troco') || 0;
+  const sub = subtotal(), tx = taxa(), total = sub + (tx ?? 0), troco = +f('troco') || 0;
   if (pag === 'Dinheiro' && troco && troco < total) return toast(`O troco precisa ser maior que ${brl(total)}`, true);
 
   const c = Object.fromEntries(CAMPOS.map(k => [k, f(k)]));
@@ -210,17 +231,17 @@ $('#enviar').onclick = () => {
   const cod = Date.now().toString(36).slice(-5).toUpperCase();
   const comPix = pag === 'Pix' && LOJA.pix;
   // api.whatsapp.com direto: o redirect do wa.me corrompe emojis
-  const url = `https://api.whatsapp.com/send?phone=${LOJA.whatsapp}&text=${encodeURIComponent(mensagem(c, entrega, pag, troco, total, f('obsGeral'), cod, comPix))}`;
+  const url = `https://api.whatsapp.com/send?phone=${LOJA.whatsapp}&text=${encodeURIComponent(mensagem(c, entrega, pag, troco, sub, tx, f('obsGeral'), cod, comPix))}`;
   window.open(url, '_blank', 'noopener');
   carrinho = [];
   salvar();
   dCart.close();
   toast('Pedido pronto! É só enviar no WhatsApp ✅');
-  if (comPix) abrirPix(entrega ? null : total, cod);
+  if (comPix) abrirPix(tx === null ? null : total, cod);
 };
 
 // ---------- Pix copia e cola ----------
-// ponytail: na entrega o código vai sem valor porque a taxa ainda é "a confirmar"; com a taxa por bairro, passar o total sempre
+// bairro fora da tabela: código sem valor, o cliente digita depois de confirmar a taxa
 function abrirPix(valor, cod) {
   $('#pixCodigo').value = pix({ chave: LOJA.pix, nome: LOJA.nome, cidade: LOJA.cidade.split(' - ')[0], valor, txid: cod });
   $('#pixInfo').textContent = valor
@@ -233,8 +254,9 @@ $('#pixCopiar').onclick = async () => {
   catch { $('#pixCodigo').select(); toast('Selecione o código e copie', true); }
 };
 
-function mensagem(c, entrega, pag, troco, total, obs, cod, comPix) {
-  const endereco = `${c.rua}, ${c.numero}, ${c.bairro}, ${LOJA.cidade}`;
+function mensagem(c, entrega, pag, troco, sub, tx, obs, cod, comPix) {
+  const bairro = c.bairro === 'outro' ? c.bairroOutro : c.bairro;
+  const endereco = `${c.rua}, ${c.numero}, ${bairro}, ${LOJA.cidade}`;
   const linha = '-------------------------------';
   return [
     '#### NOVO PEDIDO ####',
@@ -248,7 +270,7 @@ function mensagem(c, entrega, pag, troco, total, obs, cod, comPix) {
     ...(entrega ? [
       '🛵   Endereço de entrega',
       `${c.rua}, ${c.numero}`,
-      `Bairro: ${c.bairro}`,
+      `Bairro: ${bairro}`,
       c.compl ? `Complemento: ${c.compl}` : null,
       c.ref ? `(${c.ref})` : null,
       '',
@@ -268,9 +290,9 @@ function mensagem(c, entrega, pag, troco, total, obs, cod, comPix) {
     '',
     linha,
     '',
-    `SUBTOTAL: ${brl(total)}`,
-    entrega ? 'ENTREGA: a confirmar' : null,
-    `*VALOR FINAL: ${brl(total)}${entrega ? ' + entrega' : ''}*`,
+    `SUBTOTAL: ${brl(sub)}`,
+    entrega ? `ENTREGA: ${tx === null ? 'a confirmar' : brl(tx)}` : null,
+    `*VALOR FINAL: ${brl(sub + (tx ?? 0))}${tx === null ? ' + entrega' : ''}*`,
     '',
     'PAGAMENTO',
     `*${pag}*`,

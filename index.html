@@ -12,9 +12,9 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="stylesheet" href="vendor/toastify.css">
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
   <script src="vendor/toastify.js"></script>
-  <script type="module" src="app.js?v=10"></script>
+  <script type="module" src="app.js?v=11"></script>
 </head>
 <body>
   <header class="topbar">
@@ -90,7 +90,8 @@
       <div id="endereco" class="grid2">
         <md-outlined-text-field id="rua" maxlength="100" class="span2" label="Rua / Avenida" required autocomplete="address-line1"></md-outlined-text-field>
         <md-outlined-text-field id="numero" maxlength="10" label="Número" required></md-outlined-text-field>
-        <md-outlined-text-field id="bairro" maxlength="60" label="Bairro" required></md-outlined-text-field>
+        <select id="bairro" required aria-label="Bairro"><option value="">Bairro</option></select>
+        <md-outlined-text-field id="bairroOutro" maxlength="60" class="span2" label="Qual bairro?" required hidden></md-outlined-text-field>
         <md-outlined-text-field id="compl" maxlength="60" label="Complemento (opcional)" placeholder="Apto, bloco…"></md-outlined-text-field>
         <md-outlined-text-field id="ref" maxlength="100" label="Ponto de referência" ></md-outlined-text-field>
       </div>
