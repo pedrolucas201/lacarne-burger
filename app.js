@@ -1,55 +1,41 @@
 import './vendor/material.js';
-import { HORARIO, aberto, proximaAbertura } from './horario.js?v=11';
-import { pix } from './pix.js?v=11';
+import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
+import { pix } from './pix.js';
+import { taxaDe } from './pedido.js';
+import { $, brl, esc, toast } from './util.js';
+import { db, LOJA_ID } from './firebase.js';
+import { doc, collection, onSnapshot, setDoc, serverTimestamp } from './vendor/firebase/base.js';
 
-// ===== Configuração da loja (edite aqui) =====
-const LOJA = { nome: 'La Carne Burger', whatsapp: '5581984793839', cidade: 'Vitória de Santo Antão - PE',
-  pix: '+5581984793839' }; // chave Pix (telefone com +55); vazio = sem Pix copia e cola
-// taxa de entrega por bairro (tabela da MotoJá); bairro fora da lista = "a confirmar no WhatsApp"
-const TAXAS = {
-  'Água Branca': 7, 'Alto do Cigano': 7, 'Alto José Leal (até o Mercado do Lar)': 7, 'Amparo': 6, 'Atacarejo': 9,
-  'Bairro Nobre': 8, 'Bairro Novo': 7, 'Bairro Treze': 5, 'Balança': 7, 'Bela Vista': 7, 'Bela Vista 2': 8,
-  'Belo Horizonte': 7, 'Borges': 6, 'Privê Borges': 7, 'Caic': 7, 'Caiçara 1': 7, 'Caiçara 2 e 3': 8, 'Cajá': 7,
-  'Cajueiro': 9, 'Campinas': 8, 'Colorado': 8, 'Cond. Águas Claras': 8, 'Cond. Bela Vista 2': 8, 'Doutor Alvinho': 7,
-  'Irã': 7, 'Iraque 1': 7, 'Iraque 2': 8, 'Jardim Ipiranga': 7, 'Jardim São Pedro': 7, 'José de Lemos': 7,
-  'Lagoa Redonda': 7, 'Lídia Queiroz': 7, 'Livramento': 5, 'Lot. de Baú': 8, 'Lot. Paraíso': 7, 'Lot. Real': 7,
-  'Lot. Tropical': 7, 'Lot. Veneza': 8, 'Mangueira': 5, 'Maranhão': 7, 'Mário Bezerra': 7, 'Matadouro': 7,
-  'Matriz': 5, 'Maués': 8, 'Militina': 8, 'Natuba': 10, 'Petrobras': 7, 'Pinga Fogo': 6, 'Privê Shopping': 10,
-  'Redenção': 7, 'Santana': 9, 'Shopping (fora)': 8, 'Shopping (dentro)': 10, 'Sítio do Meio': 7, 'Trajanos': 7,
-};
-const PONTO = { titulo: 'Ponto da carne', itens: ['Mal passado', 'Ao ponto', 'Bem passado'] };
-const MENU = [
-  { id: 'manso', nome: 'Manso', preco: 20, emoji: '🍔', escolhas: [PONTO],
-    desc: 'Pão brioche, 150g de hambúrguer artesanal, queijo cheddar e maionese da casa.',
-    tira: ['Queijo cheddar', 'Maionese da casa'] },
-  { id: 'abusado', nome: 'Abusado', preco: 22, emoji: '🍫', escolhas: [PONTO],
-    desc: 'Pão brioche, hambúrguer artesanal, queijo cheddar e Nutella.',
-    tira: ['Queijo cheddar'] },
-  { id: 'matuto', nome: 'Matuto', preco: 25, emoji: '🧀', escolhas: [PONTO],
-    desc: 'Pão brioche, 150g de hambúrguer artesanal, queijo coalho no mel, queijo cheddar e cebola caramelizada.',
-    tira: ['Queijo cheddar', 'Cebola caramelizada'] },
-  { id: 'bruto', nome: 'Bruto', preco: 32, emoji: '🥓', escolhas: [PONTO],
-    desc: 'Pão brioche, duplo hambúrguer artesanal (150g cada), queijo cheddar, bacon, cebola caramelizada e maionese da casa.',
-    tira: ['Bacon', 'Cebola caramelizada', 'Maionese da casa'] },
-];
-// =============================================
-
-const $ = s => document.querySelector(s);
-const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 const store = {
   get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
-const toast = (text, erro = false) => Toastify({
-  text, duration: 2800, gravity: 'top', position: 'center', stopOnFocus: true,
-  className: erro ? 'toast erro' : 'toast',
-}).showToast();
 const radio = name => [...document.querySelectorAll(`md-radio[name="${name}"]`)].find(r => r.checked)?.value;
+// ?teste no link libera pedidos fora do horário (pra demonstrar o site)
+const TESTE = new URLSearchParams(location.search).has('teste');
 
-// preço sempre vem do MENU: o que está salvo no navegador pode ter sido alterado
+// ---------- loja: cardápio, taxas, horário e botões do painel vêm do banco, ao vivo ----------
+let loja = null;
+function falhou() {
+  $('#menu').innerHTML = `<div class="erro-carga"><p>Não foi possível carregar o cardápio.</p>
+    <md-filled-tonal-button id="recarregar"><md-icon slot="icon">refresh</md-icon>Tentar de novo</md-filled-tonal-button></div>`;
+  $('#recarregar').onclick = () => location.reload();
+}
+const demorou = setTimeout(falhou, 10000); // sem internet o onSnapshot só espera; melhor avisar que mostrar cardápio velho
+await new Promise(pronto => onSnapshot(doc(db, 'lojas', LOJA_ID), s => {
+  if (!s.exists()) return falhou();
+  clearTimeout(demorou);
+  const primeira = !loja;
+  loja = s.data();
+  primeira ? pronto() : renderLoja();
+}, falhou));
+
+const esgotado = id => loja.esgotados?.[id] === hoje();
+const itemDe = id => loja.cardapio.find(x => x.id === id);
+
+// preço sempre vem do cardápio: o que está salvo no navegador pode ter sido alterado
 let carrinho = store.get('carrinho', []).flatMap(i => {
-  const m = MENU.find(x => x.id === i?.id);
+  const m = itemDe(i?.id);
   const qtd = Math.min(99, Math.max(1, parseInt(i.qtd) || 1));
   return m && Array.isArray(i.escolhas) && Array.isArray(i.sem)
     ? [{ ...i, nome: m.nome, unit: m.preco, qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
@@ -57,49 +43,60 @@ let carrinho = store.get('carrinho', []).flatMap(i => {
 let atual = null;
 
 // ---------- horário ----------
-// ?teste no link libera pedidos fora do horário (pra demonstrar o site)
-const TESTE = new URLSearchParams(location.search).has('teste');
-const podePedir = () => TESTE || aberto();
-const fechadoMsg = () => `Estamos fechados agora 🌙 Abrimos ${proximaAbertura()}.`;
+const podePedir = () => TESTE || lojaAberta(loja);
+const abre = () => proximaAbertura(loja.horario, undefined, loja.fechadaHoje === hoje());
+const fechadoMsg = () => `Estamos fechados agora 🌙 Abrimos ${abre()}.`;
 function status() {
-  const on = aberto();
+  const on = lojaAberta(loja), h = loja.horario;
   $('#status').className = `status ${on ? 'on' : 'off'}`;
-  $('#status').textContent = (on ? `Aberto agora · até ${HORARIO.fecha}h` : `Fechado · abre ${proximaAbertura()}`) + (TESTE ? ' · modo teste' : '');
+  $('#status').textContent = (on ? `Aberto agora${noHorario(h) ? ` · até ${h.fecha}h` : ''}` : `Fechado · abre ${abre()}`)
+    + (TESTE ? ' · modo teste' : '');
 }
-document.querySelectorAll('.horario').forEach(el => el.textContent = HORARIO.texto);
-status();
 setInterval(status, 30000);
 
-// ---------- cardápio ----------
-$('#menu').innerHTML = MENU.map((i, n) => `
-  <article class="card" style="--d:${n * 80}ms">
-    <div class="emoji"><img src="img/burger.webp" alt=""><span>${i.emoji}</span></div>
-    <h3>${i.nome}</h3>
-    <p>${i.desc}</p>
-    <div class="rodape">
-      <strong>${brl(i.preco)}</strong>
-      <md-filled-tonal-button data-id="${i.id}"><md-icon slot="icon">add</md-icon>Adicionar</md-filled-tonal-button>
-    </div>
-  </article>`).join('');
+// ---------- cardápio, bairros e horário (roda de novo a cada mudança no banco) ----------
+function renderLoja() {
+  document.querySelectorAll('.horario').forEach(el => el.textContent = loja.horario.texto);
+  status();
+  $('#menu').innerHTML = loja.cardapio.map((i, n) => `
+    <article class="card${esgotado(i.id) ? ' esgotado' : ''}" style="--d:${n * 80}ms">
+      <div class="emoji"><img src="img/burger.webp" alt=""><span>${esc(i.emoji)}</span></div>
+      <h3>${esc(i.nome)}</h3>
+      <p>${esc(i.desc)}</p>
+      <div class="rodape">
+        <strong>${brl(i.preco)}</strong>
+        ${esgotado(i.id) ? '<span class="selo">Esgotado</span>'
+          : `<md-filled-tonal-button data-id="${esc(i.id)}"><md-icon slot="icon">add</md-icon>Adicionar</md-filled-tonal-button>`}
+      </div>
+    </article>`).join('');
+  const b = $('#bairro'), escolhido = b.value;
+  b.innerHTML = '<option value="">Bairro</option>'
+    + Object.entries(loja.taxas).sort(([x], [y]) => x.localeCompare(y, 'pt-BR'))
+      .map(([nome, t]) => `<option value="${esc(nome)}">${esc(nome)} · ${brl(t)}</option>`).join('')
+    + '<option value="outro">Outro bairro (taxa a confirmar)</option>';
+  b.value = escolhido;
+  salvar();
+}
 $('#menu').addEventListener('click', e => {
   const b = e.target.closest('[data-id]');
-  if (b) abrirItem(MENU.find(i => i.id === b.dataset.id));
+  if (b) abrirItem(itemDe(b.dataset.id));
 });
 
 // ---------- personalizar item ----------
 const dItem = $('#itemDialog');
 function abrirItem(item) {
   if (!podePedir()) return toast(fechadoMsg(), true);
+  if (esgotado(item.id)) return toast(`${item.nome} esgotou 😕`, true);
   atual = { item, qtd: 1 };
   $('#itemTitulo').textContent = item.nome;
   $('#itemCorpo').innerHTML = `
-    <p class="desc">${item.desc}</p>
+    <p class="desc">${esc(item.desc)}</p>
     ${item.escolhas.map((e, i) => `
-      <fieldset><legend>${e.titulo} <span class="obrig">obrigatório</span></legend>
-        ${e.itens.map(op => `<label class="opt"><md-radio name="e${i}" value="${op}"></md-radio>${op}</label>`).join('')}
+      <fieldset><legend>${esc(e.titulo)} <span class="obrig">obrigatório</span></legend>
+        ${e.itens.map(op => `<label class="opt"><md-radio name="e${i}" value="${esc(op)}"></md-radio>${esc(op)}</label>`).join('')}
       </fieldset>`).join('')}
     <fieldset><legend>Quer tirar algo?</legend>
-      <md-chip-set>${item.tira.map(t => `<md-filter-chip label="Sem ${t.toLowerCase()}" data-v="${t}"></md-filter-chip>`).join('')}</md-chip-set>
+      <md-chip-set>${item.tira.map(t => `<md-filter-chip label="Sem ${esc(t.toLowerCase())}" data-v="${esc(t)}"></md-filter-chip>`).join('')}</md-chip-set>
     </fieldset>
     <md-outlined-text-field id="itemObs" maxlength="200" label="Observação (opcional)" type="textarea" rows="2"
       placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>`;
@@ -142,7 +139,7 @@ $('#itemAdd').onclick = () => {
 const dCart = $('#cartDialog');
 const subtotal = () => carrinho.reduce((s, i) => s + i.unit * i.qtd, 0);
 // 0 na retirada, null se o bairro não foi escolhido ou está fora da tabela
-const taxa = () => radio('tipo') !== 'Entrega' ? 0 : TAXAS[$('#bairro').value] ?? null;
+const taxa = () => taxaDe(loja, radio('tipo') === 'Entrega', $('#bairro').value);
 const detalhes = i => [
   ...i.escolhas.map(([t, v]) => `${t}: ${v}`),
   i.sem.length ? `Sem: ${i.sem.join(', ').toLowerCase()}` : null,
@@ -191,16 +188,6 @@ $('#cartBtn').onclick = abrirSacola;
 $('#cartBarBtn').onclick = abrirSacola;
 document.querySelectorAll('[data-fechar]').forEach(b => b.onclick = () => b.closest('md-dialog').close());
 
-$('#bairro').insertAdjacentHTML('beforeend', Object.entries(TAXAS)
-  .map(([b, t]) => `<option value="${esc(b)}">${esc(b)} · ${brl(t)}</option>`).join('')
-  + '<option value="outro">Outro bairro (taxa a confirmar)</option>');
-
-// lembra os dados do cliente para o próximo pedido
-const CAMPOS = ['nome', 'fone', 'rua', 'numero', 'bairro', 'bairroOutro', 'compl', 'ref'];
-const cliente = store.get('cliente', {});
-CAMPOS.forEach(k => { if (cliente[k]) $('#' + k).value = cliente[k]; });
-$('#bairroOutro').hidden = $('#bairro').value !== 'outro';
-
 // (81) 9 8479-3839 para celular, (81) 3333-4444 para fixo
 function mascaraFone(v) {
   const d = v.replace(/\D/g, '').slice(0, 11);
@@ -209,29 +196,46 @@ function mascaraFone(v) {
   if (d.length === 11) return `${ddd}${r[0]} ${r.slice(1, 5)}-${r.slice(5)}`;
   return ddd + (r.length > 4 ? `${r.slice(0, 4)}-${r.slice(4)}` : r);
 }
-$('#fone').value = mascaraFone($('#fone').value);
 $('#fone').addEventListener('input', e => { e.target.value = mascaraFone(e.target.value); });
 
-// ---------- enviar para o WhatsApp ----------
+// ---------- enviar: grava no banco e abre o WhatsApp ----------
+const CAMPOS = ['nome', 'fone', 'rua', 'numero', 'bairro', 'bairroOutro', 'compl', 'ref'];
 $('#enviar').onclick = () => {
   if (!carrinho.length) return toast('Sua sacola está vazia', true);
   if (!podePedir()) return toast(fechadoMsg(), true);
+  const acabou = carrinho.find(i => esgotado(i.id));
+  if (acabou) return toast(`${acabou.nome} esgotou, tira da sacola 😕`, true);
   const f = id => $('#' + id).value.trim();
   const entrega = radio('tipo') === 'Entrega';
   const pag = radio('pag');
-  const vazio = ['nome', 'fone', ...(entrega ? ['rua', 'numero', 'bairro'] : []), ...(entrega && f('bairro') === 'outro' ? ['bairroOutro'] : [])].find(id => !f(id));
+  const vazio = ['nome', 'fone', ...(entrega ? ['rua', 'numero', 'bairro'] : []),
+    ...(entrega && f('bairro') === 'outro' ? ['bairroOutro'] : [])].find(id => !f(id));
   if (vazio) { $('#' + vazio).reportValidity(); $('#' + vazio).focus(); return toast(`Preencha: ${$('#' + vazio).label || $('#' + vazio).ariaLabel}`, true); }
   if (f('fone').replace(/\D/g, '').length < 10) { $('#fone').focus(); return toast('Telefone inválido (inclua o DDD)', true); }
   if (!pag) return toast('Escolha a forma de pagamento', true);
   const sub = subtotal(), tx = taxa(), total = sub + (tx ?? 0), troco = +f('troco') || 0;
   if (pag === 'Dinheiro' && troco && troco < total) return toast(`O troco precisa ser maior que ${brl(total)}`, true);
+  if (troco > 1000) return toast('Troco até R$ 1.000', true);
 
   const c = Object.fromEntries(CAMPOS.map(k => [k, f(k)]));
   store.set('cliente', c);
+  const bairro = c.bairro === 'outro' ? c.bairroOutro : c.bairro;
   const cod = Date.now().toString(36).slice(-5).toUpperCase();
-  const comPix = pag === 'Pix' && LOJA.pix;
-  // api.whatsapp.com direto: o redirect do wa.me corrompe emojis
-  const url = `https://api.whatsapp.com/send?phone=${LOJA.whatsapp}&text=${encodeURIComponent(mensagem(c, entrega, pag, troco, sub, tx, f('obsGeral'), cod, comPix))}`;
+  const comPix = pag === 'Pix' && loja.pix;
+  // grava sem esperar: o WhatsApp abre de qualquer jeito (o pedido nunca se perde) e o pop-up não é bloqueado
+  const ref = doc(collection(db, 'lojas', LOJA_ID, 'pedidos'));
+  setDoc(ref, {
+    cod, criadoEm: serverTimestamp(), status: 'novo', entrega, pag, obs: f('obsGeral'),
+    troco: pag === 'Dinheiro' ? troco : 0, subtotal: sub, taxa: tx,
+    cliente: { nome: c.nome, fone: c.fone, rua: entrega ? c.rua : '', numero: entrega ? c.numero : '',
+      bairro: entrega ? bairro : '', compl: entrega ? c.compl : '', ref: entrega ? c.ref : '' },
+    // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
+    itens: carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,
+      escolhas: Object.fromEntries(i.escolhas), sem: i.sem, obs: i.obs })),
+  }).catch(e => console.error('pedido não foi pro painel', e));
+  const painel = `${new URL('painel/', location.href).href}#${ref.id}`;
+  const url = `https://api.whatsapp.com/send?phone=${loja.whatsapp}&text=${encodeURIComponent(
+    mensagem(c, entrega, bairro, pag, troco, sub, tx, f('obsGeral'), cod, comPix, painel))}`;
   window.open(url, '_blank', 'noopener');
   carrinho = [];
   salvar();
@@ -243,7 +247,7 @@ $('#enviar').onclick = () => {
 // ---------- Pix copia e cola ----------
 // bairro fora da tabela: código sem valor, o cliente digita depois de confirmar a taxa
 function abrirPix(valor, cod) {
-  $('#pixCodigo').value = pix({ chave: LOJA.pix, nome: LOJA.nome, cidade: LOJA.cidade.split(' - ')[0], valor, txid: cod });
+  $('#pixCodigo').value = pix({ chave: loja.pix, nome: loja.nome, cidade: loja.cidade.split(' - ')[0], valor, txid: cod });
   $('#pixInfo').textContent = valor
     ? `Valor: ${brl(valor)}. Copie o código e cole na opção "Pix copia e cola" do app do seu banco.`
     : 'Confirme o valor com a taxa de entrega no WhatsApp, depois copie o código, cole na opção "Pix copia e cola" do app do seu banco e digite o valor.';
@@ -254,9 +258,8 @@ $('#pixCopiar').onclick = async () => {
   catch { $('#pixCodigo').select(); toast('Selecione o código e copie', true); }
 };
 
-function mensagem(c, entrega, pag, troco, sub, tx, obs, cod, comPix) {
-  const bairro = c.bairro === 'outro' ? c.bairroOutro : c.bairro;
-  const endereco = `${c.rua}, ${c.numero}, ${bairro}, ${LOJA.cidade}`;
+function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, painel) {
+  const endereco = `${c.rua}, ${c.numero}, ${bairro}, ${loja.cidade}`;
   const linha = '-------------------------------';
   return [
     '#### NOVO PEDIDO ####',
@@ -299,7 +302,15 @@ function mensagem(c, entrega, pag, troco, sub, tx, obs, cod, comPix) {
     pag === 'Dinheiro' ? (troco ? `Troco para ${brl(troco)}` : 'Não precisa de troco') : null,
     comPix ? 'Vou mandar o comprovante aqui' : null,
     ...(obs ? ['', '📝   Observações', obs] : []),
+    '',
+    `👉 Abrir no painel: ${painel}`,
   ].filter(x => x !== null).join('\n');
 }
 
+// ---------- início ----------
+renderLoja(); // antes de restaurar o cliente: o bairro salvo precisa das opções já no select
+const cliente = store.get('cliente', {});
+CAMPOS.forEach(k => { if (cliente[k]) $('#' + k).value = cliente[k]; });
+$('#bairroOutro').hidden = $('#bairro').value !== 'outro';
+$('#fone').value = mascaraFone($('#fone').value);
 salvar();

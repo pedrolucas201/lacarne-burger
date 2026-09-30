@@ -216,3 +216,8 @@ md-outlined-text-field { width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before { animation: none !important; transition: none !important; }
 }
+
+/* burger esgotado hoje e erro ao carregar a loja */
+.card.esgotado { opacity: .55; }
+.selo { padding: 6px 12px; border-radius: 12px; background: var(--rosa); color: var(--md-sys-color-primary); font-weight: 600; font-size: .85rem; }
+.erro-carga { grid-column: 1 / -1; display: grid; justify-items: center; gap: 12px; padding: 32px 16px; text-align: center; }
