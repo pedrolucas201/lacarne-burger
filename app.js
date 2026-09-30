@@ -162,6 +162,17 @@ const CAMPOS = ['nome', 'fone', 'rua', 'numero', 'bairro', 'compl', 'ref'];
 const cliente = store.get('cliente', {});
 CAMPOS.forEach(k => { if (cliente[k]) $('#' + k).value = cliente[k]; });
 
+// (81) 9 8479-3839 para celular, (81) 3333-4444 para fixo
+function mascaraFone(v) {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d && `(${d}`;
+  const ddd = `(${d.slice(0, 2)}) `, r = d.slice(2);
+  if (d.length === 11) return `${ddd}${r[0]} ${r.slice(1, 5)}-${r.slice(5)}`;
+  return ddd + (r.length > 4 ? `${r.slice(0, 4)}-${r.slice(4)}` : r);
+}
+$('#fone').value = mascaraFone($('#fone').value);
+$('#fone').addEventListener('input', e => { e.target.value = mascaraFone(e.target.value); });
+
 // ---------- enviar para o WhatsApp ----------
 $('#enviar').onclick = () => {
   if (!carrinho.length) return toast('Sua sacola está vazia', true);
