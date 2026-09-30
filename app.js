@@ -1,7 +1,7 @@
 import './vendor/material.js';
 
 // ===== Configuração da loja (edite aqui) =====
-const LOJA = { nome: 'La Carne Burger', whatsapp: '5581984793839' };
+const LOJA = { nome: 'La Carne Burger', whatsapp: '5581984793839', cidade: 'Vitória de Santo Antão - PE' };
 const PONTO = { titulo: 'Ponto da carne', itens: ['Mal passado', 'Ao ponto', 'Bem passado'] };
 const MENU = [
   { id: 'manso', nome: 'Manso', preco: 20, emoji: '🍔', escolhas: [PONTO],
@@ -188,7 +188,8 @@ $('#enviar').onclick = () => {
 
   const c = Object.fromEntries(CAMPOS.map(k => [k, f(k)]));
   store.set('cliente', c);
-  const url = `https://wa.me/${LOJA.whatsapp}?text=${encodeURIComponent(mensagem(c, entrega, pag, troco, total, f('obsGeral')))}`;
+  // api.whatsapp.com direto: o redirect do wa.me corrompe emojis
+  const url = `https://api.whatsapp.com/send?phone=${LOJA.whatsapp}&text=${encodeURIComponent(mensagem(c, entrega, pag, troco, total, f('obsGeral')))}`;
   window.open(url, '_blank', 'noopener');
   carrinho = [];
   salvar();
@@ -198,28 +199,48 @@ $('#enviar').onclick = () => {
 
 function mensagem(c, entrega, pag, troco, total, obs) {
   const cod = Date.now().toString(36).slice(-5).toUpperCase();
+  const endereco = `${c.rua}, ${c.numero}, ${c.bairro}, ${LOJA.cidade}`;
+  const linha = '-------------------------------';
   return [
-    `🍔 *NOVO PEDIDO — ${LOJA.nome}*`,
-    `Pedido #${cod} · ${new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`,
+    '#### NOVO PEDIDO ####',
     '',
-    '*🧾 ITENS*',
-    ...carrinho.flatMap(i => [`*${i.qtd}x ${i.nome}* — ${brl(i.unit * i.qtd)}`, ...detalhes(i).map(d => `   ▪ ${d}`)]),
+    `#️⃣   Nº pedido: ${cod}`,
+    `feito em ${new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).replace(',', '')}`,
     '',
-    `*Total dos itens: ${brl(total)}*`,
-    entrega ? '_(+ taxa de entrega a confirmar)_' : null,
+    `👤   ${c.nome}`,
+    `📞   ${c.fone}`,
     '',
-    '*👤 CLIENTE*',
-    `Nome: ${c.nome}`,
-    `Telefone: ${c.fone}`,
-    '',
-    entrega ? '*🛵 ENTREGA*' : '*🏃 RETIRADA NO LOCAL*',
-    ...(entrega ? [`${c.rua}, ${c.numero} — ${c.bairro}`,
+    ...(entrega ? [
+      '🛵   Endereço de entrega',
+      `${c.rua}, ${c.numero}`,
+      `Bairro: ${c.bairro}`,
       c.compl ? `Complemento: ${c.compl}` : null,
-      c.ref ? `Referência: ${c.ref}` : null] : []),
+      c.ref ? `(${c.ref})` : null,
+      '',
+      'Link do endereço:',
+      `https://maps.google.com/?q=${encodeURIComponent(endereco)}`,
+    ] : ['🏃   Retirada no local']),
     '',
-    '*💳 PAGAMENTO*',
-    pag + (pag === 'Dinheiro' ? (troco ? ` — troco para ${brl(troco)}` : ' — não precisa de troco') : ''),
-    obs ? `\n*📝 OBSERVAÇÕES*\n${obs}` : null,
+    '------- ITENS DO PEDIDO -------',
+    ...carrinho.flatMap(i => [
+      '',
+      `*${i.qtd} x ${i.nome.toUpperCase()}*`,
+      ...i.escolhas.flatMap(([t, v]) => [`  ${t.toUpperCase()}`, `    - ${v}`]),
+      ...(i.sem.length ? ['  RETIRAR', ...i.sem.map(x => `    - ${x.toLowerCase()}`)] : []),
+      i.obs ? `  OBS: ${i.obs}` : null,
+      `💵 ${i.qtd} x ${brl(i.unit)} = ${brl(i.unit * i.qtd)}`,
+    ]),
+    '',
+    linha,
+    '',
+    `SUBTOTAL: ${brl(total)}`,
+    entrega ? 'ENTREGA: a confirmar' : null,
+    `*VALOR FINAL: ${brl(total)}${entrega ? ' + entrega' : ''}*`,
+    '',
+    'PAGAMENTO',
+    `*${pag}*`,
+    pag === 'Dinheiro' ? (troco ? `Troco para ${brl(troco)}` : 'Não precisa de troco') : null,
+    ...(obs ? ['', '📝   Observações', obs] : []),
   ].filter(x => x !== null).join('\n');
 }
 
