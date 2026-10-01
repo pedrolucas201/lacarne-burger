@@ -59,9 +59,7 @@ h1, h2, .titulo, .card h3 { font-family: 'Bebas Neue', 'Poppins', sans-serif; fo
 .hero {
   display: flex; align-items: center; justify-content: center; gap: 48px;
   padding: 48px 16px 56px;
-  background:
-    radial-gradient(circle at 15% 20%, var(--rosa), transparent 45%),
-    radial-gradient(circle at 85% 80%, var(--creme), transparent 50%);
+  background: url(img/capa-fundo.webp) center / cover; /* fundo de carninhas da Brenda */
 }
 .kicker { margin: 0; color: var(--md-sys-color-primary); font-weight: 600; text-transform: uppercase; font-size: .8rem; letter-spacing: 1.5px; }
 .status {
@@ -98,7 +96,7 @@ h1, h2, .titulo, .card h3 { font-family: 'Bebas Neue', 'Poppins', sans-serif; fo
 /* cardápio */
 main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px; scroll-margin-top: 70px; }
 .titulo { font-size: 2.4rem; margin: 32px 0 16px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
 .card {
   display: flex; flex-direction: column;
   padding: 16px; border-radius: 24px;
@@ -121,6 +119,8 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 /* foto real do burger: ocupa o quadro todo */
 .emoji.com-foto img { width: 100%; height: 100%; object-fit: cover; filter: none; }
 .card:hover .emoji.com-foto img { transform: scale(1.05); }
+/* sem foto: só o emoji grande, pra ninguém achar que a imagem é o burger que vem */
+.emoji.sem-foto span { position: static; width: 96px; height: 96px; font-size: 52px; }
 .emoji span {
   position: absolute; top: 10px; right: 10px; display: grid; place-items: center;
   width: 38px; height: 38px; border-radius: 50%; background: #fff; font-size: 20px;
