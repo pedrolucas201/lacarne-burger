@@ -20,7 +20,13 @@ const TESTE = new URLSearchParams(location.search).has('teste');
 // ---------- loja: começa com o arquivo publicado; o banco, ao vivo, corrige e traz os botões do dia ----------
 // ao vivo = já veio do banco. Antes disso não dá pra saber esgotado/fechar hoje: o selo de aberto espera e o envio também.
 let loja = LOJA, aoVivo = false, banco = null; // banco = módulos do Firebase, guardados pro envio ficar síncrono (iPhone bloqueia o WhatsApp depois de await)
-const semConexao = () => toast('Sem conexão com a loja. Confira sua internet e recarregue a página.', true);
+// plano B: se o banco recusar (App Check, bloqueador, VPN) ou não responder em 10 s, o pedido vai só pelo WhatsApp
+let semBanco = false;
+const semConexao = () => {
+  if (aoVivo || semBanco) return;
+  semBanco = true;
+  toast('Não conectamos com a loja agora, mas você pode pedir normalmente pelo WhatsApp.', true);
+};
 const demorou = setTimeout(semConexao, 10000); // sem internet o onSnapshot só espera
 fb.then(m => m.onSnapshot(m.doc(m.db, 'lojas', LOJA_ID), s => {
   if (!s.exists()) return semConexao();
@@ -347,8 +353,7 @@ if (bois.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
 const CAMPOS = ['nome', 'fone', 'cep', 'rua', 'numero', 'bairro', 'bairroOutro', 'compl', 'ref'];
 $('#enviar').onclick = () => {
   if (!carrinho.length) return toast('Sua sacola está vazia', true);
-  if (!aoVivo) return toast('Ainda conectando com a loja, tenta de novo em instantes', true);
-  const { db, doc, collection, setDoc, serverTimestamp } = banco;
+  if (!aoVivo && !semBanco) return toast('Ainda conectando com a loja, tenta de novo em instantes', true);
   if (!podePedir()) return toast(fechadoMsg(), true);
   const acabou = carrinho.find(i => esgotado(i.id));
   if (acabou) return toast(`${acabou.nome} esgotou, tira da sacola 😕`, true);
@@ -369,18 +374,23 @@ $('#enviar').onclick = () => {
   const bairro = c.bairro === 'outro' ? c.bairroOutro : c.bairro;
   const cod = Date.now().toString(36).slice(-5).toUpperCase();
   const comPix = pag === 'Pix' && loja.pix;
-  // grava sem esperar: o WhatsApp abre de qualquer jeito (o pedido nunca se perde) e o pop-up não é bloqueado
-  const ref = doc(collection(db, 'lojas', LOJA_ID, 'pedidos'));
-  setDoc(ref, {
-    cod, criadoEm: serverTimestamp(), status: 'novo', entrega, pag, obs: f('obsGeral'),
-    troco: pag === 'Dinheiro' ? troco : 0, subtotal: sub, taxa: tx,
-    cliente: { nome: c.nome, fone: c.fone, rua: entrega ? c.rua : '', numero: entrega ? c.numero : '',
-      bairro: entrega ? bairro : '', compl: entrega ? c.compl : '', ref: entrega ? c.ref : '', loc: entrega ? loc : '' },
-    // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
-    itens: carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,
-      escolhas: Object.fromEntries(i.escolhas), sem: i.sem, extras: i.extras, obs: i.obs })),
-  }).catch(e => console.error('pedido não foi pro painel', e));
-  const painel = `${new URL('painel/', location.href).href}#${ref.id}`;
+  // grava sem esperar: o WhatsApp abre de qualquer jeito (o pedido nunca se perde) e o pop-up não é bloqueado.
+  // sem banco (plano B) não grava: a mensagem avisa a loja que o pedido não está no painel
+  let painel = null;
+  if (aoVivo) {
+    const { db, doc, collection, setDoc, serverTimestamp } = banco;
+    const ref = doc(collection(db, 'lojas', LOJA_ID, 'pedidos'));
+    setDoc(ref, {
+      cod, criadoEm: serverTimestamp(), status: 'novo', entrega, pag, obs: f('obsGeral'),
+      troco: pag === 'Dinheiro' ? troco : 0, subtotal: sub, taxa: tx,
+      cliente: { nome: c.nome, fone: c.fone, rua: entrega ? c.rua : '', numero: entrega ? c.numero : '',
+        bairro: entrega ? bairro : '', compl: entrega ? c.compl : '', ref: entrega ? c.ref : '', loc: entrega ? loc : '' },
+      // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
+      itens: carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,
+        escolhas: Object.fromEntries(i.escolhas), sem: i.sem, extras: i.extras, obs: i.obs })),
+    }).catch(e => console.error('pedido não foi pro painel', e));
+    painel = `${new URL('painel/', location.href).href}#${ref.id}`;
+  }
   const url = `https://api.whatsapp.com/send?phone=${loja.whatsapp}&text=${encodeURIComponent(
     mensagem(c, entrega, bairro, pag, troco, sub, tx, f('obsGeral'), cod, comPix, painel))}`;
   window.open(url, '_blank', 'noopener');
@@ -451,7 +461,7 @@ function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, pai
     comPix ? 'Vou mandar o comprovante aqui' : null,
     ...(obs ? ['', '📝   Observações', obs] : []),
     '',
-    `👉 Abrir no painel: ${painel}`,
+    painel ? `👉 Abrir no painel: ${painel}` : '⚠️ Este pedido não entrou no painel (o site não conectou com a loja)',
   ].filter(x => x !== null).join('\n');
 }
 
