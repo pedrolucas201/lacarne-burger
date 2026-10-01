@@ -15,7 +15,15 @@ export function conferir(p, loja) {
 export const whats = (fone, texto) =>
   `https://api.whatsapp.com/send?phone=55${soDigitos(fone)}&text=${encodeURIComponent(texto)}`;
 
-export const mapa = (endereco, cidade) => `https://maps.google.com/?q=${encodeURIComponent(`${endereco}, ${cidade}`)}`;
+// sem cidade = coordenada (ponto) ou endereço completo
+export const mapa = (endereco, cidade) => `https://maps.google.com/?q=${encodeURIComponent([endereco, cidade].filter(Boolean).join(', '))}`;
+
+// localização do celular → "lat,lng" com 6 casas (~10 cm, mais que o GPS entrega)
+export const ponto = (lat, lng) => `${lat.toFixed(6)},${lng.toFixed(6)}`;
+
+// bairro que o CEP devolve → nome igual na tabela de taxas (sem acento/maiúscula); null se não houver
+const chave = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+export const bairroDaTabela = (taxas, nome) => chave(nome) && Object.keys(taxas).find(b => chave(b) === chave(nome)) || null;
 
 export const MOTIVOS = ['Acabou o item', 'Fora da área de entrega', 'Cliente desistiu', 'Loja fechando'];
 

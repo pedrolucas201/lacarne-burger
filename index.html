@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://www.google.com/recaptcha/ https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://content-firebaseappcheck.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com http://127.0.0.1:8080 http://127.0.0.1:9099; frame-src 'self' https://www.google.com/recaptcha/; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://viacep.com.br https://www.google.com/recaptcha/ https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://content-firebaseappcheck.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com http://127.0.0.1:8080 http://127.0.0.1:9099; frame-src 'self' https://www.google.com/recaptcha/; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="stylesheet" href="vendor/toastify.css">
   <link rel="stylesheet" href="style.css">
@@ -30,6 +30,7 @@
   <header class="topbar">
     <img src="logo.png" alt="">
     <h1>LA CARNE</h1>
+    <md-icon-button id="painelBtn" href="painel/" aria-label="Abrir o painel da loja" hidden><md-icon>dashboard</md-icon></md-icon-button>
     <div class="bag">
       <md-icon-button id="cartBtn" aria-label="Abrir sacola"><md-icon>shopping_bag</md-icon></md-icon-button>
       <span id="badge" hidden>0</span>
@@ -99,6 +100,9 @@
         <label><md-radio name="tipo" value="Retirada"></md-radio>Retirar no local</label>
       </div>
       <div id="endereco" class="grid2">
+        <md-outlined-text-field id="cep" maxlength="9" inputmode="numeric" label="CEP (opcional)" autocomplete="postal-code"></md-outlined-text-field>
+        <md-outlined-button id="usarLoc" type="button"><md-icon slot="icon">my_location</md-icon>Minha localização</md-outlined-button>
+        <p id="locInfo" class="span2 nota-loc" hidden></p>
         <md-outlined-text-field id="rua" maxlength="100" class="span2" label="Rua / Avenida" required autocomplete="address-line1"></md-outlined-text-field>
         <md-outlined-text-field id="numero" maxlength="10" label="Número" required></md-outlined-text-field>
         <select id="bairro" required aria-label="Bairro"><option value="">Bairro</option></select>

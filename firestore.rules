@@ -16,10 +16,10 @@ service cloud.firestore {
         && texto(p.cod, 10) && p.entrega is bool && texto(p.obs, 300)
         && p.pag in ['Pix', 'Cartão de crédito', 'Cartão de débito', 'Dinheiro']
         && p.troco is number && p.troco >= 0 && p.troco <= 1000
-        && c is map && c.keys().hasOnly(['nome', 'fone', 'rua', 'numero', 'bairro', 'compl', 'ref'])
+        && c is map && c.keys().hasOnly(['nome', 'fone', 'rua', 'numero', 'bairro', 'compl', 'ref', 'loc'])
         && texto(c.nome, 60) && c.nome.size() > 0 && texto(c.fone, 16)
         && texto(c.get('rua', ''), 100) && texto(c.get('numero', ''), 10) && texto(c.get('bairro', ''), 60)
-        && texto(c.get('compl', ''), 60) && texto(c.get('ref', ''), 100)
+        && texto(c.get('compl', ''), 60) && texto(c.get('ref', ''), 100) && texto(c.get('loc', ''), 40)
         && p.itens is list && p.itens.size() >= 1 && p.itens.size() <= 30
         && p.subtotal is number && p.subtotal > 0 && p.subtotal <= 5000
         && (p.taxa == null || (p.taxa is number && p.taxa >= 0 && p.taxa <= 50));
