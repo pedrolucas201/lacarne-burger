@@ -32,6 +32,11 @@ export const mapa = (endereco, cidade) => `https://maps.google.com/?q=${encodeUR
 // localização do celular → "lat,lng" com 6 casas (~10 cm, mais que o GPS entrega)
 export const ponto = (lat, lng) => `${lat.toFixed(6)},${lng.toFixed(6)}`;
 
+// GPS de celular acerta em poucos metros; computador estima pela internet e erra por km: acima de 100 m não ajuda o motoboy
+export const locBoa = precisao => precisao <= 100;
+export const metros = m => m < 1000 ? `${Math.round(m)} m`
+  : `${(m / 1000).toLocaleString('pt-BR', { maximumFractionDigits: m < 10000 ? 1 : 0 })} km`;
+
 // bairro que o CEP devolve → nome igual na tabela de taxas (sem acento/maiúscula); null se não houver
 const chave = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 export const bairroDaTabela = (taxas, nome) => chave(nome) && Object.keys(taxas).find(b => chave(b) === chave(nome)) || null;

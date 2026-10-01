@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar } from '../pedido.js';
+import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar, locBoa, metros } from '../pedido.js';
 
 const loja = { taxas: { Matriz: 5 }, cardapio: [{ id: 'bruto', preco: 32 }, { id: 'manso', preco: 20 }] };
 const p = (extra = {}) => ({
@@ -70,4 +70,13 @@ test('adicional repetido conta cada unidade e aparece agrupado', () => {
   assert.deepEqual(agrupar(['cheddar', 'bacon', 'cheddar'], ad), ['2x Cheddar (1 fatia)', 'Bacon']);
   assert.deepEqual(agrupar(['sumiu'], ad), ['sumiu']); // adicional que saiu do cardápio: mostra o id
   assert.deepEqual(agrupar(undefined, ad), []);
+});
+test('localização só vale com precisão de até 100 m', () => {
+  assert.equal(locBoa(12), true);
+  assert.equal(locBoa(100), true);
+  assert.equal(locBoa(101), false);
+  assert.equal(locBoa(50000), false); // computador sem GPS: estimativa pela internet
+  assert.equal(metros(48), '48 m');
+  assert.equal(metros(1499), '1,5 km');
+  assert.equal(metros(50000), '50 km');
 });
