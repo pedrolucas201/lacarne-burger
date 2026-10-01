@@ -22,6 +22,14 @@ export const LOJA = {
     'Matriz': 5, 'Maués': 8, 'Militina': 8, 'Natuba': 10, 'Petrobras': 7, 'Pinga Fogo': 6, 'Privê Shopping': 10,
     'Redenção': 7, 'Santana': 9, 'Shopping (fora)': 8, 'Shopping (dentro)': 10, 'Sítio do Meio': 7, 'Trajanos': 7,
   },
+  // adicionais (Brenda, 01/10): valem pra qualquer burger, até 5 de cada (app.js MAX_EXTRA); preço por unidade do burger
+  adicionais: [
+    { id: 'cheddar', nome: 'Cheddar (1 fatia)', preco: 2 },
+    { id: 'mucarela', nome: 'Muçarela (1 fatia)', preco: 2 },
+    { id: 'coalho', nome: 'Queijo coalho (1 fatia)', preco: 5 },
+    { id: 'cebola', nome: 'Cebola caramelizada', preco: 3 },
+    { id: 'bacon', nome: 'Bacon', preco: 4 },
+  ],
   cardapio: [
     { id: 'manso', nome: 'Manso', preco: 20, emoji: '🍔', escolhas: [PONTO],
       desc: 'Pão brioche, 150g de hambúrguer artesanal, queijo cheddar e maionese da casa.',

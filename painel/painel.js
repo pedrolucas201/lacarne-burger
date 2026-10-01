@@ -6,7 +6,7 @@ import {
 import {
   getAuth, connectAuthEmulator, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged,
 } from '../vendor/firebase/auth.js';
-import { conferir, whats, avisoCliente, MOTIVOS, soDigitos, mapa } from '../pedido.js';
+import { conferir, whats, avisoCliente, MOTIVOS, soDigitos, mapa, agrupar } from '../pedido.js';
 import { periodo, calcular, variacao, csv, VALIDOS } from '../numeros.js';
 import { hoje } from '../horario.js';
 import { $, brl, esc, toast } from '../util.js';
@@ -126,6 +126,7 @@ function abrirPedido(id) {
     <ul class="itens">${p.itens.map(i => `<li><strong>${esc(i.qtd)}x ${esc(i.nome)}</strong>
       ${Object.entries(i.escolhas || {}).map(([t, v]) => `<br><small>${esc(t)}: ${esc(v)}</small>`).join('')}
       ${i.sem?.length ? `<br><small>Sem: ${esc(i.sem.join(', '))}</small>` : ''}
+      ${i.extras?.length ? `<br><small>+ ${esc(agrupar(i.extras, loja.adicionais).join(', '))}</small>` : ''}
       ${i.obs ? `<br><small>Obs: ${esc(i.obs)}</small>` : ''}</li>`).join('')}</ul>
     <p>Subtotal ${brl(p.subtotal)} · Entrega ${p.entrega ? (p.taxa === null ? 'a confirmar' : brl(p.taxa)) : '—'}
       <br><strong>Total ${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}</strong> · ${esc(p.pag)}${p.pag === 'Dinheiro' && p.troco ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
