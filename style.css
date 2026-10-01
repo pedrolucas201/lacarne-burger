@@ -183,7 +183,9 @@ md-outlined-text-field { width: 100%; }
 .vazio { padding: 24px 0; text-align: center; }
 #totais { padding: 12px 16px; border-radius: 16px; background: var(--creme); }
 #totais div { display: flex; justify-content: space-between; margin: 4px 0; }
-#totais .nota { font-size: .85rem; color: var(--md-sys-color-on-surface-variant); }
+#totais .nota, #totais .onde { font-size: .85rem; color: var(--md-sys-color-on-surface-variant); }
+#totais .onde { margin: 4px 0; }
+#totais a { color: var(--md-sys-color-primary); }
 #totais .total { font-weight: 800; font-size: 1.15rem; }
 .pix textarea {
   width: 100%; box-sizing: border-box; padding: 12px; resize: none; word-break: break-all;
