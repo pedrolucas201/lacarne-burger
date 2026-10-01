@@ -45,13 +45,16 @@
       <md-filled-button href="#cardapio"><md-icon slot="icon">lunch_dining</md-icon>Ver cardápio</md-filled-button>
     </div>
     <div class="foto">
-      <div class="ring"><img src="img/selo.webp" alt="Logo La Carne" width="640" height="640"></div>
+      <div class="ring"><img src="img/selo.webp" alt="Logo La Carne" width="640" height="640"><div id="bois" class="bois"></div></div>
+      <p id="boiNome" class="boi-nome" aria-live="polite"></p>
     </div>
   </section>
 
   <main id="cardapio">
     <h2 class="titulo">Cardápio</h2>
     <div id="menu" class="grid"><p class="vazio">Carregando cardápio…</p></div>
+    <h2 class="titulo">Bebidas</h2>
+    <div id="bebidas" class="bebidas"></div>
   </main>
 
   <footer>
@@ -88,6 +91,7 @@
       <md-icon-button data-fechar aria-label="Fechar"><md-icon>close</md-icon></md-icon-button></div>
     <div slot="content" class="checkout">
       <ul id="cartItens"></ul>
+      <div id="sugestao" hidden></div>
 
       <h3>Seus dados</h3>
       <md-outlined-text-field id="nome" label="Nome" maxlength="60" required autocomplete="name"></md-outlined-text-field>

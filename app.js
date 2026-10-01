@@ -66,10 +66,18 @@ function renderLoja() {
   $('#onde').hidden = !loja.endereco;
   if (loja.endereco) $('#onde').innerHTML = `📍 <a href="${mapa(loja.endereco, loja.cidade)}" target="_blank" rel="noopener">${esc(loja.endereco)}</a>`;
   status();
-  $('#menu').innerHTML = loja.cardapio.map((i, n) => `
-    <article class="card${esgotado(i.id) ? ' esgotado' : ''}" style="--d:${n * 80}ms">
+  const ehBebida = i => i.tipo === 'bebida';
+  $('#bebidas').innerHTML = loja.cardapio.filter(ehBebida).map(i => `
+    <article class="bebida${esgotado(i.id) ? ' esgotado' : ''}" data-card="${esc(i.id)}">
+      <img src="${esc(i.foto)}" alt="" loading="lazy">
+      <h3>${esc(i.nome)}</h3><small>${esc(i.desc)}</small>
+      <div class="pe"><strong>${brl(i.preco)}</strong><div class="ctrl" data-ctrl="${esc(i.id)}"></div></div>
+    </article>`).join('');
+  $('#menu').innerHTML = loja.cardapio.filter(i => !ehBebida(i)).map((i, n) => `
+    <article class="card${esgotado(i.id) ? ' esgotado' : ''}" data-card="${esc(i.id)}" style="--d:${n * 80}ms">
       <div class="emoji ${i.foto ? 'com-foto' : i.boi ? 'com-boi' : 'sem-foto'}">${i.foto || i.boi
-        ? `<img src="${esc(i.foto || i.boi)}" alt="" loading="lazy">` : ''}<span>${esc(i.emoji)}</span></div>
+        ? `<img src="${esc(i.foto || i.boi)}" alt="" loading="lazy">` : ''}<span>${i.boi
+          ? `<img class="mini-boi" src="${esc(i.boi)}" alt="">` : esc(i.emoji)}</span></div>
       <h3>${esc(i.nome)}</h3>
       <p>${esc(i.desc)}</p>
       <div class="rodape">
@@ -86,6 +94,18 @@ function renderLoja() {
   b.value = escolhido;
   salvar();
 }
+// + e − dos cards de bebida e da sugestão na sacola
+const tocarBebida = e => {
+  const b = e.target.closest('[data-beb]');
+  if (!b) return;
+  const item = itemDe(b.dataset.beb);
+  if (+b.dataset.d > 0) return abrirItem(item);
+  const linha = carrinho.find(i => i.id === item.id && !i.obs);
+  if (linha && !--linha.qtd) carrinho.splice(carrinho.indexOf(linha), 1);
+  salvar();
+};
+$('#bebidas').addEventListener('click', tocarBebida);
+$('#sugestao').addEventListener('click', tocarBebida);
 $('#menu').addEventListener('click', e => {
   const b = e.target.closest('[data-id]');
   if (b) abrirItem(itemDe(b.dataset.id));
@@ -93,9 +113,37 @@ $('#menu').addEventListener('click', e => {
 
 // ---------- personalizar item ----------
 const dItem = $('#itemDialog');
+// bebida não tem ponto, nem tirar, nem adicional: um toque e já vai pra sacola
+function pegarBebida(item) {
+  const igual = carrinho.find(i => i.id === item.id && !i.obs);
+  igual ? igual.qtd = Math.min(99, igual.qtd + 1)
+    : carrinho.push({ id: item.id, nome: item.nome, unit: item.preco, qtd: 1, escolhas: [], sem: [], extras: [], obs: '' });
+  salvar();
+  $('#badge').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400 });
+  if (!igual) toast(`${item.nome} na sacola 🥤`); // depois da primeira, o contador no card já mostra
+}
+const qtdBebida = id => carrinho.filter(i => i.id === id && !i.obs).reduce((s, i) => s + i.qtd, 0);
+// card mostra + (zerado) ou − n + (já na sacola); sacola sugere bebida quando não tem nenhuma
+function atualizarBebidas() {
+  document.querySelectorAll('[data-ctrl]').forEach(c => {
+    const id = c.dataset.ctrl, n = qtdBebida(id), nome = esc(itemDe(id)?.nome);
+    c.innerHTML = esgotado(id) ? '<span class="selo">Esgotado</span>' : n
+      ? `<md-icon-button data-beb="${esc(id)}" data-d="-1" aria-label="Menos ${nome}"><md-icon>${n > 1 ? 'remove' : 'delete'}</md-icon></md-icon-button>
+         <span>${n}</span>
+         <md-icon-button class="mais" data-beb="${esc(id)}" data-d="1" aria-label="Mais ${nome}"><md-icon>add</md-icon></md-icon-button>`
+      : `<md-icon-button class="mais" data-beb="${esc(id)}" data-d="1" aria-label="Adicionar ${nome}"><md-icon>add</md-icon></md-icon-button>`;
+  });
+  const bebidas = loja.cardapio.filter(i => i.tipo === 'bebida' && !esgotado(i.id));
+  const semBebida = carrinho.length && !carrinho.some(i => itemDe(i.id)?.tipo === 'bebida');
+  $('#sugestao').hidden = !(semBebida && bebidas.length);
+  if (!$('#sugestao').hidden) $('#sugestao').innerHTML = `<p>Que tal uma bebida? 🥤</p>
+    <div class="trilho">${bebidas.map(i => `<button type="button" data-beb="${esc(i.id)}" data-d="1">
+      <img src="${esc(i.foto)}" alt=""><span>${esc(i.nome)}</span><strong>+ ${brl(i.preco)}</strong></button>`).join('')}</div>`;
+}
 function abrirItem(item) {
   if (!podePedir()) return toast(fechadoMsg(), true);
   if (esgotado(item.id)) return toast(`${item.nome} esgotou 😕`, true);
+  if (item.tipo === 'bebida') return pegarBebida(item);
   atual = { item, qtd: 1, extras: {} }; // extras: { cheddar: 2 }
   $('#itemTitulo').textContent = item.nome;
   $('#itemCorpo').innerHTML = `
@@ -176,6 +224,7 @@ const detalhes = i => [
 ].filter(Boolean);
 
 function salvar() {
+  atualizarBebidas();
   store.set('carrinho', carrinho);
   const n = carrinho.reduce((s, i) => s + i.qtd, 0);
   $('#badge').textContent = n;
@@ -270,6 +319,29 @@ $('#usarLoc').onclick = () => {
 
 // atalho só pra quem entrou no painel neste navegador (o painel marca/desmarca); o painel em si é protegido pelas regras
 $('#painelBtn').hidden = !store.get('admin', false);
+
+// ---------- capa: os bois dos burgers se revezam dentro do selo; tocar leva pro burger ----------
+const bois = LOJA.cardapio.filter(i => i.boi); // do arquivo: não espera o banco
+if (bois.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  $('#bois').innerHTML = bois.map(i =>
+    `<button type="button" data-ir="${esc(i.id)}" aria-label="Ver o ${esc(i.nome)}"><img src="${esc(i.boi)}" alt=""></button>`).join('');
+  $('#bois').classList.add('on');
+  const botoes = [...$('#bois').children];
+  let n = 0;
+  const proximo = () => {
+    botoes.forEach((b, k) => b.classList.toggle('atual', k === n));
+    $('#boiNome').textContent = bois[n].nome;
+    n = (n + 1) % botoes.length;
+  };
+  proximo();
+  setInterval(proximo, 2500);
+  $('#bois').addEventListener('click', e => {
+    const card = $(`[data-card="${e.target.closest('[data-ir]')?.dataset.ir}"]`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.animate([{ boxShadow: '0 0 0 0 rgb(179 55 42 / .6)' }, { boxShadow: '0 0 0 14px rgb(179 55 42 / 0)' }], { duration: 900, iterations: 2 });
+  });
+}
 
 // ---------- enviar: grava no banco e abre o WhatsApp ----------
 const CAMPOS = ['nome', 'fone', 'cep', 'rua', 'numero', 'bairro', 'bairroOutro', 'compl', 'ref'];
