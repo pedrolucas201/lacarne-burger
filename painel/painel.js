@@ -77,7 +77,11 @@ const lerPedido = d => {
 };
 
 // ---------- pedidos ----------
-const ETAPAS = { novo: 'Novo', preparo: 'Em preparo', saiu: 'Saiu', entregue: 'Entregue', cancelado: 'Cancelado' };
+// grupos da lista misturam entrega e retirada; o título, o botão e o aviso de cada pedido usam etapa()
+const ETAPAS = { novo: 'Novo', preparo: 'Em preparo', saiu: 'Saiu / pronto', entregue: 'Entregue / retirado', cancelado: 'Cancelado' };
+const etapa = (st, entrega) => (entrega
+  ? { saiu: 'Saiu pra entrega', entregue: 'Entregue' }
+  : { saiu: 'Pronto pra retirar', entregue: 'Retirado' })[st] ?? ETAPAS[st];
 const CAMPO = { preparo: 'aceitoEm', saiu: 'saiuEm', entregue: 'entregueEm', cancelado: 'canceladoEm' };
 const PROXIMA = { novo: 'preparo', preparo: 'saiu', saiu: 'entregue' };
 const hora = d => d ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Recife' }) : '';
@@ -113,7 +117,7 @@ function abrirPedido(id) {
   atualId = id;
   const c = conferir(p, loja), cl = p.cliente;
   const noMapa = mapa(`${cl.rua}, ${cl.numero}, ${cl.bairro}`, loja.cidade);
-  $('#pedTitulo').textContent = `#${p.cod} · ${ETAPAS[p.status]}`;
+  $('#pedTitulo').textContent = `#${p.cod} · ${etapa(p.status, p.entrega)}`;
   $('#pedCorpo').innerHTML = `
     ${c.ok ? '' : `<p class="alerta">⚠ Valor não confere com o cardápio: deveria ser ${brl(c.subtotal)}${p.entrega
       ? ` + ${c.taxa === null ? 'entrega a confirmar' : `${brl(c.taxa)} de entrega`}` : ''}.</p>`}
@@ -133,7 +137,7 @@ function abrirPedido(id) {
     ${p.obs ? `<p>📝 ${esc(p.obs)}</p>` : ''}
     ${p.status === 'cancelado' ? `<p>Motivo: ${esc(p.motivo)}</p>` : ''}`;
   const prox = PROXIMA[p.status];
-  const rotulo = { preparo: 'Aceitar', saiu: p.entrega ? 'Saiu pra entrega' : 'Pronto pra retirar', entregue: 'Entregue' }[prox];
+  const rotulo = prox === 'preparo' ? 'Aceitar' : etapa(prox, p.entrega);
   const fim = ['entregue', 'cancelado'].includes(p.status);
   $('#pedAcoes').innerHTML = `
     ${fim ? '' : `<md-text-button id="cancelar">${p.status === 'novo' ? 'Recusar' : 'Cancelar'}</md-text-button>`}
@@ -161,7 +165,7 @@ async function mudar(p, status, motivo = null) {
   const mudanca = { status, [CAMPO[status]]: serverTimestamp(), ...(motivo ? { motivo } : {}) };
   const conta = status === 'preparo' ? 1 : status === 'cancelado' && VALIDOS.includes(p.status) ? -1 : 0;
   $('#pedidoDialog').close();
-  toast(`#${p.cod}: ${ETAPAS[status]}`);
+  toast(`#${p.cod}: ${etapa(status, p.entrega)}`);
   try {
     if (!conta) return await updateDoc(ref, mudanca);
     await runTransaction(db, async t => {
@@ -192,17 +196,36 @@ async function abrirDoLink() {
 addEventListener('hashchange', () => { if (iniciado) abrirDoLink(); });
 
 // ---------- som e tela acesa ----------
-// o navegador só libera áudio depois de um toque; o mesmo toque pede pra tela não apagar
+// o navegador só libera áudio depois de um toque, e isso zera a cada abertura da página (regra do Chrome/Safari).
+// Quem já ativou uma vez não vê mais o botão: o primeiro toque em qualquer lugar religa, sem bip.
 let audio = null;
 const manterAcesa = () => navigator.wakeLock?.request('screen').catch(() => {});
-$('#som').onclick = () => {
-  audio = new AudioContext();
-  bip();
+const lembrarSom = () => { try { return localStorage.getItem('som') === '1'; } catch { return false; } };
+function ligarSom() {
+  audio ??= new AudioContext();
+  audio.resume?.();
   manterAcesa();
+  $('#som').hidden = $('#somAviso').hidden = true;
+  try { localStorage.setItem('som', '1'); } catch {}
+}
+$('#som').onclick = () => { ligarSom(); bip(); toast('Som ativado 🔔'); };
+if (lembrarSom()) {
   $('#som').hidden = true;
-  toast('Som ativado 🔔');
-};
-document.addEventListener('visibilitychange', () => { if (audio && document.visibilityState === 'visible') manterAcesa(); });
+  audio = new AudioContext(); // nasce suspenso; alguns navegadores já liberam pra site muito usado
+  if (audio.state !== 'running') {
+    $('#somAviso').hidden = false;
+    const religar = () => { ligarSom(); ['pointerdown', 'keydown'].forEach(t => removeEventListener(t, religar, true)); };
+    ['pointerdown', 'keydown'].forEach(t => addEventListener(t, religar, true));
+  }
+}
+// pedido chegou sem som liberado (ou com a aba em segundo plano): avisa no título da aba até alguém olhar
+const titulo = document.title;
+const tirarAvisoDoTitulo = () => { if (document.visibilityState === 'visible') document.title = titulo; };
+addEventListener('pointerdown', tirarAvisoDoTitulo);
+document.addEventListener('visibilitychange', () => {
+  if (audio && document.visibilityState === 'visible') manterAcesa();
+  if (audio?.state === 'running') tirarAvisoDoTitulo();
+});
 function bip() {
   if (!audio) return;
   const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
@@ -215,6 +238,7 @@ function bip() {
 }
 function alertar() {
   bip();
+  if (audio?.state !== 'running' || document.hidden) document.title = `🔔 Pedido novo! · ${titulo}`;
   setTimeout(bip, 700);
   navigator.vibrate?.([200, 100, 200]);
   toast('Pedido novo! 🍔');
