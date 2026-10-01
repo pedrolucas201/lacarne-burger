@@ -1,6 +1,6 @@
 import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
 import { pix } from './pix.js';
-import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar } from './pedido.js';
+import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar, locBoa, metros } from './pedido.js';
 import { $, brl, esc, toast } from './util.js';
 import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
 
@@ -311,16 +311,35 @@ $('#usarLoc').onclick = () => {
   if (!navigator.geolocation) return toast('Seu celular não deixou pegar a localização.', true);
   $('#locInfo').hidden = false;
   $('#locInfo').textContent = 'Pegando sua localização…';
-  navigator.geolocation.getCurrentPosition(p => {
-    loc = ponto(p.coords.latitude, p.coords.longitude);
-    $('#locInfo').innerHTML = `📍 Localização adicionada (precisão de uns ${Math.round(p.coords.accuracy)} m) ·
-      <a href="${mapa(loc)}" target="_blank" rel="noopener">conferir no mapa</a>`;
+  loc = '';
+  // o GPS começa impreciso e vai melhorando: acompanha até 10 s, fica com a melhor leitura e para antes se chegar a 30 m
+  let melhor = null;
+  const fim = () => {
+    navigator.geolocation.clearWatch(vigia);
+    clearTimeout(limite);
+    if (melhor && locBoa(melhor.accuracy)) {
+      loc = ponto(melhor.latitude, melhor.longitude);
+      $('#locInfo').innerHTML = `📍 Localização adicionada (precisão de uns ${metros(melhor.accuracy)}) ·
+        <a href="${mapa(loc)}" target="_blank" rel="noopener">conferir no mapa</a>`;
+    } else {
+      $('#locInfo').textContent = melhor
+        ? `Não deu pra pegar sua localização exata (precisão de ${metros(melhor.accuracy)}). `
+          + 'No celular com o GPS ligado funciona melhor. O endereço digitado já serve.'
+        : 'Não deu pra pegar a localização agora. O endereço digitado já serve.';
+    }
+  };
+  const vigia = navigator.geolocation.watchPosition(p => {
+    if (!melhor || p.coords.accuracy < melhor.accuracy) melhor = p.coords;
+    if (melhor.accuracy <= 30) fim();
   }, err => {
-    loc = '';
+    if (melhor) return fim();
+    navigator.geolocation.clearWatch(vigia);
+    clearTimeout(limite);
     $('#locInfo').textContent = err.code === 1
       ? 'Você não permitiu a localização. Tudo bem, o endereço digitado já serve.'
       : 'Não deu pra pegar a localização agora. O endereço digitado já serve.';
-  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  const limite = setTimeout(fim, 10000);
 };
 
 // atalho só pra quem entrou no painel neste navegador (o painel marca/desmarca); o painel em si é protegido pelas regras
