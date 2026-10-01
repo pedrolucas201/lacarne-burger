@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem } from '../pedido.js';
+import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar } from '../pedido.js';
 
 const loja = { taxas: { Matriz: 5 }, cardapio: [{ id: 'bruto', preco: 32 }, { id: 'manso', preco: 20 }] };
 const p = (extra = {}) => ({
@@ -62,4 +62,12 @@ test('adicionais somam no preço do item e na conferência', () => {
   const comExtra = p({ itens: [{ id: 'bruto', qtd: 2, extras: ['bacon'] }], subtotal: 72 });
   assert.equal(conferir(comExtra, l).ok, true);
   assert.equal(conferir({ ...comExtra, subtotal: 64 }, l).ok, false); // cobrou sem o adicional
+});
+test('adicional repetido conta cada unidade e aparece agrupado', () => {
+  const ad = [{ id: 'cheddar', nome: 'Cheddar (1 fatia)', preco: 2 }, { id: 'bacon', nome: 'Bacon', preco: 4 }];
+  const l = { ...loja, adicionais: ad };
+  assert.equal(precoItem(l, { id: 'bruto', extras: ['cheddar', 'cheddar', 'bacon'] }), 40);
+  assert.deepEqual(agrupar(['cheddar', 'bacon', 'cheddar'], ad), ['2x Cheddar (1 fatia)', 'Bacon']);
+  assert.deepEqual(agrupar(['sumiu'], ad), ['sumiu']); // adicional que saiu do cardápio: mostra o id
+  assert.deepEqual(agrupar(undefined, ad), []);
 });

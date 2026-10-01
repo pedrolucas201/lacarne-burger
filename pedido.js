@@ -8,6 +8,13 @@ export const taxaDe = (loja, entrega, bairro) => !entrega ? 0 : loja.taxas[bairr
 export const precoItem = (loja, i) => (loja.cardapio.find(m => m.id === i.id)?.preco ?? NaN)
   + (i.extras || []).reduce((s, x) => s + (loja.adicionais?.find(a => a.id === x)?.preco ?? NaN), 0);
 
+// ['cheddar','bacon','cheddar'] → ['2x Cheddar (1 fatia)', 'Bacon'] (ordem da primeira aparição; sumiu do cardápio = id)
+export function agrupar(extras = [], adicionais = []) {
+  const n = new Map();
+  for (const x of extras) n.set(x, (n.get(x) || 0) + 1);
+  return [...n].map(([x, q]) => `${q > 1 ? `${q}x ` : ''}${adicionais.find(a => a.id === x)?.nome ?? x}`);
+}
+
 // recalcula pelo cardápio atual: pega preço adulterado no navegador
 export function conferir(p, loja) {
   const subtotal = p.itens.reduce((s, i) => s + precoItem(loja, i) * i.qtd, 0);

@@ -157,6 +157,8 @@ md-dialog { width: min(560px, calc(100% - 32px)); max-width: 560px; max-height: 
 .acoes { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; flex-wrap: wrap; }
 .stepper { display: flex; align-items: center; gap: 4px; }
 .stepper span { min-width: 20px; text-align: center; font-weight: 600; }
+.extra { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.extra small { color: var(--md-sys-color-on-surface-variant); }
 .desc { margin-top: 0; color: var(--md-sys-color-on-surface-variant); }
 fieldset { border: 0; margin: 0 0 16px; padding: 0; }
 legend { font-weight: 600; margin-bottom: 6px; }

@@ -22,7 +22,7 @@ export const LOJA = {
     'Matriz': 5, 'Maués': 8, 'Militina': 8, 'Natuba': 10, 'Petrobras': 7, 'Pinga Fogo': 6, 'Privê Shopping': 10,
     'Redenção': 7, 'Santana': 9, 'Shopping (fora)': 8, 'Shopping (dentro)': 10, 'Sítio do Meio': 7, 'Trajanos': 7,
   },
-  // adicionais (Brenda, 01/10): valem pra qualquer burger, no máximo 1 de cada; preço por unidade do burger
+  // adicionais (Brenda, 01/10): valem pra qualquer burger, até 5 de cada (app.js MAX_EXTRA); preço por unidade do burger
   adicionais: [
     { id: 'cheddar', nome: 'Cheddar (1 fatia)', preco: 2 },
     { id: 'mucarela', nome: 'Muçarela (1 fatia)', preco: 2 },
