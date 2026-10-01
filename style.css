@@ -1,3 +1,6 @@
+/* Material carrega depois do cardápio: até lá os componentes md-* (botões, diálogos) ficam invisíveis em vez de texto cru */
+:not(:defined) { visibility: hidden; }
+
 :root {
   /* paleta: vermelho tijolo do boi + creme/pastel do fundo do logo */
   --md-sys-color-primary: #b3372a;
@@ -69,6 +72,7 @@ h1, h2, .titulo, .card h3 { font-family: 'Bebas Neue', 'Poppins', sans-serif; fo
 .status.on { background: #dff5e3; color: #1b7a35; }
 .status.on::before { animation: pulsar 1.6s ease-out infinite; }
 .status.off { background: var(--rosa); color: var(--md-sys-color-primary); }
+.status:empty { visibility: hidden; } /* antes do banco responder: guarda o lugar sem mostrar o ponto */
 @keyframes pulsar { 0% { box-shadow: 0 0 0 0 rgb(27 122 53 / .6); } 100% { box-shadow: 0 0 0 8px rgb(27 122 53 / 0); } }
 .hero h2 { margin: 8px 0 24px; font-size: clamp(2.6rem, 7vw, 4.4rem); line-height: .95; }
 .hero h2 span { color: var(--md-sys-color-primary); }

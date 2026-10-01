@@ -1,10 +1,13 @@
-import './vendor/material.js';
 import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
 import { pix } from './pix.js';
 import { taxaDe, mapa } from './pedido.js';
 import { $, brl, esc, toast } from './util.js';
-import { db, LOJA_ID } from './firebase.js';
-import { doc, collection, onSnapshot, setDoc, serverTimestamp } from './vendor/firebase/base.js';
+import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
+
+// Material e Firebase (~650 KB) carregam em segundo plano: o cardápio aparece antes, a partir de lojas/lacarne.mjs
+import('./vendor/material.js');
+const fb = Promise.all([import('./firebase.js'), import('./vendor/firebase/base.js')])
+  .then(([{ db }, f]) => ({ db, ...f }));
 
 const store = {
   get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
@@ -14,32 +17,32 @@ const radio = name => [...document.querySelectorAll(`md-radio[name="${name}"]`)]
 // ?teste no link libera pedidos fora do horário (pra demonstrar o site)
 const TESTE = new URLSearchParams(location.search).has('teste');
 
-// ---------- loja: cardápio, taxas, horário e botões do painel vêm do banco, ao vivo ----------
-let loja = null;
-function falhou() {
-  $('#menu').innerHTML = `<div class="erro-carga"><p>Não foi possível carregar o cardápio.</p>
-    <md-filled-tonal-button id="recarregar"><md-icon slot="icon">refresh</md-icon>Tentar de novo</md-filled-tonal-button></div>`;
-  $('#recarregar').onclick = () => location.reload();
-}
-const demorou = setTimeout(falhou, 10000); // sem internet o onSnapshot só espera; melhor avisar que mostrar cardápio velho
-await new Promise(pronto => onSnapshot(doc(db, 'lojas', LOJA_ID), s => {
-  if (!s.exists()) return falhou();
+// ---------- loja: começa com o arquivo publicado; o banco, ao vivo, corrige e traz os botões do dia ----------
+// ao vivo = já veio do banco. Antes disso não dá pra saber esgotado/fechar hoje: o selo de aberto espera e o envio também.
+let loja = LOJA, aoVivo = false, banco = null; // banco = módulos do Firebase, guardados pro envio ficar síncrono (iPhone bloqueia o WhatsApp depois de await)
+const semConexao = () => toast('Sem conexão com a loja. Confira sua internet e recarregue a página.', true);
+const demorou = setTimeout(semConexao, 10000); // sem internet o onSnapshot só espera
+fb.then(m => m.onSnapshot(m.doc(m.db, 'lojas', LOJA_ID), s => {
+  if (!s.exists()) return semConexao();
   clearTimeout(demorou);
-  const primeira = !loja;
   loja = s.data();
-  primeira ? pronto() : renderLoja();
-}, falhou));
+  banco = m;
+  aoVivo = true;
+  carrinho = validar(carrinho); // preço do banco vence o do arquivo
+  renderLoja();
+}, semConexao)).catch(semConexao);
 
 const esgotado = id => loja.esgotados?.[id] === hoje();
 const itemDe = id => loja.cardapio.find(x => x.id === id);
 
 // preço sempre vem do cardápio: o que está salvo no navegador pode ter sido alterado
-let carrinho = store.get('carrinho', []).flatMap(i => {
+const validar = lista => lista.flatMap(i => {
   const m = itemDe(i?.id);
   const qtd = Math.min(99, Math.max(1, parseInt(i.qtd) || 1));
   return m && Array.isArray(i.escolhas) && Array.isArray(i.sem)
     ? [{ ...i, nome: m.nome, unit: m.preco, qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
 });
+let carrinho = validar(store.get('carrinho', []));
 let atual = null;
 
 // ---------- horário ----------
@@ -47,6 +50,7 @@ const podePedir = () => TESTE || lojaAberta(loja);
 const abre = () => proximaAbertura(loja.horario, undefined, loja.fechadaHoje === hoje());
 const fechadoMsg = () => `Estamos fechados agora 🌙 Abrimos ${abre()}.`;
 function status() {
+  if (!aoVivo) return; // sem os botões do dia, "Fechado" poderia virar "Aberto" um segundo depois
   const on = lojaAberta(loja), h = loja.horario;
   $('#status').className = `status ${on ? 'on' : 'off'}`;
   $('#status').textContent = (on ? `Aberto agora${noHorario(h) ? ` · até ${h.fecha}h` : ''}` : `Fechado · abre ${abre()}`)
@@ -207,6 +211,8 @@ $('#fone').addEventListener('input', e => { e.target.value = mascaraFone(e.targe
 const CAMPOS = ['nome', 'fone', 'rua', 'numero', 'bairro', 'bairroOutro', 'compl', 'ref'];
 $('#enviar').onclick = () => {
   if (!carrinho.length) return toast('Sua sacola está vazia', true);
+  if (!aoVivo) return toast('Ainda conectando com a loja, tenta de novo em instantes', true);
+  const { db, doc, collection, setDoc, serverTimestamp } = banco;
   if (!podePedir()) return toast(fechadoMsg(), true);
   const acabou = carrinho.find(i => esgotado(i.id));
   if (acabou) return toast(`${acabou.nome} esgotou, tira da sacola 😕`, true);
@@ -316,5 +322,5 @@ renderLoja(); // antes de restaurar o cliente: o bairro salvo precisa das opçõ
 const cliente = store.get('cliente', {});
 CAMPOS.forEach(k => { if (cliente[k]) $('#' + k).value = cliente[k]; });
 $('#bairroOutro').hidden = $('#bairro').value !== 'outro';
-$('#fone').value = mascaraFone($('#fone').value);
+if (cliente.fone) $('#fone').value = mascaraFone(cliente.fone); // campo do Material pode não ter carregado ainda: não ler .value dele aqui
 salvar();

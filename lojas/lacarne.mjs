@@ -1,4 +1,4 @@
-// Configuração da La Carne. Mudou algo? Edita aqui e roda o seed (ver scripts/seed.mjs).
+// Configuração da La Carne. Mudou algo? Edita aqui, roda o seed (scripts/seed.mjs) e faz deploy: o site mostra este arquivo na hora e o banco corrige ao vivo.
 export const LOJA_ID = 'lacarne';
 const PONTO = { titulo: 'Ponto da carne', itens: ['Mal passado', 'Ao ponto', 'Bem passado'] };
 

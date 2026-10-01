@@ -14,8 +14,17 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="stylesheet" href="vendor/toastify.css">
   <link rel="stylesheet" href="style.css">
-  <script src="vendor/toastify.js"></script>
+  <script src="vendor/toastify.js" defer></script>
   <script type="module" src="app.js"></script>
+  <!-- baixa tudo em paralelo em vez de em fila (app.js → imports → firebase) -->
+  <link rel="modulepreload" href="lojas/lacarne.mjs">
+  <link rel="modulepreload" href="horario.js">
+  <link rel="modulepreload" href="pedido.js">
+  <link rel="modulepreload" href="pix.js">
+  <link rel="modulepreload" href="util.js">
+  <link rel="modulepreload" href="vendor/material.js">
+  <link rel="modulepreload" href="firebase.js">
+  <link rel="modulepreload" href="vendor/firebase/base.js">
 </head>
 <body>
   <header class="topbar">

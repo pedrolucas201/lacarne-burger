@@ -23,11 +23,11 @@ const pagina = async url => {
 try {
   // 1. cliente faz pedido (Bruto, Matriz, Pix)
   const site = await pagina(BASE + '?teste');
-  await site.waitForSelector('[data-id="bruto"]');
+  await site.waitForFunction(() => document.querySelector("#status").textContent && customElements.get("md-dialog")); // ao vivo + Material: o que o cliente espera pra conseguir pedir
   await site.evaluate(() => localStorage.setItem('carrinho', JSON.stringify([
     { id: 'bruto', qtd: 1, escolhas: [['Ponto da carne', 'Ao ponto']], sem: [], obs: '' }])));
   await site.reload();
-  await site.waitForSelector('[data-id="bruto"]');
+  await site.waitForFunction(() => document.querySelector("#status").textContent && customElements.get("md-dialog")); // ao vivo + Material: o que o cliente espera pra conseguir pedir
   const msg = await site.evaluate(async () => {
     window.open = u => { window.__url = u; };
     const q = s => document.querySelector(s), set = (id, v) => { q('#' + id).value = v; };
