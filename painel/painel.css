@@ -3,6 +3,7 @@ body { padding-bottom: 72px; }
 .centro { display: grid; justify-items: center; gap: 16px; padding: 64px 16px; text-align: center; }
 #app { max-width: 720px; margin: 0 auto; padding: 16px; }
 #som { margin-bottom: 16px; }
+.som-aviso { margin: 0 0 16px; padding: 8px 12px; border-radius: 12px; font-size: .9rem; background: var(--rosa); color: var(--md-sys-color-primary); }
 .vazio, .nota { color: var(--md-sys-color-on-surface-variant); font-size: .85rem; }
 
 /* pedidos */
