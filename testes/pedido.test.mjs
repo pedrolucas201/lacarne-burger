@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taxaDe, conferir, whats, avisoCliente, soDigitos } from '../pedido.js';
+import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa } from '../pedido.js';
 
 const loja = { taxas: { Matriz: 5 }, cardapio: [{ id: 'bruto', preco: 32 }, { id: 'manso', preco: 20 }] };
 const p = (extra = {}) => ({
@@ -27,4 +27,18 @@ test('avisos pro cliente', () => {
   assert.match(avisoCliente('saiu', p({ entrega: false })), /pronto pra retirar/);
   assert.match(avisoCliente('cancelado', p(), 'Cliente desistiu'), /cancelado: Cliente desistiu/);
   assert.equal(avisoCliente('entregue', p()), undefined);
+});
+test('link do mapa', () =>
+  assert.equal(mapa('Rua A, 1 - Centro', 'Recife - PE'), 'https://maps.google.com/?q=Rua%20A%2C%201%20-%20Centro%2C%20Recife%20-%20PE'));
+test('avisos com tempo de entrega e endereço da loja', () => {
+  const l = { endereco: 'Rua dos Borges, 489 - Bela Vista', cidade: 'Vitória de Santo Antão - PE', tempoEntrega: 30 };
+  assert.match(avisoCliente('preparo', p(), null, l), /Tempo médio de entrega: 30 min/);
+  assert.doesNotMatch(avisoCliente('preparo', p({ entrega: false }), null, l), /30 min/);
+  const pronto = avisoCliente('saiu', p({ entrega: false }), null, l);
+  assert.match(pronto, /Rua dos Borges, 489 - Bela Vista/);
+  assert.match(pronto, /maps\.google\.com/);
+  assert.doesNotMatch(avisoCliente('saiu', p(), null, l), /Borges/);
+  // loja sem os campos (white label): aviso como antes
+  assert.equal(avisoCliente('preparo', p(), null, {}), 'Pedido #AB12C aceito! 🍔 Já estamos preparando.');
+  assert.equal(avisoCliente('saiu', p({ entrega: false }), null, {}), 'Pedido #AB12C pronto pra retirar! 🏃');
 });

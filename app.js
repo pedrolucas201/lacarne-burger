@@ -1,7 +1,7 @@
 import './vendor/material.js';
 import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
 import { pix } from './pix.js';
-import { taxaDe } from './pedido.js';
+import { taxaDe, mapa } from './pedido.js';
 import { $, brl, esc, toast } from './util.js';
 import { db, LOJA_ID } from './firebase.js';
 import { doc, collection, onSnapshot, setDoc, serverTimestamp } from './vendor/firebase/base.js';
@@ -57,6 +57,8 @@ setInterval(status, 30000);
 // ---------- cardápio, bairros e horário (roda de novo a cada mudança no banco) ----------
 function renderLoja() {
   document.querySelectorAll('.horario').forEach(el => el.textContent = loja.horario.texto);
+  $('#onde').hidden = !loja.endereco;
+  if (loja.endereco) $('#onde').innerHTML = `📍 <a href="${mapa(loja.endereco, loja.cidade)}" target="_blank" rel="noopener">${esc(loja.endereco)}</a>`;
   status();
   $('#menu').innerHTML = loja.cardapio.map((i, n) => `
     <article class="card${esgotado(i.id) ? ' esgotado' : ''}" style="--d:${n * 80}ms">
@@ -166,7 +168,10 @@ function salvar() {
   const tx = taxa(), aConfirmar = $('#bairro').value === 'outro' ? 'a confirmar no WhatsApp' : 'escolha o bairro';
   $('#totais').innerHTML = `
     <div><span>Subtotal</span><span>${brl(subtotal())}</span></div>
-    ${radio('tipo') === 'Entrega' ? `<div class="nota"><span>Taxa de entrega</span><span>${tx === null ? aConfirmar : brl(tx)}</span></div>` : ''}
+    ${radio('tipo') === 'Entrega' ? `<div class="nota"><span>Taxa de entrega</span><span>${tx === null ? aConfirmar : brl(tx)}</span></div>
+      ${loja.tempoEntrega ? `<div class="nota"><span>Tempo médio de entrega</span><span>${loja.tempoEntrega} min</span></div>` : ''}`
+    : loja.endereco ? `<p class="onde">📍 Retire em ${esc(loja.endereco)}<br>
+      <a href="${mapa(loja.endereco, loja.cidade)}" target="_blank" rel="noopener">ver no mapa</a></p>` : ''}
     <div class="total"><span>Total</span><span>${brl(subtotal() + (tx ?? 0))}${tx === null ? ' + entrega' : ''}</span></div>`;
 }
 $('#cartItens').addEventListener('click', e => {
@@ -259,7 +264,6 @@ $('#pixCopiar').onclick = async () => {
 };
 
 function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, painel) {
-  const endereco = `${c.rua}, ${c.numero}, ${bairro}, ${loja.cidade}`;
   const linha = '-------------------------------';
   return [
     '#### NOVO PEDIDO ####',
@@ -278,7 +282,7 @@ function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, pai
       c.ref ? `(${c.ref})` : null,
       '',
       'Link do endereço:',
-      `https://maps.google.com/?q=${encodeURIComponent(endereco)}`,
+      mapa(`${c.rua}, ${c.numero}, ${bairro}`, loja.cidade),
     ] : ['🏃   Retirada no local']),
     '',
     '------- ITENS DO PEDIDO -------',

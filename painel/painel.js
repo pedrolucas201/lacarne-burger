@@ -6,7 +6,7 @@ import {
 import {
   getAuth, connectAuthEmulator, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged,
 } from '../vendor/firebase/auth.js';
-import { conferir, whats, avisoCliente, MOTIVOS, soDigitos } from '../pedido.js';
+import { conferir, whats, avisoCliente, MOTIVOS, soDigitos, mapa } from '../pedido.js';
 import { periodo, calcular, variacao, csv, VALIDOS } from '../numeros.js';
 import { hoje } from '../horario.js';
 import { $, brl, esc, toast } from '../util.js';
@@ -109,7 +109,7 @@ function abrirPedido(id) {
   if (!p) return toast('Pedido não encontrado', true);
   atualId = id;
   const c = conferir(p, loja), cl = p.cliente;
-  const mapa = `https://maps.google.com/?q=${encodeURIComponent(`${cl.rua}, ${cl.numero}, ${cl.bairro}, ${loja.cidade}`)}`;
+  const noMapa = mapa(`${cl.rua}, ${cl.numero}, ${cl.bairro}`, loja.cidade);
   $('#pedTitulo').textContent = `#${p.cod} · ${ETAPAS[p.status]}`;
   $('#pedCorpo').innerHTML = `
     ${c.ok ? '' : `<p class="alerta">⚠ Valor não confere com o cardápio: deveria ser ${brl(c.subtotal)}${p.entrega
@@ -117,7 +117,7 @@ function abrirPedido(id) {
     <p><strong>${esc(cl.nome)}</strong> · <a href="${whats(cl.fone, '')}" target="_blank" rel="noopener">${esc(cl.fone)}</a>
       <br><small>feito às ${hora(p.criadoEm)}</small></p>
     <p>${p.entrega ? `🛵 ${esc(cl.rua)}, ${esc(cl.numero)} · ${esc(cl.bairro)}${cl.compl ? ` · ${esc(cl.compl)}` : ''}
-      ${cl.ref ? `<br><small>${esc(cl.ref)}</small>` : ''}<br><a href="${mapa}" target="_blank" rel="noopener">Abrir no mapa</a>`
+      ${cl.ref ? `<br><small>${esc(cl.ref)}</small>` : ''}<br><a href="${noMapa}" target="_blank" rel="noopener">Abrir no mapa</a>`
       : '🏃 Retirada no local'}</p>
     <ul class="itens">${p.itens.map(i => `<li><strong>${esc(i.qtd)}x ${esc(i.nome)}</strong>
       ${Object.entries(i.escolhas || {}).map(([t, v]) => `<br><small>${esc(t)}: ${esc(v)}</small>`).join('')}
@@ -150,7 +150,7 @@ function pedirMotivo(p) {
 
 // aceitar conta o cliente; cancelar um pedido já aceito desconta. Os dois numa transação junto com o status.
 async function mudar(p, status, motivo = null) {
-  const texto = avisoCliente(status, p, motivo);
+  const texto = avisoCliente(status, p, motivo, loja);
   if (texto) window.open(whats(p.cliente.fone, texto), '_blank', 'noopener'); // antes de qualquer await, senão o navegador bloqueia
   const ref = doc(pedidosRef, p.id);
   const mudanca = { status, [CAMPO[status]]: serverTimestamp(), ...(motivo ? { motivo } : {}) };
