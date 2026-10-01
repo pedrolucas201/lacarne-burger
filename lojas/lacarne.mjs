@@ -7,7 +7,7 @@ export const LOJA = {
   whatsapp: '5581984793839',
   pix: '+5581984793839', // chave Pix (telefone com +55); vazio = sem Pix copia e cola
   cidade: 'Vitória de Santo Antão - PE',
-  endereco: 'Rua dos Borges, 489 - Bela Vista', // onde retira; vazio = não mostra
+  endereco: 'Rua do Borges, 489 - Bela Vista', // onde retira; vazio = não mostra
   tempoEntrega: 30, // minutos, média informada pelo Nicolas; 0 = não mostra
   horario: { dias: [3, 4, 5, 6], abre: 18, fecha: 22, texto: 'Quarta a sábado · 18h às 22h' },
   // taxa de entrega por bairro (tabela da MotoJá); bairro fora da lista = "a confirmar no WhatsApp"

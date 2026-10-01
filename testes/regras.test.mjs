@@ -65,3 +65,7 @@ test('clientes só pro admin', async () => {
   await assertFails(getDoc(doc(anon(), P, 'clientes', '81999999999')));
   await assertSucceeds(setDoc(doc(logado('dono@x.com'), P, 'clientes', '81999999999'), { pedidos: 1 }));
 });
+test('pedido com localização do cliente', () =>
+  assertSucceeds(addDoc(pedidos(anon()), pedido({ cliente: { ...pedido().cliente, loc: '-8.118012,-35.291400' } }))));
+test('localização gigante é negada', () =>
+  assertFails(addDoc(pedidos(anon()), pedido({ cliente: { ...pedido().cliente, loc: 'x'.repeat(41) } }))));

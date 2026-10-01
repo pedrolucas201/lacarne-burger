@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa } from '../pedido.js';
+import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto } from '../pedido.js';
 
 const loja = { taxas: { Matriz: 5 }, cardapio: [{ id: 'bruto', preco: 32 }, { id: 'manso', preco: 20 }] };
 const p = (extra = {}) => ({
@@ -41,4 +41,16 @@ test('avisos com tempo de entrega e endereço da loja', () => {
   // loja sem os campos (white label): aviso como antes
   assert.equal(avisoCliente('preparo', p(), null, {}), 'Pedido #AB12C aceito! 🍔 Já estamos preparando.');
   assert.equal(avisoCliente('saiu', p({ entrega: false }), null, {}), 'Pedido #AB12C pronto pra retirar! 🏃');
+});
+test('bairro do CEP casa com a tabela sem ligar pra acento e maiúscula', () => {
+  const taxas = { 'Bela Vista': 7, 'Água Branca': 7, Matriz: 5 };
+  assert.equal(bairroDaTabela(taxas, 'bela vista'), 'Bela Vista');
+  assert.equal(bairroDaTabela(taxas, 'AGUA BRANCA'), 'Água Branca');
+  assert.equal(bairroDaTabela(taxas, ' Matriz '), 'Matriz');
+  assert.equal(bairroDaTabela(taxas, 'Vila Nova'), null);
+  assert.equal(bairroDaTabela(taxas, ''), null);
+});
+test('localização vira texto curto e link de mapa exato', () => {
+  assert.equal(ponto(-8.1180123456, -35.2914), '-8.118012,-35.291400');
+  assert.equal(mapa('-8.118012,-35.291400'), 'https://maps.google.com/?q=-8.118012%2C-35.291400');
 });

@@ -183,6 +183,9 @@ md-outlined-text-field { width: 100%; }
 .checkout h3 { margin: 12px 0 0; font-size: 1rem; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .span2 { grid-column: span 2; }
+#usarLoc { align-self: center; }
+.nota-loc { margin: 0; font-size: .85rem; color: var(--md-sys-color-on-surface-variant); }
+.nota-loc a { color: var(--md-sys-color-primary); }
 #cartItens { list-style: none; margin: 0; padding: 0; }
 .linha {
   display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center;

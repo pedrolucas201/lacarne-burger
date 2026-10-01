@@ -34,6 +34,9 @@ onAuthStateChanged(auth, async user => {
   $('#login').hidden = acesso;
   $('#app').hidden = $('#abas').hidden = !acesso;
   $('#sair').hidden = !user;
+  $('#verSite').hidden = !acesso;
+  // marca o navegador pro atalho "Painel" aparecer no site (só conveniência: quem não é admin não lê nada do painel)
+  try { acesso ? localStorage.setItem('admin', 'true') : localStorage.removeItem('admin'); } catch {}
   $('#loginMsg').textContent = user && !acesso ? `${user.email} não tem acesso a este painel.` : 'Entre com a conta Google da loja.';
   if (acesso) iniciar();
 });
@@ -117,7 +120,8 @@ function abrirPedido(id) {
     <p><strong>${esc(cl.nome)}</strong> · <a href="${whats(cl.fone, '')}" target="_blank" rel="noopener">${esc(cl.fone)}</a>
       <br><small>feito às ${hora(p.criadoEm)}</small></p>
     <p>${p.entrega ? `🛵 ${esc(cl.rua)}, ${esc(cl.numero)} · ${esc(cl.bairro)}${cl.compl ? ` · ${esc(cl.compl)}` : ''}
-      ${cl.ref ? `<br><small>${esc(cl.ref)}</small>` : ''}<br><a href="${noMapa}" target="_blank" rel="noopener">Abrir no mapa</a>`
+      ${cl.ref ? `<br><small>${esc(cl.ref)}</small>` : ''}<br><a href="${noMapa}" target="_blank" rel="noopener">Abrir no mapa</a>${cl.loc
+        ? ` · <a href="${mapa(cl.loc)}" target="_blank" rel="noopener">📍 Localização exata (GPS)</a>` : ''}`
       : '🏃 Retirada no local'}</p>
     <ul class="itens">${p.itens.map(i => `<li><strong>${esc(i.qtd)}x ${esc(i.nome)}</strong>
       ${Object.entries(i.escolhas || {}).map(([t, v]) => `<br><small>${esc(t)}: ${esc(v)}</small>`).join('')}

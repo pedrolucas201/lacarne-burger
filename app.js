@@ -1,6 +1,6 @@
 import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
 import { pix } from './pix.js';
-import { taxaDe, mapa } from './pedido.js';
+import { taxaDe, mapa, ponto, bairroDaTabela } from './pedido.js';
 import { $, brl, esc, toast } from './util.js';
 import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
 
@@ -207,8 +207,49 @@ function mascaraFone(v) {
 }
 $('#fone').addEventListener('input', e => { e.target.value = mascaraFone(e.target.value); });
 
+// ---------- CEP (opcional): preenche rua e, se o nome bater com a tabela, o bairro (e a taxa) ----------
+let ultimoCep = '';
+$('#cep').addEventListener('input', async e => {
+  const d = e.target.value.replace(/\D/g, '').slice(0, 8);
+  e.target.value = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+  if (d.length < 8 || d === ultimoCep) return;
+  ultimoCep = d;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${d}/json/`, { signal: AbortSignal.timeout(6000) }).then(x => x.json());
+    if (r.erro) return toast('CEP não encontrado. Preencha o endereço à mão.', true);
+    const cidade = loja.cidade.split(' - ')[0];
+    if (bairroDaTabela({ [cidade]: 0 }, r.localidade) !== cidade) return toast(`Esse CEP é de ${r.localidade}, fora da nossa área.`, true);
+    if (r.logradouro) $('#rua').value = r.logradouro;
+    const b = bairroDaTabela(loja.taxas, r.bairro);
+    if (b) { $('#bairro').value = b; dCart.dispatchEvent(new Event('change')); }
+    else if (r.bairro) toast(`Escolha o bairro na lista (o CEP diz "${r.bairro}").`, true);
+    $('#numero').focus();
+  } catch { toast('Não deu pra buscar o CEP agora. Preencha à mão.', true); }
+});
+
+// ---------- localização (opcional): link exato pro motoboy, além do endereço digitado ----------
+let loc = '';
+$('#usarLoc').onclick = () => {
+  if (!navigator.geolocation) return toast('Seu celular não deixou pegar a localização.', true);
+  $('#locInfo').hidden = false;
+  $('#locInfo').textContent = 'Pegando sua localização…';
+  navigator.geolocation.getCurrentPosition(p => {
+    loc = ponto(p.coords.latitude, p.coords.longitude);
+    $('#locInfo').innerHTML = `📍 Localização adicionada (precisão de uns ${Math.round(p.coords.accuracy)} m) ·
+      <a href="${mapa(loc)}" target="_blank" rel="noopener">conferir no mapa</a>`;
+  }, err => {
+    loc = '';
+    $('#locInfo').textContent = err.code === 1
+      ? 'Você não permitiu a localização. Tudo bem, o endereço digitado já serve.'
+      : 'Não deu pra pegar a localização agora. O endereço digitado já serve.';
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+};
+
+// atalho só pra quem entrou no painel neste navegador (o painel marca/desmarca); o painel em si é protegido pelas regras
+$('#painelBtn').hidden = !store.get('admin', false);
+
 // ---------- enviar: grava no banco e abre o WhatsApp ----------
-const CAMPOS = ['nome', 'fone', 'rua', 'numero', 'bairro', 'bairroOutro', 'compl', 'ref'];
+const CAMPOS = ['nome', 'fone', 'cep', 'rua', 'numero', 'bairro', 'bairroOutro', 'compl', 'ref'];
 $('#enviar').onclick = () => {
   if (!carrinho.length) return toast('Sua sacola está vazia', true);
   if (!aoVivo) return toast('Ainda conectando com a loja, tenta de novo em instantes', true);
@@ -239,7 +280,7 @@ $('#enviar').onclick = () => {
     cod, criadoEm: serverTimestamp(), status: 'novo', entrega, pag, obs: f('obsGeral'),
     troco: pag === 'Dinheiro' ? troco : 0, subtotal: sub, taxa: tx,
     cliente: { nome: c.nome, fone: c.fone, rua: entrega ? c.rua : '', numero: entrega ? c.numero : '',
-      bairro: entrega ? bairro : '', compl: entrega ? c.compl : '', ref: entrega ? c.ref : '' },
+      bairro: entrega ? bairro : '', compl: entrega ? c.compl : '', ref: entrega ? c.ref : '', loc: entrega ? loc : '' },
     // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
     itens: carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,
       escolhas: Object.fromEntries(i.escolhas), sem: i.sem, obs: i.obs })),
@@ -289,6 +330,7 @@ function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, pai
       '',
       'Link do endereço:',
       mapa(`${c.rua}, ${c.numero}, ${bairro}`, loja.cidade),
+      ...(loc ? ['', 'Localização exata (GPS):', mapa(loc)] : []),
     ] : ['🏃   Retirada no local']),
     '',
     '------- ITENS DO PEDIDO -------',
