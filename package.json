@@ -7,7 +7,8 @@
     "test:regras": "firebase emulators:exec --only firestore --project demo-lacarne \"node --test testes/regras.test.mjs\"",
     "dev": "firebase emulators:start --only firestore,auth,hosting --project demo-lacarne",
     "seed:local": "node scripts/seed.mjs --local --admin dono@teste.com",
-    "e2e": "firebase emulators:exec --only firestore,auth,hosting --project demo-lacarne \"node scripts/seed.mjs --local --admin dono@teste.com && node testes/e2e.mjs\""
+    "e2e": "firebase emulators:exec --only firestore,auth,hosting --project demo-lacarne \"node scripts/seed.mjs --local --admin dono@teste.com && node testes/e2e.mjs\"",
+    "deploy": "node scripts/deploy.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
@@ -15,6 +16,7 @@
     "esbuild": "^0.28.2",
     "firebase": "^12.19.0",
     "firebase-admin": "^14.5.0",
+    "firebase-tools": "^15.7.0",
     "puppeteer-core": "^25.12.0"
   }
 }
