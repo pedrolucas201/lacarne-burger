@@ -62,7 +62,7 @@ function renderLoja() {
   status();
   $('#menu').innerHTML = loja.cardapio.map((i, n) => `
     <article class="card${esgotado(i.id) ? ' esgotado' : ''}" style="--d:${n * 80}ms">
-      <div class="emoji"><img src="img/burger.webp" alt=""><span>${esc(i.emoji)}</span></div>
+      <div class="emoji${i.foto ? ' com-foto' : ''}"><img src="${esc(i.foto || 'img/burger.webp')}" alt="" loading="lazy"><span>${esc(i.emoji)}</span></div>
       <h3>${esc(i.nome)}</h3>
       <p>${esc(i.desc)}</p>
       <div class="rodape">
