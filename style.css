@@ -59,9 +59,7 @@ h1, h2, .titulo, .card h3 { font-family: 'Bebas Neue', 'Poppins', sans-serif; fo
 .hero {
   display: flex; align-items: center; justify-content: center; gap: 48px;
   padding: 48px 16px 56px;
-  background:
-    radial-gradient(circle at 15% 20%, var(--rosa), transparent 45%),
-    radial-gradient(circle at 85% 80%, var(--creme), transparent 50%);
+  background: url(img/capa-fundo.webp) center / cover; /* fundo de carninhas da Brenda (versão clara) */
 }
 .kicker { margin: 0; color: var(--md-sys-color-primary); font-weight: 600; text-transform: uppercase; font-size: .8rem; letter-spacing: 1.5px; }
 .status {
@@ -78,13 +76,9 @@ h1, h2, .titulo, .card h3 { font-family: 'Bebas Neue', 'Poppins', sans-serif; fo
 .hero h2 span { color: var(--md-sys-color-primary); }
 .hero-txt { animation: surgir .6s both; }
 .foto { position: relative; flex: none; width: min(480px, 45vw); animation: surgir .7s .1s both; }
-.foto > .capa {
-  aspect-ratio: 3 / 2; border-radius: 32px;
-  box-shadow: 0 24px 48px -20px rgb(44 26 21 / .55);
-  /* fundo de carninhas da Brenda, maior que o quadro e passeando devagar (sem emenda: não repete a imagem) */
-  background: url(img/capa-fundo.webp) 0% 0% / 160% auto;
-  animation: passear 20s ease-in-out infinite alternate;
-}
+/* por enquanto o selo do boi, grande, ocupa o lugar do quadro (depois vem o carrossel dos bois) */
+.foto { display: grid; place-items: center; }
+.foto .ring { position: relative; left: 0; bottom: 0; width: min(320px, 70vw); padding: 8px; }
 .ring {
   position: absolute; left: -28px; bottom: -28px;
   width: clamp(96px, 12vw, 130px); aspect-ratio: 1;
@@ -230,7 +224,6 @@ md-outlined-text-field { width: 100%; }
 @keyframes surgir { from { opacity: 0; transform: translateY(16px); } }
 @keyframes flutuar { 50% { transform: translateY(-10px); } }
 @keyframes girar { to { transform: rotate(360deg); } }
-@keyframes passear { to { background-position: 100% 100%; } }
 @keyframes balancar { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg) translateY(-4px); } }
 
 @media (max-width: 700px) {
