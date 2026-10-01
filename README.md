@@ -28,4 +28,4 @@ npm run e2e          # site -> painel -> números no emulador (Chrome)
 ```
 
 Desenvolvimento local: `npm run dev` e, em outro terminal, `npm run seed:local`.
-Cardápio, taxas e horário: `scripts/lojas/lacarne.mjs` + `node scripts/seed.mjs` (ver o cabeçalho do script).
+Cardápio, taxas e horário: `lojas/lacarne.mjs` (o site também lê esse arquivo pra mostrar o cardápio na hora; mudou? seed **e** deploy) + `node scripts/seed.mjs` (ver o cabeçalho do script).

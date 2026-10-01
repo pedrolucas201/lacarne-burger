@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
+import { LOJA_ID, LOJA } from '../lojas/lacarne.mjs';
 
 const args = process.argv.slice(2);
 const local = args.includes('--local');
