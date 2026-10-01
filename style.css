@@ -59,7 +59,9 @@ h1, h2, .titulo, .card h3 { font-family: 'Bebas Neue', 'Poppins', sans-serif; fo
 .hero {
   display: flex; align-items: center; justify-content: center; gap: 48px;
   padding: 48px 16px 56px;
-  background: url(img/capa-fundo.webp) center / cover; /* fundo de carninhas da Brenda */
+  background:
+    radial-gradient(circle at 15% 20%, var(--rosa), transparent 45%),
+    radial-gradient(circle at 85% 80%, var(--creme), transparent 50%);
 }
 .kicker { margin: 0; color: var(--md-sys-color-primary); font-weight: 600; text-transform: uppercase; font-size: .8rem; letter-spacing: 1.5px; }
 .status {
@@ -76,9 +78,12 @@ h1, h2, .titulo, .card h3 { font-family: 'Bebas Neue', 'Poppins', sans-serif; fo
 .hero h2 span { color: var(--md-sys-color-primary); }
 .hero-txt { animation: surgir .6s both; }
 .foto { position: relative; flex: none; width: min(480px, 45vw); animation: surgir .7s .1s both; }
-.foto > img {
-  display: block; width: 100%; height: auto; border-radius: 32px;
+.foto > .capa {
+  aspect-ratio: 3 / 2; border-radius: 32px;
   box-shadow: 0 24px 48px -20px rgb(44 26 21 / .55);
+  /* fundo de carninhas da Brenda, maior que o quadro e passeando devagar (sem emenda: não repete a imagem) */
+  background: url(img/capa-fundo.webp) 0% 0% / 160% auto;
+  animation: passear 20s ease-in-out infinite alternate;
 }
 .ring {
   position: absolute; left: -28px; bottom: -28px;
@@ -119,7 +124,10 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 /* foto real do burger: ocupa o quadro todo */
 .emoji.com-foto img { width: 100%; height: 100%; object-fit: cover; filter: none; }
 .card:hover .emoji.com-foto img { transform: scale(1.05); }
-/* sem foto: só o emoji grande, pra ninguém achar que a imagem é o burger que vem */
+/* sem foto: o boi do burger (desenho da Brenda) balançando, pra ninguém achar que é o burger que vem */
+.emoji.com-boi img { width: 100%; height: 100%; transform-origin: 50% 85%; animation: balancar 3.5s ease-in-out infinite; }
+.card:nth-child(even) .emoji.com-boi img { animation-delay: -1.7s; }
+/* sem foto nem boi: só o emoji grande */
 .emoji.sem-foto span { position: static; width: 96px; height: 96px; font-size: 52px; }
 .emoji span {
   position: absolute; top: 10px; right: 10px; display: grid; place-items: center;
@@ -222,6 +230,8 @@ md-outlined-text-field { width: 100%; }
 @keyframes surgir { from { opacity: 0; transform: translateY(16px); } }
 @keyframes flutuar { 50% { transform: translateY(-10px); } }
 @keyframes girar { to { transform: rotate(360deg); } }
+@keyframes passear { to { background-position: 100% 100%; } }
+@keyframes balancar { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg) translateY(-4px); } }
 
 @media (max-width: 700px) {
   .hero { flex-direction: column; gap: 32px; padding-top: 32px; text-align: center; }
