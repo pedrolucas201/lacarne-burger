@@ -56,6 +56,7 @@ export const LOJA = {
     { id: 'coca', tipo: 'bebida', nome: 'Coca-Cola', preco: 6, foto: 'img/bebida-coca.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
     { id: 'fanta', tipo: 'bebida', nome: 'Fanta Laranja', preco: 6, foto: 'img/bebida-fanta.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
     { id: 'coca-zero', tipo: 'bebida', nome: 'Coca-Cola Zero', preco: 6, foto: 'img/bebida-coca-zero.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
+    { id: 'coca-zero-ks', tipo: 'bebida', nome: 'Coca-Cola Zero KS', preco: 6, foto: 'img/bebida-coca-zero-ks.webp', desc: 'Garrafa de vidro 290 ml', escolhas: [], tira: [] },
     { id: 'coca-1l', tipo: 'bebida', nome: 'Coca-Cola 1 L', preco: 12, foto: 'img/bebida-coca-1l.webp', desc: 'Garrafa de vidro 1 litro', escolhas: [], tira: [] },
     { id: 'limoneto', tipo: 'bebida', nome: 'H2OH! Limoneto', preco: 7, foto: 'img/bebida-limoneto.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
     { id: 'agua', tipo: 'bebida', nome: 'Água mineral', preco: 2, foto: 'img/bebida-agua.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
