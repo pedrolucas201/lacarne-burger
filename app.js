@@ -1,6 +1,6 @@
 import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
 import { pix } from './pix.js';
-import { taxaDe, mapa, ponto, bairroDaTabela } from './pedido.js';
+import { taxaDe, mapa, ponto, bairroDaTabela, precoItem } from './pedido.js';
 import { $, brl, esc, toast } from './util.js';
 import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
 
@@ -34,13 +34,15 @@ fb.then(m => m.onSnapshot(m.doc(m.db, 'lojas', LOJA_ID), s => {
 
 const esgotado = id => loja.esgotados?.[id] === hoje();
 const itemDe = id => loja.cardapio.find(x => x.id === id);
+const nomeExtra = id => loja.adicionais?.find(a => a.id === id)?.nome ?? id;
 
 // preço sempre vem do cardápio: o que está salvo no navegador pode ter sido alterado
 const validar = lista => lista.flatMap(i => {
   const m = itemDe(i?.id);
   const qtd = Math.min(99, Math.max(1, parseInt(i.qtd) || 1));
+  const extras = (Array.isArray(i.extras) ? i.extras : []).filter(x => loja.adicionais?.some(a => a.id === x));
   return m && Array.isArray(i.escolhas) && Array.isArray(i.sem)
-    ? [{ ...i, nome: m.nome, unit: m.preco, qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
+    ? [{ ...i, nome: m.nome, extras, unit: precoItem(loja, { id: i.id, extras }), qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
 });
 let carrinho = validar(store.get('carrinho', []));
 let atual = null;
@@ -104,23 +106,29 @@ function abrirItem(item) {
     <fieldset><legend>Quer tirar algo?</legend>
       <md-chip-set>${item.tira.map(t => `<md-filter-chip label="Sem ${esc(t.toLowerCase())}" data-v="${esc(t)}"></md-filter-chip>`).join('')}</md-chip-set>
     </fieldset>
+    ${loja.adicionais?.length ? `<fieldset><legend>Adicionais</legend>
+      <md-chip-set id="extras">${loja.adicionais.map(a => `<md-filter-chip label="${esc(a.nome)} · ${brl(a.preco)}" data-x="${esc(a.id)}"></md-filter-chip>`).join('')}</md-chip-set>
+    </fieldset>` : ''}
     <md-outlined-text-field id="itemObs" maxlength="200" label="Observação (opcional)" type="textarea" rows="2"
       placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>`;
+  // o chip marca/desmarca no próprio clique: recalcula no quadro seguinte
+  $('#extras')?.addEventListener('click', () => requestAnimationFrame(atualizarItem));
   atualizarItem();
   dItem.show();
 }
+const marcados = attr => [...$('#itemCorpo').querySelectorAll(`md-filter-chip[data-${attr}]`)].filter(x => x.selected).map(x => x.dataset[attr]);
 function lerItem() {
-  const c = $('#itemCorpo'), { item, qtd } = atual;
+  const { item, qtd } = atual, extras = marcados('x');
   return {
-    id: item.id, nome: item.nome, unit: item.preco, qtd,
+    id: item.id, nome: item.nome, unit: precoItem(loja, { id: item.id, extras }), qtd,
     escolhas: item.escolhas.map((e, i) => [e.titulo, radio(`e${i}`)]),
-    sem: [...c.querySelectorAll('md-filter-chip')].filter(x => x.selected).map(x => x.dataset.v),
+    sem: marcados('v'), extras,
     obs: $('#itemObs').value.trim(),
   };
 }
 function atualizarItem() {
   $('#itemQtd').textContent = atual.qtd;
-  $('#itemTotal').textContent = brl(atual.item.preco * atual.qtd);
+  $('#itemTotal').textContent = brl(precoItem(loja, { id: atual.item.id, extras: marcados('x') }) * atual.qtd);
 }
 $('#menos').onclick = () => { atual.qtd = Math.max(1, atual.qtd - 1); atualizarItem(); };
 $('#mais').onclick = () => { atual.qtd = Math.min(99, atual.qtd + 1); atualizarItem(); };
@@ -132,8 +140,8 @@ $('#itemAdd').onclick = () => {
       { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }], { duration: 300 });
     return toast(`Escolha o ${falta[0].toLowerCase()} 🥩`, true);
   }
-  const chave = JSON.stringify([novo.id, novo.escolhas, novo.sem, novo.obs]);
-  const igual = carrinho.find(i => JSON.stringify([i.id, i.escolhas, i.sem, i.obs]) === chave);
+  const chave = JSON.stringify([novo.id, novo.escolhas, novo.sem, novo.extras, novo.obs]);
+  const igual = carrinho.find(i => JSON.stringify([i.id, i.escolhas, i.sem, i.extras, i.obs]) === chave);
   igual ? igual.qtd = Math.min(99, igual.qtd + novo.qtd) : carrinho.push(novo);
   salvar();
   dItem.close();
@@ -149,6 +157,7 @@ const taxa = () => taxaDe(loja, radio('tipo') === 'Entrega', $('#bairro').value)
 const detalhes = i => [
   ...i.escolhas.map(([t, v]) => `${t}: ${v}`),
   i.sem.length ? `Sem: ${i.sem.join(', ').toLowerCase()}` : null,
+  i.extras.length ? `+ ${i.extras.map(nomeExtra).join(', ')}` : null,
   i.obs ? `Obs: ${i.obs}` : null,
 ].filter(Boolean);
 
@@ -283,7 +292,7 @@ $('#enviar').onclick = () => {
       bairro: entrega ? bairro : '', compl: entrega ? c.compl : '', ref: entrega ? c.ref : '', loc: entrega ? loc : '' },
     // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
     itens: carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,
-      escolhas: Object.fromEntries(i.escolhas), sem: i.sem, obs: i.obs })),
+      escolhas: Object.fromEntries(i.escolhas), sem: i.sem, extras: i.extras, obs: i.obs })),
   }).catch(e => console.error('pedido não foi pro painel', e));
   const painel = `${new URL('painel/', location.href).href}#${ref.id}`;
   const url = `https://api.whatsapp.com/send?phone=${loja.whatsapp}&text=${encodeURIComponent(
@@ -339,6 +348,7 @@ function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, pai
       `*${i.qtd} x ${i.nome.toUpperCase()}*`,
       ...i.escolhas.flatMap(([t, v]) => [`  ${t.toUpperCase()}`, `    - ${v}`]),
       ...(i.sem.length ? ['  RETIRAR', ...i.sem.map(x => `    - ${x.toLowerCase()}`)] : []),
+      ...(i.extras.length ? ['  ADICIONAIS', ...i.extras.map(x => `    + ${nomeExtra(x)}`)] : []),
       i.obs ? `  OBS: ${i.obs}` : null,
       `💵 ${i.qtd} x ${brl(i.unit)} = ${brl(i.unit * i.qtd)}`,
     ]),

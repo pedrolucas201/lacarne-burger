@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto } from '../pedido.js';
+import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem } from '../pedido.js';
 
 const loja = { taxas: { Matriz: 5 }, cardapio: [{ id: 'bruto', preco: 32 }, { id: 'manso', preco: 20 }] };
 const p = (extra = {}) => ({
@@ -53,4 +53,13 @@ test('bairro do CEP casa com a tabela sem ligar pra acento e maiúscula', () => 
 test('localização vira texto curto e link de mapa exato', () => {
   assert.equal(ponto(-8.1180123456, -35.2914), '-8.118012,-35.291400');
   assert.equal(mapa('-8.118012,-35.291400'), 'https://maps.google.com/?q=-8.118012%2C-35.291400');
+});
+test('adicionais somam no preço do item e na conferência', () => {
+  const l = { ...loja, adicionais: [{ id: 'bacon', nome: 'Bacon', preco: 4 }, { id: 'cheddar', nome: 'Cheddar (1 fatia)', preco: 2 }] };
+  assert.equal(precoItem(l, { id: 'bruto', extras: ['bacon', 'cheddar'] }), 38);
+  assert.equal(precoItem(l, { id: 'bruto' }), 32); // pedido antigo, sem extras
+  assert.ok(Number.isNaN(precoItem(l, { id: 'bruto', extras: ['caviar'] }))); // adicional que não existe
+  const comExtra = p({ itens: [{ id: 'bruto', qtd: 2, extras: ['bacon'] }], subtotal: 72 });
+  assert.equal(conferir(comExtra, l).ok, true);
+  assert.equal(conferir({ ...comExtra, subtotal: 64 }, l).ok, false); // cobrou sem o adicional
 });
