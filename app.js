@@ -166,9 +166,11 @@ async function carregarMedias() {
 
 // comentários que a loja liberou; ordena aqui (sem orderBy não precisa de índice composto)
 // ponytail: traz todos os depoimentos do burger; com centenas, criar índice e usar orderBy + limit
+// espera o Firebase carregar (não o "ao vivo"): quem abre o burger logo que a página abre também vê
 async function opinioes(item) {
-  if (!banco) return;
-  const { db, collection, query, where, getDocs } = banco;
+  const f = await fb.catch(() => null);
+  if (!f) return;
+  const { db, collection, query, where, getDocs } = f;
   const s = await getDocs(query(collection(db, 'lojas', LOJA_ID, 'depoimentos'), where('burgers', 'array-contains', item.id))).catch(() => null);
   const deps = (s?.docs ?? []).map(d => d.data()).sort((a, b) => b.criadoEm.toMillis() - a.criadoEm.toMillis());
   if (!deps.length || atual?.item.id !== item.id || !$('#itemDialog').open) return;
