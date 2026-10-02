@@ -43,7 +43,7 @@ export const LOJA = {
       desc: 'Pão brioche, blend de fraldinha (150g), queijo coalho no mel, queijo cheddar e cebola caramelizada.',
       tira: ['Queijo cheddar', 'Cebola caramelizada'] },
     // Praiêro e Amostradinho (01/10): descrição e preço da Brenda; "tira" sugerido pelo Pedro, confirmar com a loja
-    { id: 'praiero', nome: 'Praiêro', preco: 26, emoji: '🍍', boi: 'img/boi-praiero.webp', escolhas: [PONTO],
+    { id: 'praiero', nome: 'Praiêro', preco: 26, emoji: '🍍', foto: 'img/praiero.webp', fotoAlta: 'img/praiero-alta.webp', boi: 'img/boi-praiero.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), abacaxi grelhado com mel e queijo muçarela.',
       tira: ['Abacaxi', 'Queijo muçarela'] },
     { id: 'amostradinho', nome: 'Amostradinho', preco: 27, emoji: '😎', foto: 'img/amostradinho.webp', fotoAlta: 'img/amostradinho-alta.webp', boi: 'img/boi-amostradinho.webp', escolhas: [PONTO],
