@@ -95,15 +95,16 @@ body { padding-bottom: 72px; }
 .av-chips span { font-size: .75rem; padding: 4px 10px; border-radius: 999px; border: 1px solid; }
 .av-chips .bom { background: #e5f4e8; border-color: #b9dfc1; color: #1b5e2b; }
 .av-chips .ruim { background: var(--rosa); border-color: #f0b3a8; color: var(--md-sys-color-primary); }
-#listaAv { display: grid; gap: 10px; align-items: start; }
-.av-card { display: grid; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--md-sys-color-surface-container); border: 1px solid var(--md-sys-color-outline-variant); }
+#listaAv { display: grid; gap: 10px; align-items: stretch; }
+.av-card { display: grid; align-content: start; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--md-sys-color-surface-container); border: 1px solid var(--md-sys-color-outline-variant); }
 .av-card.nova { background: #fff; border: 2px solid var(--md-sys-color-primary); }
 .av-card p { margin: 0; }
 .av-lin { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; font-size: .85rem; }
 .av-lin small { color: var(--md-sys-color-on-surface-variant); }
 .av-b { display: grid; gap: 6px; padding: 8px 10px; border-radius: 10px; background: rgb(255 255 255 / .55); border: 1px solid var(--md-sys-color-outline-variant); }
 .av-b .av-lin { justify-content: flex-start; font-weight: 600; }
-.av-ver { justify-self: end; }
+.av-topo small { margin-left: auto; }
+.av-ver { margin: -8px -8px -8px 0; }
 .av-sw { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: .85rem; cursor: pointer; }
 /* computador: resumo, nota por burger e etiquetas lado a lado; avaliações em 2 colunas */
 @media (min-width: 1000px) {

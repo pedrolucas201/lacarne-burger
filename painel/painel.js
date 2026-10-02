@@ -453,10 +453,10 @@ function renderAv() {
         ${a.publicas?.includes(bid) ? 'selected' : ''}></md-switch>Mostrar no site</label>` : ''}</div>`;
   };
   $('#listaAv').innerHTML = grupos[avFiltro].map(a => `<article class="av-card${a.vista ? '' : ' nova'}">
-      <div class="av-lin"><b>${esc(a.nome)}</b><small>${quando(a.criadoEm)} ${hora(a.criadoEm)}</small></div>
+      <div class="av-lin av-topo"><b>${esc(a.nome)}</b><small>${quando(a.criadoEm)} ${hora(a.criadoEm)}</small>
+        <md-text-button class="av-ver" data-ver="${esc(a.id)}">Ver pedido</md-text-button></div>
       ${Object.entries(a.notas).map(([bid, n]) => burger(a, bid, n)).join('')}
       ${a.tags?.length ? `<div class="av-chips">${a.tags.map(t => `<span class="${TAGS_BOAS.includes(t) ? 'bom' : 'ruim'}">${esc(t)}</span>`).join('')}</div>` : ''}
-      <md-text-button class="av-ver" data-ver="${esc(a.id)}">Ver pedido</md-text-button>
     </article>`).join('') || `<p class="vazio">${avLista.length ? 'Nada aqui' : 'Nenhuma avaliação no período'}</p>`;
 }
 
