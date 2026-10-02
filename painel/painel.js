@@ -442,18 +442,21 @@ function renderAv() {
       <details class="bloco" open><summary>O que mais falam</summary>
         <div class="av-chips">${r.tags.map(([t, n, boa]) => `<span class="${boa ? 'bom' : 'ruim'}">${esc(t)} · ${n}</span>`).join('') || '<p class="vazio">Nenhuma etiqueta marcada</p>'}</div></details>
     </div>`;
-  const grupos = { novas: avLista.filter(a => !a.vista), todas: avLista, site: avLista.filter(a => a.publica) };
+  const grupos = { novas: avLista.filter(a => !a.vista), todas: avLista, site: avLista.filter(a => a.publicas?.length) };
   $('#filtroAv').innerHTML = [['novas', 'Novas'], ['todas', 'Todas'], ['site', 'No site']]
     .map(([k, n]) => `<button type="button" data-fav="${k}" class="${k === avFiltro ? 'on' : ''}">${n} <b>${grupos[k].length}</b></button>`).join('');
+  // cada burger com a sua nota e o seu comentário; "Mostrar no site" é por comentário
+  const burger = (a, bid, n) => {
+    const txt = a.comentarios?.[bid];
+    return `<div class="av-b"><div class="av-lin"><span>${esc(nomeDo(bid))}</span><span class="estr">${estrelas(n)}</span></div>
+      ${txt ? `<p>"${esc(txt)}"</p><label class="av-sw"><md-switch data-pub="${esc(a.id)}" data-b="${esc(bid)}"
+        ${a.publicas?.includes(bid) ? 'selected' : ''}></md-switch>Mostrar no site</label>` : ''}</div>`;
+  };
   $('#listaAv').innerHTML = grupos[avFiltro].map(a => `<article class="av-card${a.vista ? '' : ' nova'}">
-      <div class="av-lin"><span>${Object.entries(a.notas).map(([id, n]) => `${esc(nomeDo(id))} <span class="estr">${estrelas(n)}</span>`).join(' · ')}</span>
-        <small>${quando(a.criadoEm)} ${hora(a.criadoEm)}</small></div>
-      <b>${esc(a.nome)}</b>
+      <div class="av-lin"><b>${esc(a.nome)}</b><small>${quando(a.criadoEm)} ${hora(a.criadoEm)}</small></div>
+      ${Object.entries(a.notas).map(([bid, n]) => burger(a, bid, n)).join('')}
       ${a.tags?.length ? `<div class="av-chips">${a.tags.map(t => `<span class="${TAGS_BOAS.includes(t) ? 'bom' : 'ruim'}">${esc(t)}</span>`).join('')}</div>` : ''}
-      ${a.comentario ? `<p>"${esc(a.comentario)}"</p>` : ''}
-      <div class="av-lin">${a.comentario
-        ? `<label class="av-sw"><md-switch data-pub="${esc(a.id)}" ${a.publica ? 'selected' : ''}></md-switch>Mostrar no site</label>` : '<span></span>'}
-        <md-text-button data-ver="${esc(a.id)}">Ver pedido</md-text-button></div>
+      <md-text-button class="av-ver" data-ver="${esc(a.id)}">Ver pedido</md-text-button>
     </article>`).join('') || `<p class="vazio">${avLista.length ? 'Nada aqui' : 'Nenhuma avaliação no período'}</p>`;
 }
 
@@ -468,18 +471,19 @@ $('#filtroAv').addEventListener('click', e => {
   const b = e.target.closest('[data-fav]');
   if (b) { avFiltro = b.dataset.fav; renderAv(); }
 });
-// "Mostrar no site": cria/apaga o depoimento público junto com a marca na avaliação
+// "Mostrar no site": cria/apaga o depoimento público daquele burger junto com a marca na avaliação
 $('#listaAv').addEventListener('change', async e => {
   const sw = e.target.closest('[data-pub]');
   if (!sw) return;
-  const a = avLista.find(x => x.id === sw.dataset.pub), liga = sw.selected, b = writeBatch(db);
-  const dep = doc(lojaRef, 'depoimentos', a.id);
-  b.update(doc(avRef, a.id), { publica: liga });
-  if (liga) b.set(dep, { nome: a.nome, comentario: a.comentario, notas: a.notas, burgers: Object.keys(a.notas), criadoEm: Timestamp.fromDate(a.criadoEm) });
+  const a = avLista.find(x => x.id === sw.dataset.pub), bid = sw.dataset.b, liga = sw.selected, b = writeBatch(db);
+  const publicas = [...(a.publicas || []).filter(x => x !== bid), ...(liga ? [bid] : [])];
+  const dep = doc(lojaRef, 'depoimentos', `${a.id}_${bid}`);
+  b.update(doc(avRef, a.id), { publicas });
+  if (liga) b.set(dep, { nome: a.nome, burger: bid, nota: a.notas[bid], comentario: a.comentarios[bid], criadoEm: Timestamp.fromDate(a.criadoEm) });
   else b.delete(dep);
   try {
     await b.commit();
-    a.publica = liga;
+    a.publicas = publicas;
     toast(liga ? 'Vai aparecer no site ✅' : 'Saiu do site');
     renderAv();
   } catch (err) { console.error(err); sw.selected = !liga; toast('Não salvou, tenta de novo', true); }

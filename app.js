@@ -33,7 +33,6 @@ fb.then(m => m.onSnapshot(m.doc(m.db, 'lojas', LOJA_ID), s => {
   clearTimeout(demorou);
   loja = s.data();
   banco = m;
-  if (!aoVivo) carregarMedias();
   aoVivo = true;
   carrinho = validar(carrinho); // preço do banco vence o do arquivo
   renderLoja();
@@ -149,34 +148,39 @@ function atualizarBebidas() {
       <img src="${esc(i.foto)}" alt=""><span>${esc(i.nome)}</span><strong>+ ${brl(i.preco)}</strong></button>`).join('')}</div>`;
 }
 // ---------- avaliações: nota no card e "O que acharam" no burger aberto ----------
-// média de cada burger (todas as notas contam) em segundo plano; selo só com 5+ notas. Sem banco, sem selo.
-let medias = {};
+// Tudo de uma vez, em segundo plano, assim que o Firebase chega (sem esperar o "ao vivo"): o cardápio aparece na hora
+// e, quando o cliente toca num burger, os comentários já estão na memória. Sem banco, sem selo nem comentários.
+// Selo só com 5+ notas (uma nota ruim sozinha não marca o burger); comentários já passaram pelo filtro da loja.
 const MIN_NOTAS = 5;
+let medias = {}, depoimentos = {}; // depoimentos: { burgerId: [mais recentes primeiro] }
 const virgula = n => n.toFixed(1).replace('.', ',');
 const selo = id => medias[id] ? `<span class="selo-nota"><b>★ ${virgula(medias[id].media)}</b> (${medias[id].n})</span>` : '';
-async function carregarMedias() {
-  const { db, collection, query, where, getAggregateFromServer, count, average } = banco;
+// selo e comentários carregam separados: um não espera o outro
+fb.then(async ({ db, collection, query, where, getAggregateFromServer, count, average }) => {
   const notas = collection(db, 'lojas', LOJA_ID, 'notas');
-  const burgers = loja.cardapio.filter(i => i.tipo !== 'bebida');
-  const r = await Promise.all(burgers.map(b => getAggregateFromServer(query(notas, where(`notas.${b.id}`, '>=', 1)),
+  const burgers = LOJA.cardapio.filter(i => i.tipo !== 'bebida');
+  const ag = await Promise.all(burgers.map(b => getAggregateFromServer(query(notas, where(`notas.${b.id}`, '>=', 1)),
     { n: count(), media: average(`notas.${b.id}`) }).catch(() => null)));
-  burgers.forEach((b, k) => { const d = r[k]?.data(); if (d?.n >= MIN_NOTAS) medias[b.id] = d; });
-  if (Object.keys(medias).length) renderLoja();
-}
+  burgers.forEach((b, k) => { const d = ag[k]?.data(); if (d?.n >= MIN_NOTAS) medias[b.id] = d; });
+  // encaixa o selo nos cards já na tela (redesenhar o cardápio faria os cards piscarem); os próximos desenhos já vêm com ele
+  Object.keys(medias).forEach(id => document.querySelector(`[data-card="${id}"] h3:not(:has(.selo-nota))`)?.insertAdjacentHTML('beforeend', selo(id)));
+}).catch(() => {});
+// ponytail: traz todos os depoimentos de uma vez (a loja libera poucos); com centenas, paginar por burger
+const comentariosProntos = fb.then(async ({ db, collection, getDocs }) => {
+  const s = await getDocs(collection(db, 'lojas', LOJA_ID, 'depoimentos'));
+  s.docs.map(d => d.data()).sort((a, b) => b.criadoEm.toMillis() - a.criadoEm.toMillis())
+    .forEach(d => (depoimentos[d.burger] ??= []).push(d));
+}).catch(console.error);
 
-// comentários que a loja liberou; ordena aqui (sem orderBy não precisa de índice composto)
-// ponytail: traz todos os depoimentos do burger; com centenas, criar índice e usar orderBy + limit
-// espera o Firebase carregar (não o "ao vivo"): quem abre o burger logo que a página abre também vê
+// já carregado: aparece junto com o burger; se o cliente foi rápido demais, entra assim que chegar
 async function opinioes(item) {
-  const f = await fb.catch(() => null);
-  if (!f) return;
-  const { db, collection, query, where, getDocs } = f;
-  const s = await getDocs(query(collection(db, 'lojas', LOJA_ID, 'depoimentos'), where('burgers', 'array-contains', item.id))).catch(() => null);
-  const deps = (s?.docs ?? []).map(d => d.data()).sort((a, b) => b.criadoEm.toMillis() - a.criadoEm.toMillis());
-  if (!deps.length || atual?.item.id !== item.id || !$('#itemDialog').open) return;
+  await comentariosProntos;
+  const deps = depoimentos[item.id] ?? [];
+  // sem checar se a janela já abriu: com tudo na memória, isto roda antes do show() terminar
+  if (!deps.length || atual?.item.id !== item.id || $('#itemCorpo .opinioes')) return;
   const mostrar = matchMedia('(min-width: 800px)').matches ? 2 : 3;
   const estrelas = n => '★'.repeat(n) + '☆'.repeat(5 - n);
-  const card = d => `<div class="opiniao"><span class="estr">${estrelas(d.notas[item.id] ?? 5)}</span> <small>${esc(d.nome)}</small>
+  const card = d => `<div class="opiniao"><span class="estr">${estrelas(d.nota)}</span> <small>${esc(d.nome)}</small>
     <p>"${esc(d.comentario)}"</p></div>`;
   const m = medias[item.id], resto = deps.length - mostrar;
   const el = document.createElement('section');

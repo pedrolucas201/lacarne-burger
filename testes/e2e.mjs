@@ -101,16 +101,16 @@ try {
   await av.waitForSelector('[data-b="bruto"] [data-n="5"]');
   await av.click('[data-b="bruto"] [data-n="5"]');
   await av.click('[data-t="Saboroso"]');
-  await av.evaluate(() => { document.querySelector('#avComent').value = 'Bruto absurdo'; document.querySelector('#avEnviar').click(); });
+  await av.evaluate(() => { document.querySelector('[data-b="bruto"] .av-coment').value = 'Bruto absurdo'; document.querySelector('#avEnviar').click(); });
   await av.waitForFunction(() => document.body.innerText.includes('Valeu pela avaliação'), { timeout: 5000 });
   await av.reload();
   await av.waitForFunction(() => document.body.innerText.includes('já avaliou'), { timeout: 5000 });
 
   await painel.evaluate(() => document.querySelector('[data-aba="avaliacoes"]').click());
-  await painel.waitForSelector(`[data-pub="${id}"]`);
-  await painel.evaluate(i => document.querySelector(`[data-pub="${i}"]`).shadowRoot.querySelector('input').click(), id);
+  await painel.waitForSelector(`[data-pub="${id}"][data-b="bruto"]`);
+  await painel.evaluate(i => document.querySelector(`[data-pub="${i}"][data-b="bruto"]`).shadowRoot.querySelector('input').click(), id);
   await espera(1500);
-  assert.equal((await db.doc(`lojas/lacarne/depoimentos/${id}`).get()).data().comentario, 'Bruto absurdo');
+  assert.equal((await db.doc(`lojas/lacarne/depoimentos/${id}_bruto`).get()).data().comentario, 'Bruto absurdo');
   assert.equal((await db.doc(`lojas/lacarne/avaliacoes/${id}`).get()).data().vista, true);
 
   await site.bringToFront();

@@ -35,11 +35,14 @@ function montar(c) {
     <p class="grande">Como foi seu pedido, ${esc(c.nome)}?</p>
     <p class="nota">${esc(c.burgers.map(b => b.nome).join(' + '))} · ${quando(c.entregueEm?.toDate?.() ?? new Date())}</p>
     <p class="nota">${plural ? 'Dê uma nota pra cada burger' : 'Dê uma nota pro seu burger'}</p>
-    ${c.burgers.map(b => `<div class="av-linha" data-b="${esc(b.id)}"><img src="${esc(boi(b.id))}" alt=""><b>${esc(b.nome)}</b>
-      <span class="av-estrelas">${[1, 2, 3, 4, 5].map(n =>
-        `<button type="button" data-n="${n}" aria-label="${n} estrela${n > 1 ? 's' : ''} pro ${esc(b.nome)}">★</button>`).join('')}</span></div>`).join('')}
+    ${c.burgers.map(b => `<div class="av-burger" data-b="${esc(b.id)}">
+      <div class="av-linha"><img src="${esc(boi(b.id))}" alt=""><b>${esc(b.nome)}</b>
+        <span class="av-estrelas">${[1, 2, 3, 4, 5].map(n =>
+          `<button type="button" data-n="${n}" aria-label="${n} estrela${n > 1 ? 's' : ''} pro ${esc(b.nome)}">★</button>`).join('')}</span></div>
+      <md-outlined-text-field class="av-coment" type="textarea" rows="2" maxlength="300" hidden
+        label="Quer comentar o ${esc(b.nome)}?"></md-outlined-text-field>
+    </div>`).join('')}
     <div id="avTags"></div>
-    <md-outlined-text-field id="avComent" type="textarea" rows="2" maxlength="300" label="Quer contar mais? (opcional)"></md-outlined-text-field>
     <md-filled-button id="avEnviar" disabled>Enviar avaliação</md-filled-button>
   </div>`;
 
@@ -47,7 +50,7 @@ function montar(c) {
   const desenharTags = () => {
     const l = etiquetas(notas);
     [...tags].forEach(t => { if (!l.includes(t)) tags.delete(t); });
-    $('#avTags').innerHTML = !l.length ? '' : `<p class="nota">${Math.min(...Object.values(notas)) >= 4 ? 'O que você curtiu?' : 'O que deu errado?'} (opcional)</p>
+    $('#avTags').innerHTML = !l.length ? '' : `<p class="nota">${Math.min(...Object.values(notas)) >= 4 ? 'E o pedido em geral, o que você curtiu?' : 'E o pedido em geral, o que deu errado?'} (opcional)</p>
       <div class="av-tags">${l.map(t => `<button type="button" class="av-tag${tags.has(t) ? ' on' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>`;
   };
   $('#avaliar').addEventListener('click', e => {
@@ -56,6 +59,7 @@ function montar(c) {
       const linha = s.closest('[data-b]'), n = +s.dataset.n;
       notas[linha.dataset.b] = n;
       linha.querySelectorAll('[data-n]').forEach(x => x.classList.toggle('on', +x.dataset.n <= n));
+      linha.querySelector('.av-coment').hidden = false; // comentário do burger aparece depois da nota
       $('#avEnviar').disabled = Object.keys(notas).length < c.burgers.length;
       desenharTags();
     } else if (t) {
@@ -68,9 +72,11 @@ function montar(c) {
     try {
       const b = writeBatch(db);
       b.set(doc(loja, 'notas', id), { notas, criadoEm: serverTimestamp() });
+      // um comentário por burger (só os preenchidos): cada um aparece no site só no burger dele
+      const comentarios = Object.fromEntries([...document.querySelectorAll('[data-b]')]
+        .map(x => [x.dataset.b, x.querySelector('.av-coment').value.trim().slice(0, 300)]).filter(([, t]) => t));
       b.set(doc(loja, 'avaliacoes', id), {
-        notas, tags: [...tags], comentario: $('#avComent').value.trim().slice(0, 300),
-        nome: c.nome, criadoEm: serverTimestamp(), vista: false, publica: false,
+        notas, tags: [...tags], comentarios, nome: c.nome, criadoEm: serverTimestamp(), vista: false, publicas: [],
       });
       await b.commit();
       scrollTo(0, 0);

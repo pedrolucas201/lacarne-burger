@@ -30,15 +30,24 @@ service cloud.firestore {
     function avaliacaoValida(loja, id) {
       let c = get(/databases/$(database)/documents/lojas/$(loja)/convites/$(id)).data;
       let a = request.resource.data;
-      let campos = ['notas', 'tags', 'comentario', 'nome', 'criadoEm', 'vista', 'publica'];
+      let campos = ['notas', 'tags', 'comentarios', 'nome', 'criadoEm', 'vista', 'publicas'];
       return a.keys().hasOnly(campos) && a.keys().hasAll(campos)
         && a.notas is map && a.notas.keys().hasOnly(c.ids) && a.notas.keys().hasAll(c.ids)
         && a.notas.values().hasOnly([1, 2, 3, 4, 5])
         && a.tags is list && a.tags.size() <= 11
         && a.tags.hasOnly(['Saboroso', 'Chegou quente', 'Bem embalado', 'Entrega rápida', 'Bom atendimento',
              'Chegou frio', 'Demorou', 'Faltou item', 'Veio errado', 'Embalagem ruim', 'Sabor deixou a desejar'])
-        && texto(a.comentario, 300) && a.nome == c.nome
-        && a.criadoEm == request.time && a.vista == false && a.publica == false;
+        && a.comentarios is map && a.comentarios.keys().hasOnly(c.ids) && comentariosOk(a.comentarios, c.ids)
+        && a.nome == c.nome && a.criadoEm == request.time && a.vista == false && a.publicas == [];
+    }
+    // um comentário opcional por burger, até 300 letras. Regras não têm laço: confere até 8 burgers diferentes no pedido
+    // (o cardápio tem 6). ponytail: cardápio com mais de 8 burgers precisa de mais linhas aqui
+    function comentariosOk(m, ids) {
+      return (ids.size() < 1 || texto(m.get(ids[0], ''), 300)) && (ids.size() < 2 || texto(m.get(ids[1], ''), 300))
+        && (ids.size() < 3 || texto(m.get(ids[2], ''), 300)) && (ids.size() < 4 || texto(m.get(ids[3], ''), 300))
+        && (ids.size() < 5 || texto(m.get(ids[4], ''), 300)) && (ids.size() < 6 || texto(m.get(ids[5], ''), 300))
+        && (ids.size() < 7 || texto(m.get(ids[6], ''), 300)) && (ids.size() < 8 || texto(m.get(ids[7], ''), 300))
+        && ids.size() <= 8;
     }
 
     match /lojas/{loja} {
@@ -70,7 +79,7 @@ service cloud.firestore {
           && avaliacaoValida(loja, id)
           && existsAfter(/databases/$(database)/documents/lojas/$(loja)/notas/$(id));
         allow read: if admin(loja);
-        allow update: if admin(loja) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vista', 'publica']);
+        allow update: if admin(loja) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vista', 'publicas']);
       }
       // só as notas, públicas (média do site); criadas no mesmo lote da avaliação e iguais a ela
       match /notas/{id} {
@@ -79,7 +88,7 @@ service cloud.firestore {
           && request.resource.data.criadoEm == request.time
           && request.resource.data.notas == getAfter(/databases/$(database)/documents/lojas/$(loja)/avaliacoes/$(id)).data.notas;
       }
-      // comentários que a loja liberou pro site
+      // comentários que a loja liberou pro site: um por burger, id = <pedido>_<burger>
       match /depoimentos/{id} {
         allow read: if true;
         allow create, delete: if admin(loja);
