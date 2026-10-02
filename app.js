@@ -84,7 +84,7 @@ function renderLoja() {
       <div class="emoji ${i.foto ? 'com-foto' : i.boi ? 'com-boi' : 'sem-foto'}">${i.foto || i.boi
         ? `<img src="${esc(i.foto || i.boi)}" alt="" loading="lazy">` : ''}<span>${i.boi
           ? `<img class="mini-boi" src="${esc(i.boi)}" alt="">` : esc(i.emoji)}</span></div>
-      <h3>${esc(i.nome)}</h3>
+      <h3>${esc(i.nome)}${selo(i.id)}</h3>
       <p>${esc(i.desc)}</p>
       <div class="rodape">
         <strong>${brl(i.preco)}</strong>
@@ -147,6 +147,58 @@ function atualizarBebidas() {
     <div class="trilho">${bebidas.map(i => `<button type="button" data-beb="${esc(i.id)}" data-d="1">
       <img src="${esc(i.foto)}" alt=""><span>${esc(i.nome)}</span><strong>+ ${brl(i.preco)}</strong></button>`).join('')}</div>`;
 }
+// ---------- avaliações: nota no card e "O que acharam" no burger aberto ----------
+// Tudo de uma vez, em segundo plano, assim que o Firebase chega (sem esperar o "ao vivo"): o cardápio aparece na hora
+// e, quando o cliente toca num burger, os comentários já estão na memória. Sem banco, sem selo nem comentários.
+// Selo só com 5+ notas (uma nota ruim sozinha não marca o burger); comentários já passaram pelo filtro da loja.
+const MIN_NOTAS = 5;
+let medias = {}, depoimentos = {}; // depoimentos: { burgerId: [mais recentes primeiro] }
+const virgula = n => n.toFixed(1).replace('.', ',');
+const selo = id => medias[id] ? `<span class="selo-nota"><b>★ ${virgula(medias[id].media)}</b> (${medias[id].n})</span>` : '';
+// selo e comentários carregam separados: um não espera o outro
+fb.then(async ({ db, collection, query, where, getAggregateFromServer, count, average }) => {
+  const notas = collection(db, 'lojas', LOJA_ID, 'notas');
+  const burgers = LOJA.cardapio.filter(i => i.tipo !== 'bebida');
+  const ag = await Promise.all(burgers.map(b => getAggregateFromServer(query(notas, where(`notas.${b.id}`, '>=', 1)),
+    { n: count(), media: average(`notas.${b.id}`) }).catch(() => null)));
+  burgers.forEach((b, k) => { const d = ag[k]?.data(); if (d?.n >= MIN_NOTAS) medias[b.id] = d; });
+  // encaixa o selo nos cards já na tela (redesenhar o cardápio faria os cards piscarem); os próximos desenhos já vêm com ele
+  Object.keys(medias).forEach(id => document.querySelector(`[data-card="${id}"] h3:not(:has(.selo-nota))`)?.insertAdjacentHTML('beforeend', selo(id)));
+}).catch(() => {});
+// ponytail: traz todos os depoimentos de uma vez (a loja libera poucos); com centenas, paginar por burger
+const comentariosProntos = fb.then(async ({ db, collection, getDocs }) => {
+  const s = await getDocs(collection(db, 'lojas', LOJA_ID, 'depoimentos'));
+  s.docs.map(d => d.data()).sort((a, b) => b.criadoEm.toMillis() - a.criadoEm.toMillis())
+    .forEach(d => (depoimentos[d.burger] ??= []).push(d));
+}).catch(console.error);
+
+// já carregado: aparece junto com o burger; se o cliente foi rápido demais, entra assim que chegar
+async function opinioes(item) {
+  await comentariosProntos;
+  const deps = depoimentos[item.id] ?? [];
+  // sem checar se a janela já abriu: com tudo na memória, isto roda antes do show() terminar
+  if (!deps.length || atual?.item.id !== item.id || $('#itemCorpo .opinioes')) return;
+  const mostrar = matchMedia('(min-width: 800px)').matches ? 2 : 3;
+  const estrelas = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+  const card = d => `<div class="opiniao"><span class="estr">${estrelas(d.nota)}</span> <small>${esc(d.nome)}</small>
+    <p>"${esc(d.comentario)}"</p></div>`;
+  const m = medias[item.id], resto = deps.length - mostrar;
+  const el = document.createElement('section');
+  el.className = 'opinioes';
+  el.innerHTML = `<h4>O que acharam ${m ? `<span class="selo-nota"><b>★ ${virgula(m.media)}</b> · ${m.n} notas</span>` : ''}</h4>
+    ${deps.slice(0, mostrar).map(card).join('')}
+    ${resto > 0 ? `<button type="button" class="mais-op">Ver mais ${resto} comentário${resto > 1 ? 's' : ''}</button>` : ''}`;
+  // expandiu: só a coluna dos comentários cresce; a foto fica do tamanho que estava e a Observação volta ao normal
+  el.querySelector('.mais-op')?.addEventListener('click', e => {
+    const foto = $('#itemCorpo > .item-foto');
+    if (foto) foto.style.minHeight = `${foto.offsetHeight}px`;
+    el.classList.add('expandida');
+    e.target.insertAdjacentHTML('beforebegin', deps.slice(mostrar).map(card).join(''));
+    e.target.remove();
+  });
+  $('#itemCorpo').append(el);
+}
+
 function abrirItem(item) {
   if (!podePedir()) return toast(fechadoMsg(), true);
   if (esgotado(item.id)) return toast(`${item.nome} esgotou 😕`, true);
@@ -158,6 +210,7 @@ function abrirItem(item) {
     ${imagem ? `<div class="item-foto ${item.foto ? 'com-foto' : 'com-boi'}"><picture>
       ${item.fotoAlta ? `<source media="(min-width: 800px)" srcset="${esc(item.fotoAlta)}">` : ''}
       <img src="${esc(imagem)}" alt="${esc(item.nome)}"></picture></div>` : ''}
+    <div class="item-dir">
     <p class="desc">${esc(item.desc)}</p>
     ${item.escolhas.map((e, i) => `
       <fieldset><legend>${esc(e.titulo)} <span class="obrig">obrigatório</span></legend>
@@ -175,7 +228,9 @@ function abrirItem(item) {
         </div></div>`).join('')}
     </fieldset>` : ''}
     <md-outlined-text-field id="itemObs" maxlength="200" label="Observação (opcional)" type="textarea" rows="${matchMedia('(min-width: 800px)').matches ? 1 : 2}"
-      placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>`;
+      placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>
+    </div>`;
+  opinioes(item);
   // ponto escolhido fica destacado igual aos adicionais (o md-radio não expõe o "marcado" pro CSS)
   $('#itemCorpo').addEventListener('change', () =>
     $('#itemCorpo').querySelectorAll('.opt').forEach(o => o.classList.toggle('on', o.querySelector('md-radio').checked)));

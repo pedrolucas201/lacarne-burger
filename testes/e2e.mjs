@@ -12,8 +12,8 @@ const espera = ms => new Promise(r => setTimeout(r, ms));
 const b = await puppeteer.launch({ executablePath: process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
   args: process.env.CI ? ['--no-sandbox'] : [] });
 const erros = [];
-const pagina = async url => {
-  const p = await b.newPage();
+const pagina = async (url, ctx = b) => {
+  const p = await ctx.newPage();
   p.on('pageerror', e => erros.push(e.message));
   await p.setViewport({ width: 390, height: 800 });
   await p.goto(url);
@@ -74,6 +74,50 @@ try {
   // 4. números contam o pedido aceito, sem a taxa
   await painel.evaluate(() => document.querySelector('[data-aba="numeros"]').click());
   await painel.waitForFunction(() => document.querySelector('.kpi strong')?.textContent.includes('32,00'), { timeout: 5000 });
+
+  // 5. entregue cria o convite e manda o link; cliente avalia uma vez; loja libera; comentário aparece no burger aberto
+  await db.doc('lojas/lacarne').update({ 'esgotados.bruto': null });
+  // site em segundo plano não roda requestAnimationFrame: esperar por intervalo
+  await site.waitForFunction(() => !document.querySelector('.card.esgotado'), { timeout: 5000, polling: 200 });
+  await painel.evaluate(() => document.querySelector('[data-aba="pedidos"]').click());
+  let link = '';
+  for (const etapa of ['saiu', 'entregue']) {
+    await painel.evaluate(i => { location.hash = i; }, id);
+    await painel.waitForSelector('#pedidoDialog[open] #avancar');
+    link = await painel.evaluate(async () => {
+      window.__url = '';
+      document.querySelector('#avancar').click();
+      await new Promise(r => setTimeout(r, 1500));
+      return decodeURIComponent(window.__url);
+    });
+    assert.equal((await db.doc(`lojas/lacarne/pedidos/${id}`).get()).data().status, etapa);
+  }
+  assert.ok(link.includes(`avaliar/#${id}`), link);
+  assert.equal((await db.doc(`lojas/lacarne/convites/${id}`).get()).data().nome, 'Ana');
+
+  // cliente em outro contexto (outro aparelho): o emulador fala HTTP/1.1 e o Chrome só abre 6 conexões por host;
+  // site + painel + avaliar na mesma janela esgotam isso e a escrita fica na fila pra sempre
+  const av = await pagina(`${BASE}avaliar/#${id}`, await b.createBrowserContext());
+  await av.waitForSelector('[data-b="bruto"] [data-n="5"]');
+  await av.click('[data-b="bruto"] [data-n="5"]');
+  await av.click('[data-t="Saboroso"]');
+  await av.evaluate(() => { document.querySelector('[data-b="bruto"] .av-coment').value = 'Bruto absurdo'; document.querySelector('#avEnviar').click(); });
+  await av.waitForFunction(() => document.body.innerText.includes('Valeu pela avaliação'), { timeout: 5000 });
+  await av.reload();
+  await av.waitForFunction(() => document.body.innerText.includes('já avaliou'), { timeout: 5000 });
+
+  await painel.evaluate(() => document.querySelector('[data-aba="avaliacoes"]').click());
+  await painel.waitForSelector(`[data-pub="${id}"][data-b="bruto"]`);
+  await painel.evaluate(i => document.querySelector(`[data-pub="${i}"][data-b="bruto"]`).shadowRoot.querySelector('input').click(), id);
+  await espera(1500);
+  assert.equal((await db.doc(`lojas/lacarne/depoimentos/${id}_bruto`).get()).data().comentario, 'Bruto absurdo');
+  assert.equal((await db.doc(`lojas/lacarne/avaliacoes/${id}`).get()).data().vista, true);
+
+  await site.bringToFront();
+  await site.reload();
+  await site.waitForFunction(() => document.querySelector('#status').textContent && customElements.get('md-dialog'));
+  await site.evaluate(() => document.querySelector('[data-card="bruto"] h3').click());
+  await site.waitForFunction(() => document.querySelector('.opinioes')?.innerText.includes('Bruto absurdo'), { timeout: 8000 });
   assert.deepEqual(erros, []);
   console.log('e2e ok');
 } finally {

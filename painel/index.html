@@ -47,6 +47,16 @@
       <div id="numeros"></div>
       <md-outlined-button id="planilha"><md-icon slot="icon">download</md-icon>Baixar planilha</md-outlined-button>
     </section>
+    <section id="aba-avaliacoes" hidden>
+      <div id="periodosAv" class="periodos">
+        <md-filter-chip label="Hoje" data-p="hoje"></md-filter-chip>
+        <md-filter-chip label="Semana" data-p="semana"></md-filter-chip>
+        <md-filter-chip label="Mês" data-p="mes" selected></md-filter-chip>
+      </div>
+      <div id="avResumo"></div>
+      <div id="filtroAv" class="filtro" role="tablist"></div>
+      <div id="listaAv"></div>
+    </section>
     <section id="aba-loja" hidden>
       <div id="controles"></div>
     </section>
@@ -55,6 +65,7 @@
   <nav id="abas" class="abas" hidden>
     <button data-aba="pedidos" class="on"><md-icon>receipt_long</md-icon>Pedidos<span id="novos" hidden></span></button>
     <button data-aba="numeros"><md-icon>bar_chart</md-icon>Números</button>
+    <button data-aba="avaliacoes"><md-icon>star</md-icon>Avaliações<span id="novasAv" class="contador" hidden></span></button>
     <button data-aba="loja"><md-icon>storefront</md-icon>Loja</button>
   </nav>
 

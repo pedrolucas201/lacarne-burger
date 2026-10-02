@@ -117,6 +117,7 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 }
 .card:hover { transform: translateY(-6px); box-shadow: 0 14px 30px -12px rgb(179 55 42 / .35); }
 #menu .card { cursor: pointer; }
+.item-dir { display: contents; } /* celular: some, os filhos ficam na ordem normal */
 /* foto grande no topo do burger aberto, "expandindo" */
 .item-foto {
   aspect-ratio: 4 / 3; margin: 0 0 12px; border-radius: 18px; overflow: hidden;
@@ -129,9 +130,20 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 /* computador: burger aberto em tela larga e sem rolagem; foto à esquerda na altura do conteúdo, opções compactas à direita */
 @media (min-width: 800px) {
   #itemDialog { width: min(1100px, calc(100% - 64px)); max-width: 1100px; }
-  #itemCorpo { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); column-gap: 28px; align-items: stretch; }
-  #itemCorpo > * { grid-column: 2; }
-  #itemCorpo > .item-foto { grid-column: 1; grid-row: 1 / span 30; margin: 0; aspect-ratio: auto; min-height: 100%; }
+  /* esquerda: foto (+ "O que acharam" embaixo); direita: opções, com a Observação crescendo até o fim do último comentário */
+  #itemCorpo { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); grid-template-rows: 1fr auto; column-gap: 28px; align-items: stretch; }
+  #itemCorpo > .item-foto { position: relative; grid-column: 1; grid-row: 1 / span 2; margin: 0; aspect-ratio: auto; min-height: 220px; }
+  #itemCorpo > .item-foto:has(~ .opinioes) { grid-row: 1; }
+  #itemCorpo > .item-foto img { position: absolute; inset: 0; }
+  #itemCorpo > .opinioes { grid-column: 1; grid-row: 2; margin-top: 12px; }
+  .item-dir { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; }
+  /* a borda da Observação termina na linha do último comentário: desce o contador "0 / 200" (23px) pra fora
+     e, com "Ver mais" (36px com o espaço), sobe o mesmo tanto */
+  .item-dir:has(~ .opinioes) { margin-bottom: -23px; }
+  #itemCorpo:has(> .opinioes) { padding-bottom: 23px; } /* espaço do contador que desceu */
+  .item-dir:has(~ .opinioes .mais-op) { padding-bottom: 36px; }
+  .item-dir:has(~ .opinioes:not(.expandida)) #itemObs { flex: 1; }
+  .item-dir:has(~ .opinioes.expandida) { margin-bottom: 0; }
   #itemCorpo .desc { margin-bottom: 10px; }
   #itemCorpo fieldset { margin-bottom: 10px; }
   /* ponto da carne: 3 opções lado a lado */
@@ -341,3 +353,43 @@ md-outlined-text-field { width: 100%; }
 .card.esgotado { opacity: .55; }
 .selo { padding: 6px 12px; border-radius: 12px; background: var(--rosa); color: var(--md-sys-color-primary); font-weight: 600; font-size: .85rem; }
 .erro-carga { grid-column: 1 / -1; display: grid; justify-items: center; gap: 12px; padding: 32px 16px; text-align: center; }
+
+/* avaliar (página do cliente) */
+.avaliar { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+@media (min-width: 800px) { .avaliar { padding-top: 48px; } }
+.avaliar .nota { margin: 0; font-size: .88rem; color: var(--md-sys-color-on-surface-variant); }
+.av-carregando { text-align: center; padding-top: 30vh; }
+.av-caixa { display: grid; gap: 12px; padding: 22px 18px; border-radius: 24px; background: #fff; border: 1px solid var(--md-sys-color-outline-variant); }
+.av-caixa .grande, .av-fim .grande { margin: 0; text-align: center; font-weight: 600; font-size: 1.2rem; }
+.av-caixa > .nota { text-align: center; }
+.av-caixa > .nota:first-of-type { margin-top: -6px; }
+.av-burger { display: grid; gap: 8px; }
+.av-coment[hidden] { display: none; }
+.av-linha { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border-radius: 14px; border: 1px solid var(--md-sys-color-outline-variant); }
+.av-linha img { width: 44px; height: 44px; object-fit: contain; }
+.av-linha b { flex: 1; }
+.av-estrelas { display: flex; }
+.av-estrelas button { font-size: 1.75rem; line-height: 1; padding: 4px 2px; border: 0; background: none; cursor: pointer; color: #dccfc9; transition: transform .1s; }
+.av-estrelas button.on { color: #f2b01e; }
+.av-estrelas button:active { transform: scale(1.2); }
+.av-caixa #avTags .nota { margin: 4px 0 8px; }
+.av-caixa #avTags:empty { display: none; }
+.av-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.av-tag { padding: 7px 11px; border-radius: 10px; font: inherit; font-size: .82rem; cursor: pointer; background: transparent; border: 1px solid var(--md-sys-color-outline); color: inherit; }
+.av-tag.on { background: var(--rosa); border-color: var(--md-sys-color-primary); color: var(--md-sys-color-primary); font-weight: 600; }
+.av-fim { min-height: 70vh; display: grid; place-content: center; justify-items: center; gap: 14px; text-align: center; }
+.av-fim img { width: 150px; height: 150px; border-radius: 50%; }
+.av-fim img.apagado { opacity: .45; filter: grayscale(1); }
+.av-fim .grande { max-width: 22ch; text-wrap: balance; }
+
+/* nota no card e "O que acharam" no burger aberto */
+.card h3 { display: flex; align-items: center; gap: 8px; }
+.selo-nota { margin-left: auto; padding: 3px 9px; border-radius: 999px; background: var(--creme); font: 600 .78rem 'Poppins', sans-serif; color: var(--md-sys-color-on-surface); white-space: nowrap; }
+.selo-nota b { color: #d99a00; }
+.opinioes { display: grid; gap: 8px; margin-top: 16px; }
+.opinioes h4 { margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .95rem; }
+.opiniao { padding: 9px 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-outline-variant); }
+.opiniao .estr { color: #f2b01e; letter-spacing: 1px; }
+.opiniao small { color: var(--md-sys-color-on-surface-variant); }
+.opiniao p { margin: 2px 0 0; font-size: .85rem; }
+.mais-op { justify-self: start; padding: 4px 0; border: 0; background: none; font: 600 .85rem 'Poppins', sans-serif; color: var(--md-sys-color-primary); cursor: pointer; }
