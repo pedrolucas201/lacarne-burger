@@ -30,6 +30,7 @@ export const LOJA = {
     { id: 'cebola', nome: 'Cebola caramelizada', preco: 3 },
     { id: 'bacon', nome: 'Bacon', preco: 4 },
   ],
+  // fotoAlta: versão vertical (das originais em alta) pra tela larga do computador
   // boi: desenho de cada burger (PDF da Brenda); aparece quando ainda não tem foto
   cardapio: [
     { id: 'manso', nome: 'Manso', preco: 20, emoji: '🍔', boi: 'img/boi-manso.webp', escolhas: [PONTO],
@@ -38,17 +39,17 @@ export const LOJA = {
     { id: 'abusado', nome: 'Abusado', preco: 22, emoji: '🍫', boi: 'img/boi-abusado.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), queijo cheddar e Nutella.',
       tira: ['Queijo cheddar'] },
-    { id: 'matuto', nome: 'Matuto', preco: 25, emoji: '🧀', foto: 'img/matuto.webp', boi: 'img/boi-matuto.webp', escolhas: [PONTO],
+    { id: 'matuto', nome: 'Matuto', preco: 25, emoji: '🧀', foto: 'img/matuto.webp', fotoAlta: 'img/matuto-alta.webp', boi: 'img/boi-matuto.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), queijo coalho no mel, queijo cheddar e cebola caramelizada.',
       tira: ['Queijo cheddar', 'Cebola caramelizada'] },
     // Praiêro e Amostradinho (01/10): descrição e preço da Brenda; "tira" sugerido pelo Pedro, confirmar com a loja
     { id: 'praiero', nome: 'Praiêro', preco: 26, emoji: '🍍', boi: 'img/boi-praiero.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), abacaxi grelhado com mel e queijo muçarela.',
       tira: ['Abacaxi', 'Queijo muçarela'] },
-    { id: 'amostradinho', nome: 'Amostradinho', preco: 27, emoji: '😎', foto: 'img/amostradinho.webp', boi: 'img/boi-amostradinho.webp', escolhas: [PONTO],
+    { id: 'amostradinho', nome: 'Amostradinho', preco: 27, emoji: '😎', foto: 'img/amostradinho.webp', fotoAlta: 'img/amostradinho-alta.webp', boi: 'img/boi-amostradinho.webp', escolhas: [PONTO],
       desc: 'Pão brioche amanteigado, blend de fraldinha (150g), maionese, queijo cheddar e geleia de bacon.',
       tira: ['Maionese', 'Queijo cheddar', 'Geleia de bacon'] },
-    { id: 'bruto', nome: 'Bruto', preco: 32, emoji: '🥓', foto: 'img/bruto.webp', boi: 'img/boi-bruto.webp', escolhas: [PONTO],
+    { id: 'bruto', nome: 'Bruto', preco: 32, emoji: '🥓', foto: 'img/bruto.webp', fotoAlta: 'img/bruto-alta.webp', boi: 'img/boi-bruto.webp', escolhas: [PONTO],
       desc: 'Pão brioche, dois blends de fraldinha (150g cada), queijo cheddar, bacon, cebola caramelizada e maionese da casa.',
       tira: ['Bacon', 'Cebola caramelizada', 'Maionese da casa'] },
     // bebidas (cardápio da Brenda, 01/10): vão direto pra sacola, sem diálogo
