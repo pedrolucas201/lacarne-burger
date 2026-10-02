@@ -233,6 +233,17 @@ footer p { margin: 4px 0; }
 body:has(.cart-bar.on) footer { padding-bottom: 96px; }
 footer a { color: var(--md-sys-color-primary); }
 
+/* balcão (dentro do painel): direto no cardápio, sem vitrine; o painel põe o título e o fechar */
+.balcao .topbar, .balcao .hero, .balcao footer { display: none; }
+/* quem lança já conhece o cardápio: sem fotos nem comentários, a lista fica curta e rápida de tocar */
+.balcao .card .emoji, .balcao .item-foto, .balcao .opinioes { display: none; }
+@media (min-width: 800px) {
+  .balcao #itemDialog { width: min(680px, calc(100% - 64px)); }
+  .balcao #itemCorpo { grid-template-columns: minmax(0, 1fr); }
+  .balcao .item-dir { grid-column: 1; }
+}
+.balcao main { padding-bottom: 96px; }
+
 /* barra flutuante da sacola */
 .cart-bar {
   position: fixed; left: 50%; bottom: 16px; z-index: 20;

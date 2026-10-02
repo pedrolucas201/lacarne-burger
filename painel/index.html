@@ -35,6 +35,7 @@
     <section id="aba-pedidos">
       <md-filled-tonal-button id="som"><md-icon slot="icon">notifications_active</md-icon>Ativar som</md-filled-tonal-button>
       <p id="somAviso" class="som-aviso" hidden>🔕 Toque na tela pra religar o som</p>
+      <md-filled-button id="lancar"><md-icon slot="icon">add</md-icon>Lançar pedido</md-filled-button>
       <div id="filtroPedidos" class="filtro" role="tablist"></div>
       <div id="listaPedidos"></div>
     </section>
@@ -68,6 +69,12 @@
     <button data-aba="avaliacoes"><md-icon>star</md-icon>Avaliações<span id="novasAv" class="contador" hidden></span></button>
     <button data-aba="loja"><md-icon>storefront</md-icon>Loja</button>
   </nav>
+
+  <div id="balcao" class="tela-balcao" hidden>
+    <div class="tela-balcao-topo"><strong>Lançar pedido</strong>
+      <md-icon-button id="fecharBalcao" aria-label="Fechar"><md-icon>close</md-icon></md-icon-button></div>
+    <iframe title="Lançar pedido"></iframe>
+  </div>
 
   <md-dialog id="listaDialog">
     <div slot="headline" class="headline"><span id="listaTitulo"></span>

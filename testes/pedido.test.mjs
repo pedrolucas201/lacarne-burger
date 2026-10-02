@@ -81,3 +81,8 @@ test('localização só vale com precisão de até 100 m', () => {
   assert.equal(metros(1499), '1,5 km');
   assert.equal(metros(50000), '50 km');
 });
+test('consumo no local: só o link da avaliação vai pro cliente', () => {
+  const l = { endereco: 'Rua do Borges, 489', tempoEntrega: 30 };
+  for (const e of ['preparo', 'saiu', 'cancelado']) assert.equal(avisoCliente(e, p({ entrega: false, local: true }), 'Loja fechando', l), undefined);
+  assert.match(avisoCliente('entregue', p({ entrega: false, local: true }), null, l, 'https://x/avaliar/#a'), /avaliar\/#a/);
+});

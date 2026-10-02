@@ -72,6 +72,20 @@ test('pedido com localização do cliente', () =>
 test('localização gigante é negada', () =>
   assertFails(addDoc(pedidos(anon()), pedido({ cliente: { ...pedido().cliente, loc: 'x'.repeat(41) } }))));
 
+// ---------- balcão: a loja lança o pedido já aceito ----------
+const balcao = (extra = {}) => pedido({ status: 'preparo', aceitoEm: serverTimestamp(), local: true, entrega: false, taxa: 0,
+  cliente: { nome: 'Mesa 3', fone: '', rua: '', numero: '', bairro: '', compl: '', ref: '', loc: '' }, ...extra });
+test('admin lança pedido no local, sem telefone', () => assertSucceeds(addDoc(pedidos(logado('dono@x.com')), balcao())));
+test('admin lança entrega pelo balcão', () =>
+  assertSucceeds(addDoc(pedidos(logado('dono@x.com')), balcao({ local: false, entrega: true, taxa: 5, cliente: pedido().cliente }))));
+test('cliente não lança pedido já aceito', () => assertFails(addDoc(pedidos(anon()), balcao())));
+test('cliente não marca consumo no local', () => assertFails(addDoc(pedidos(anon()), pedido({ local: true, entrega: false, taxa: 0 }))));
+test('logado fora da lista não lança', () => assertFails(addDoc(pedidos(logado('outro@x.com')), balcao())));
+test('no local com entrega é negado', () => assertFails(addDoc(pedidos(logado('dono@x.com')), balcao({ entrega: true }))));
+test('balcão com hora do aparelho é negado', () => assertFails(addDoc(pedidos(logado('dono@x.com')), balcao({ aceitoEm: new Date(0) }))));
+test('balcão sem nome é negado', () =>
+  assertFails(addDoc(pedidos(logado('dono@x.com')), balcao({ cliente: { ...balcao().cliente, nome: '' } }))));
+
 // ---------- avaliações ----------
 const avaliar = (db, id, notas, extra = {}) => {
   const b = writeBatch(db);

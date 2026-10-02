@@ -1,6 +1,6 @@
 import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
 import { pix } from './pix.js';
-import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar, locBoa, metros } from './pedido.js';
+import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar, locBoa, metros, soDigitos } from './pedido.js';
 import { $, brl, esc, toast } from './util.js';
 import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
 
@@ -16,6 +16,16 @@ const store = {
 const radio = name => [...document.querySelectorAll(`md-radio[name="${name}"]`)].find(r => r.checked)?.value;
 // ?teste no link libera pedidos fora do horário (pra demonstrar o site)
 const TESTE = new URLSearchParams(location.search).has('teste');
+// ?balcao: a loja lança o pedido (o painel abre isto por cima dele). Usa o login do painel, ignora o horário,
+// grava já aceito e não abre WhatsApp nem Pix. Sacola separada da de cliente
+const BALCAO = new URLSearchParams(location.search).has('balcao');
+const SACOLA = BALCAO ? 'carrinhoBalcao' : 'carrinho';
+const logado = BALCAO && Promise.all([import('./firebase.js'), import('./vendor/firebase/auth.js')]).then(async ([{ app, LOCAL }, a]) => {
+  const auth = a.getAuth(app);
+  if (LOCAL) a.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  await auth.authStateReady();
+  return auth.currentUser;
+}).catch(() => null);
 
 // ---------- loja: começa com o arquivo publicado; o banco, ao vivo, corrige e traz os botões do dia ----------
 // ao vivo = já veio do banco. Antes disso não dá pra saber esgotado/fechar hoje: o selo de aberto espera e o envio também.
@@ -50,11 +60,11 @@ const validar = lista => lista.flatMap(i => {
   return m && Array.isArray(i.escolhas) && Array.isArray(i.sem)
     ? [{ ...i, nome: m.nome, extras, unit: precoItem(loja, { id: i.id, extras }), qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
 });
-let carrinho = validar(store.get('carrinho', []));
+let carrinho = validar(store.get(SACOLA, []));
 let atual = null;
 
 // ---------- horário ----------
-const podePedir = () => TESTE || lojaAberta(loja);
+const podePedir = () => TESTE || BALCAO || lojaAberta(loja);
 const abre = () => proximaAbertura(loja.horario, undefined, loja.fechadaHoje === hoje());
 const fechadoMsg = () => `Estamos fechados agora 🌙 Abrimos ${abre()}.`;
 function status() {
@@ -296,7 +306,7 @@ const detalhes = i => [
 
 function salvar() {
   atualizarBebidas();
-  store.set('carrinho', carrinho);
+  store.set(SACOLA, carrinho);
   const n = carrinho.reduce((s, i) => s + i.qtd, 0);
   $('#badge').textContent = n;
   $('#badge').hidden = !n;
@@ -317,7 +327,7 @@ function salvar() {
     <div><span>Subtotal</span><span>${brl(subtotal())}</span></div>
     ${radio('tipo') === 'Entrega' ? `<div class="nota"><span>Taxa de entrega</span><span>${tx === null ? aConfirmar : brl(tx)}</span></div>
       ${loja.tempoEntrega ? `<div class="nota"><span>Tempo médio de entrega</span><span>${loja.tempoEntrega} min</span></div>` : ''}`
-    : loja.endereco ? `<p class="onde">📍 Retire em ${esc(loja.endereco)}<br>
+    : loja.endereco && !BALCAO ? `<p class="onde">📍 Retire em ${esc(loja.endereco)}<br>
       <a href="${mapa(loja.endereco, loja.cidade)}" target="_blank" rel="noopener">ver no mapa</a></p>` : ''}
     <div class="total"><span>Total</span><span>${brl(subtotal() + (tx ?? 0))}${tx === null ? ' + entrega' : ''}</span></div>`;
 }
@@ -437,24 +447,24 @@ if (bois.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
 const CAMPOS = ['nome', 'fone', 'cep', 'rua', 'numero', 'bairro', 'bairroOutro', 'compl', 'ref'];
 $('#enviar').onclick = () => {
   if (!carrinho.length) return toast('Sua sacola está vazia', true);
-  if (!aoVivo && !semBanco) return toast('Ainda conectando com a loja, tenta de novo em instantes', true);
+  if (!aoVivo && (BALCAO || !semBanco)) return toast('Ainda conectando com a loja, tenta de novo em instantes', true);
   if (!podePedir()) return toast(fechadoMsg(), true);
   const acabou = carrinho.find(i => esgotado(i.id));
   if (acabou) return toast(`${acabou.nome} esgotou, tira da sacola 😕`, true);
   const f = id => $('#' + id).value.trim();
-  const entrega = radio('tipo') === 'Entrega';
+  const entrega = radio('tipo') === 'Entrega', local = radio('tipo') === 'Local';
   const pag = radio('pag');
-  const vazio = ['nome', 'fone', ...(entrega ? ['rua', 'numero', 'bairro'] : []),
+  const vazio = ['nome', ...(BALCAO ? [] : ['fone']), ...(entrega ? ['rua', 'numero', 'bairro'] : []),
     ...(entrega && f('bairro') === 'outro' ? ['bairroOutro'] : [])].find(id => !f(id));
   if (vazio) { $('#' + vazio).reportValidity(); $('#' + vazio).focus(); return toast(`Preencha: ${$('#' + vazio).label || $('#' + vazio).ariaLabel}`, true); }
-  if (f('fone').replace(/\D/g, '').length < 10) { $('#fone').focus(); return toast('Telefone inválido (inclua o DDD)', true); }
+  if ((!BALCAO || f('fone')) && f('fone').replace(/\D/g, '').length < 10) { $('#fone').focus(); return toast('Telefone inválido (inclua o DDD)', true); }
   if (!pag) return toast('Escolha a forma de pagamento', true);
   const sub = subtotal(), tx = taxa(), total = sub + (tx ?? 0), troco = +f('troco') || 0;
   if (pag === 'Dinheiro' && troco && troco < total) return toast(`O troco precisa ser maior que ${brl(total)}`, true);
   if (troco > 1000) return toast('Troco até R$ 1.000', true);
 
   const c = Object.fromEntries(CAMPOS.map(k => [k, f(k)]));
-  store.set('cliente', c);
+  if (!BALCAO) store.set('cliente', c);
   const bairro = c.bairro === 'outro' ? c.bairroOutro : c.bairro;
   const cod = Date.now().toString(36).slice(-5).toUpperCase();
   const comPix = pag === 'Pix' && loja.pix;
@@ -464,7 +474,7 @@ $('#enviar').onclick = () => {
   if (aoVivo) {
     const { db, doc, collection, setDoc, serverTimestamp } = banco;
     const ref = doc(collection(db, 'lojas', LOJA_ID, 'pedidos'));
-    setDoc(ref, {
+    const pedido = {
       cod, criadoEm: serverTimestamp(), status: 'novo', entrega, pag, obs: f('obsGeral'),
       troco: pag === 'Dinheiro' ? troco : 0, subtotal: sub, taxa: tx,
       cliente: { nome: c.nome, fone: c.fone, rua: entrega ? c.rua : '', numero: entrega ? c.numero : '',
@@ -472,7 +482,9 @@ $('#enviar').onclick = () => {
       // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
       itens: carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,
         escolhas: Object.fromEntries(i.escolhas), sem: i.sem, extras: i.extras, obs: i.obs })),
-    }).catch(e => console.error('pedido não foi pro painel', e));
+    };
+    if (BALCAO) return lancar(ref, { ...pedido, status: 'preparo', aceitoEm: serverTimestamp(), local });
+    setDoc(ref, pedido).catch(e => console.error('pedido não foi pro painel', e));
     painel = `${new URL('painel/', location.href).href}#${ref.id}`;
   }
   const url = `https://api.whatsapp.com/send?phone=${loja.whatsapp}&text=${encodeURIComponent(
@@ -484,6 +496,31 @@ $('#enviar').onclick = () => {
   toast('Pedido pronto! É só enviar no WhatsApp ✅');
   if (comPix) abrirPix(tx === null ? null : total, cod);
 };
+
+// balcão: espera o banco responder (não tem WhatsApp pra abrir) e já conta o cliente, como o Aceitar do painel faz
+async function lancar(ref, p) {
+  if (!await logado) return toast('Entre no painel antes de lançar pedido', true);
+  const { db, doc, runTransaction, increment, serverTimestamp } = banco;
+  const fone = soDigitos(p.cliente.fone);
+  $('#enviar').disabled = true;
+  try {
+    await runTransaction(db, async t => {
+      const cRef = fone && doc(db, 'lojas', LOJA_ID, 'clientes', fone);
+      const cli = cRef && await t.get(cRef);
+      t.set(ref, p);
+      if (cRef) t.set(cRef, { nome: p.cliente.nome, pedidos: increment(1), gasto: increment(p.subtotal), ultimo: serverTimestamp(),
+        ...(cli.exists() ? {} : { primeiro: serverTimestamp() }) }, { merge: true });
+    });
+  } catch (e) {
+    console.error(e);
+    return toast('Não salvou. Confere a internet e tenta de novo', true);
+  } finally { $('#enviar').disabled = false; }
+  carrinho = [];
+  salvar();
+  // o painel fecha esta tela, mostra o pedido e recarrega o balcão zerado pro próximo
+  if (parent !== window) parent.postMessage({ lancado: ref.id }, location.origin);
+  else location.href = `painel/#${ref.id}`;
+}
 
 // ---------- Pix copia e cola ----------
 // bairro fora da tabela: código sem valor, o cliente digita depois de confirmar a taxa
@@ -551,7 +588,23 @@ function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, pai
 
 // ---------- início ----------
 renderLoja(); // antes de restaurar o cliente: o bairro salvo precisa das opções já no select
-const cliente = store.get('cliente', {});
+const cliente = BALCAO ? {} : store.get('cliente', {});
+if (BALCAO) {
+  document.body.classList.add('balcao');
+  const tipo = v => $(`md-radio[name="tipo"][value="${v}"]`);
+  $('#tipoLocal').hidden = false;
+  tipo('Entrega').removeAttribute('checked');
+  tipo('Local').setAttribute('checked', '');
+  $('#endereco').hidden = true;
+  $('#cartDialog .headline span').textContent = 'Pedido';
+  $('#dadosTit').textContent = 'Cliente';
+  $('#tipoTit').textContent = 'Tipo do pedido';
+  $('#nome').setAttribute('label', 'Nome ou mesa');
+  $('#fone').removeAttribute('required');
+  $('#fone').setAttribute('label', 'Telefone (opcional)');
+  $('#fone').setAttribute('supporting-text', 'Com ele, o cliente recebe o link da avaliação');
+  $('#enviar').innerHTML = '<md-icon slot="icon">check</md-icon>Lançar pedido';
+}
 CAMPOS.forEach(k => { if (cliente[k]) $('#' + k).value = cliente[k]; });
 $('#bairroOutro').hidden = $('#bairro').value !== 'outro';
 if (cliente.fone) $('#fone').value = mascaraFone(cliente.fone); // campo do Material pode não ter carregado ainda: não ler .value dele aqui
