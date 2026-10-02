@@ -129,7 +129,8 @@ try {
     document.querySelector('#lancar').click();
   });
   const quadro = await (await painel.waitForSelector('#balcao iframe')).contentFrame();
-  await quadro.waitForFunction(() => document.querySelector('#status').textContent && customElements.get('md-dialog'), { polling: 200 });
+  // quadro nasce em branco (about:blank) antes de carregar o site: sem ?. a espera lança erro na página
+  await quadro.waitForFunction(() => document.querySelector('#status')?.textContent && customElements.get('md-dialog'), { polling: 200 });
   const balcaoErro = await quadro.evaluate(async () => {
     window.open = u => { window.__url = u; };
     const q = s => document.querySelector(s);
