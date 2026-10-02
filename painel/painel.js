@@ -2,6 +2,7 @@ import '../vendor/material.js';
 import { app, db, LOJA_ID, LOCAL } from '../firebase.js';
 import {
   doc, collection, query, where, orderBy, onSnapshot, getDoc, getDocs, updateDoc, runTransaction, serverTimestamp, increment, Timestamp,
+  writeBatch,
 } from '../vendor/firebase/base.js';
 import {
   getAuth, connectAuthEmulator, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged,
@@ -9,6 +10,7 @@ import {
 import { conferir, whats, avisoCliente, MOTIVOS, soDigitos, mapa, agrupar } from '../pedido.js';
 import { periodo, calcular, variacao, csv, VALIDOS } from '../numeros.js';
 import { hoje } from '../horario.js';
+import { burgersDoPedido, resumo, quando, TAGS_BOAS } from '../avaliacao.js';
 import { $, brl, esc, toast } from '../util.js';
 
 const auth = getAuth(app);
@@ -46,8 +48,9 @@ $('#abas').addEventListener('click', e => {
   const b = e.target.closest('[data-aba]');
   if (!b) return;
   document.querySelectorAll('[data-aba]').forEach(x => x.classList.toggle('on', x === b));
-  ['pedidos', 'numeros', 'loja'].forEach(a => { $(`#aba-${a}`).hidden = a !== b.dataset.aba; });
+  ['pedidos', 'numeros', 'avaliacoes', 'loja'].forEach(a => { $(`#aba-${a}`).hidden = a !== b.dataset.aba; });
   if (b.dataset.aba === 'numeros') carregarNumeros();
+  if (b.dataset.aba === 'avaliacoes') carregarAv();
 });
 const conexao = () => { $('#offline').hidden = navigator.onLine; };
 addEventListener('online', conexao);
@@ -60,6 +63,7 @@ function iniciar() {
   if (!iniciado) {
     iniciado = true;
     onSnapshot(lojaRef, s => { loja = s.data(); renderLoja(); renderPedidos(); });
+    vigiarNovasAv();
   }
   const inicioDoDia = new Date(`${hoje()}T00:00:00-03:00`);
   let primeira = true;
@@ -168,8 +172,11 @@ function pedirMotivo(p) {
 }
 
 // aceitar conta o cliente; cancelar um pedido já aceito desconta. Os dois numa transação junto com o status.
+// entregue com burger: cria o convite de avaliação junto com o status e manda o link na mensagem
 async function mudar(p, status, motivo = null) {
-  const texto = avisoCliente(status, p, motivo, loja);
+  const burgers = status === 'entregue' ? burgersDoPedido(p.itens, loja.cardapio) : [];
+  const avaliar = burgers.length ? `${new URL('../avaliar/', location.href).href}#${p.id}` : '';
+  const texto = avisoCliente(status, p, motivo, loja, avaliar);
   if (texto) window.open(whats(p.cliente.fone, texto), '_blank', 'noopener'); // antes de qualquer await, senão o navegador bloqueia
   const ref = doc(pedidosRef, p.id);
   const mudanca = { status, [CAMPO[status]]: serverTimestamp(), ...(motivo ? { motivo } : {}) };
@@ -177,7 +184,14 @@ async function mudar(p, status, motivo = null) {
   $('#pedidoDialog').close();
   toast(`#${p.cod}: ${etapa(status, p.entrega)}`);
   try {
-    if (!conta) return await updateDoc(ref, mudanca);
+    if (!conta && !avaliar) return await updateDoc(ref, mudanca);
+    if (!conta) {
+      const b = writeBatch(db);
+      b.update(ref, mudanca);
+      b.set(doc(lojaRef, 'convites', p.id),
+        { nome: p.cliente.nome.trim().split(/\s+/)[0], ids: burgers.map(x => x.id), burgers, entregueEm: serverTimestamp() });
+      return await b.commit();
+    }
     await runTransaction(db, async t => {
       const cRef = doc(lojaRef, 'clientes', soDigitos(p.cliente.fone));
       const cli = await t.get(cRef);
@@ -377,3 +391,103 @@ $('#planilha').onclick = () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
+
+// ---------- avaliações ----------
+// ponytail: lê todas as avaliações do período a cada abertura; com milhares por mês, paginar
+const avRef = collection(lojaRef, 'avaliacoes');
+let avPeriodo = 'mes', avFiltro = 'novas', avLista = [];
+const estrelas = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+const virgula = n => n.toFixed(1).replace('.', ',');
+
+// contador das não vistas na barra de baixo, ao vivo
+function vigiarNovasAv() {
+  onSnapshot(query(avRef, where('vista', '==', false)), s => {
+    $('#novasAv').hidden = !s.size;
+    $('#novasAv').textContent = s.size;
+  }, console.error);
+}
+
+async function carregarAv() {
+  $('#listaAv').innerHTML = '<p class="vazio">Carregando…</p>';
+  try {
+    const s = await getDocs(query(avRef, where('criadoEm', '>=', Timestamp.fromDate(periodo(avPeriodo).ini)), orderBy('criadoEm', 'desc')));
+    avLista = s.docs.map(d => ({ id: d.id, ...d.data(), criadoEm: data(d.data().criadoEm) ?? new Date() }));
+  } catch (e) {
+    console.error(e);
+    $('#listaAv').innerHTML = '<p class="vazio">Não deu pra carregar. Confere a internet e toca no período de novo.</p>';
+    return;
+  }
+  // as novas aparecem destacadas nesta abertura e já ficam marcadas como vistas
+  const novas = avLista.filter(a => !a.vista);
+  avFiltro = novas.length ? 'novas' : 'todas';
+  renderAv();
+  if (novas.length) {
+    const b = writeBatch(db);
+    novas.forEach(a => b.update(doc(avRef, a.id), { vista: true }));
+    b.commit().catch(console.error);
+  }
+}
+
+const nomeDo = id => loja.cardapio.find(c => c.id === id)?.nome ?? id;
+function renderAv() {
+  const r = resumo(avLista, loja.cardapio), maior = Math.max(1, ...Object.values(r.dist));
+  $('#avResumo').innerHTML = !r.total ? '' : `
+    <div class="av-resumo">
+      <div class="av-media"><strong>${virgula(r.media)}</strong><span class="estr">${estrelas(Math.round(r.media))}</span>
+        <small>${r.total} ${r.total > 1 ? 'avaliações' : 'avaliação'}</small></div>
+      <div class="av-dist">${[5, 4, 3, 2, 1].map(n => `<div>${n}<i style="--w:${r.dist[n] / maior * 100}%"></i>${r.dist[n]}</div>`).join('')}</div>
+    </div>
+    <div class="blocos">
+      <details class="bloco" open><summary>Nota de cada burger</summary>
+        ${barras(r.porBurger.sort((a, b) => b[1] - a[1]).map(([n, m, q]) => [`${n} (${q})`, m]), virgula)}</details>
+      <details class="bloco" open><summary>O que mais falam</summary>
+        <div class="av-chips">${r.tags.map(([t, n, boa]) => `<span class="${boa ? 'bom' : 'ruim'}">${esc(t)} · ${n}</span>`).join('') || '<p class="vazio">Nenhuma etiqueta marcada</p>'}</div></details>
+    </div>`;
+  const grupos = { novas: avLista.filter(a => !a.vista), todas: avLista, site: avLista.filter(a => a.publica) };
+  $('#filtroAv').innerHTML = [['novas', 'Novas'], ['todas', 'Todas'], ['site', 'No site']]
+    .map(([k, n]) => `<button type="button" data-fav="${k}" class="${k === avFiltro ? 'on' : ''}">${n} <b>${grupos[k].length}</b></button>`).join('');
+  $('#listaAv').innerHTML = grupos[avFiltro].map(a => `<article class="av-card${a.vista ? '' : ' nova'}">
+      <div class="av-lin"><span>${Object.entries(a.notas).map(([id, n]) => `${esc(nomeDo(id))} <span class="estr">${estrelas(n)}</span>`).join(' · ')}</span>
+        <small>${quando(a.criadoEm)} ${hora(a.criadoEm)}</small></div>
+      <b>${esc(a.nome)}</b>
+      ${a.tags?.length ? `<div class="av-chips">${a.tags.map(t => `<span class="${TAGS_BOAS.includes(t) ? 'bom' : 'ruim'}">${esc(t)}</span>`).join('')}</div>` : ''}
+      ${a.comentario ? `<p>"${esc(a.comentario)}"</p>` : ''}
+      <div class="av-lin">${a.comentario
+        ? `<label class="av-sw"><md-switch data-pub="${esc(a.id)}" ${a.publica ? 'selected' : ''}></md-switch>Mostrar no site</label>` : '<span></span>'}
+        <md-text-button data-ver="${esc(a.id)}">Ver pedido</md-text-button></div>
+    </article>`).join('') || `<p class="vazio">${avLista.length ? 'Nada aqui' : 'Nenhuma avaliação no período'}</p>`;
+}
+
+$('#periodosAv').addEventListener('click', e => {
+  const c = e.target.closest('[data-p]');
+  if (!c) return;
+  document.querySelectorAll('#periodosAv [data-p]').forEach(x => { x.selected = x === c; });
+  avPeriodo = c.dataset.p;
+  carregarAv();
+});
+$('#filtroAv').addEventListener('click', e => {
+  const b = e.target.closest('[data-fav]');
+  if (b) { avFiltro = b.dataset.fav; renderAv(); }
+});
+// "Mostrar no site": cria/apaga o depoimento público junto com a marca na avaliação
+$('#listaAv').addEventListener('change', async e => {
+  const sw = e.target.closest('[data-pub]');
+  if (!sw) return;
+  const a = avLista.find(x => x.id === sw.dataset.pub), liga = sw.selected, b = writeBatch(db);
+  const dep = doc(lojaRef, 'depoimentos', a.id);
+  b.update(doc(avRef, a.id), { publica: liga });
+  if (liga) b.set(dep, { nome: a.nome, comentario: a.comentario, notas: a.notas, burgers: Object.keys(a.notas), criadoEm: Timestamp.fromDate(a.criadoEm) });
+  else b.delete(dep);
+  try {
+    await b.commit();
+    a.publica = liga;
+    toast(liga ? 'Vai aparecer no site ✅' : 'Saiu do site');
+    renderAv();
+  } catch (err) { console.error(err); sw.selected = !liga; toast('Não salvou, tenta de novo', true); }
+});
+$('#listaAv').addEventListener('click', e => {
+  const v = e.target.closest('[data-ver]');
+  if (!v) return;
+  document.querySelector('[data-aba="pedidos"]').click();
+  location.hash = v.dataset.ver;
+});

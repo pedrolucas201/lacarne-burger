@@ -341,3 +341,25 @@ md-outlined-text-field { width: 100%; }
 .card.esgotado { opacity: .55; }
 .selo { padding: 6px 12px; border-radius: 12px; background: var(--rosa); color: var(--md-sys-color-primary); font-weight: 600; font-size: .85rem; }
 .erro-carga { grid-column: 1 / -1; display: grid; justify-items: center; gap: 12px; padding: 32px 16px; text-align: center; }
+
+/* avaliar (página do cliente) */
+.avaliar { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+.av-carregando { text-align: center; padding-top: 30vh; }
+.av-caixa { display: grid; gap: 12px; padding: 22px 18px; border-radius: 24px; background: #fff; border: 1px solid var(--md-sys-color-outline-variant); }
+.av-caixa .grande, .av-fim .grande { margin: 0; text-align: center; font-weight: 600; font-size: 1.2rem; }
+.av-caixa > .nota { margin: 0; text-align: center; }
+.av-linha { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border-radius: 14px; border: 1px solid var(--md-sys-color-outline-variant); }
+.av-linha img { width: 44px; height: 44px; object-fit: contain; }
+.av-linha b { flex: 1; }
+.av-estrelas { display: flex; }
+.av-estrelas button { font-size: 1.75rem; line-height: 1; padding: 2px; border: 0; background: none; cursor: pointer; color: #dccfc9; transition: transform .1s; }
+.av-estrelas button.on { color: #f2b01e; }
+.av-estrelas button:active { transform: scale(1.2); }
+.av-caixa #avTags .nota { margin: 4px 0 8px; }
+.av-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.av-tag { padding: 7px 11px; border-radius: 10px; font: inherit; font-size: .82rem; cursor: pointer; background: transparent; border: 1px solid var(--md-sys-color-outline); color: inherit; }
+.av-tag.on { background: var(--rosa); border-color: var(--md-sys-color-primary); color: var(--md-sys-color-primary); font-weight: 600; }
+.av-fim { min-height: 70vh; display: grid; place-content: center; justify-items: center; gap: 14px; text-align: center; }
+.av-fim img { width: 150px; height: 150px; border-radius: 50%; }
+.av-fim img.apagado { opacity: .45; filter: grayscale(1); }
+.av-fim .nota { margin: 0; }

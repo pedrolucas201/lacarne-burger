@@ -40,7 +40,7 @@ body { padding-bottom: 72px; }
   font: inherit; font-size: .75rem; color: var(--md-sys-color-on-surface-variant); background: none; border: 0; cursor: pointer;
 }
 .abas button.on { color: var(--md-sys-color-primary); font-weight: 600; }
-#novos { position: absolute; top: 4px; left: calc(50% + 8px); min-width: 18px; padding: 0 5px; border-radius: 9px; font-size: 11px; background: var(--md-sys-color-primary); color: #fff; }
+#novos, .contador { position: absolute; top: 4px; left: calc(50% + 8px); min-width: 18px; padding: 0 5px; border-radius: 9px; font-size: 11px; background: var(--md-sys-color-primary); color: #fff; }
 
 /* computador: mesmas pílulas do celular; a etapa escolhida aparece em 2 colunas de cartões */
 @media (min-width: 1000px) {
@@ -81,3 +81,25 @@ body { padding-bottom: 72px; }
 .controle { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px dashed var(--md-sys-color-outline-variant); cursor: pointer; }
 .controle small { display: block; color: var(--md-sys-color-on-surface-variant); }
 #pedCorpo a { color: var(--md-sys-color-primary); font-weight: 500; }
+
+/* avaliações */
+.av-resumo { display: flex; gap: 16px; align-items: center; padding: 14px; border-radius: 16px; background: var(--creme); margin-bottom: 12px; }
+.av-media { display: grid; justify-items: center; }
+.av-media strong { font-size: 2.4rem; line-height: 1; }
+.av-media small { color: var(--md-sys-color-on-surface-variant); font-size: .75rem; }
+.av-dist { flex: 1; display: grid; gap: 3px; font-size: .75rem; }
+.av-dist div { display: grid; grid-template-columns: 12px 1fr 24px; align-items: center; gap: 8px; text-align: right; }
+.av-dist i { width: var(--w); min-width: 4px; height: 8px; border-radius: 4px; background: var(--md-sys-color-primary); }
+.estr { color: #f2b01e; letter-spacing: 1px; }
+.av-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.av-chips span { font-size: .75rem; padding: 4px 10px; border-radius: 999px; border: 1px solid; }
+.av-chips .bom { background: #e5f4e8; border-color: #b9dfc1; color: #1b5e2b; }
+.av-chips .ruim { background: var(--rosa); border-color: #f0b3a8; color: var(--md-sys-color-primary); }
+#listaAv { display: grid; gap: 10px; align-items: start; }
+.av-card { display: grid; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--md-sys-color-surface-container); border: 1px solid var(--md-sys-color-outline-variant); }
+.av-card.nova { background: #fff; border: 2px solid var(--md-sys-color-primary); }
+.av-card p { margin: 0; }
+.av-lin { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; font-size: .85rem; }
+.av-lin small { color: var(--md-sys-color-on-surface-variant); }
+.av-sw { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: .85rem; cursor: pointer; }
+@media (min-width: 1000px) { #listaAv { grid-template-columns: 1fr 1fr; } }
