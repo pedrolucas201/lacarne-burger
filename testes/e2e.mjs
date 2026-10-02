@@ -164,6 +164,46 @@ try {
   }
   assert.equal(await painel.evaluate(() => window.__url), '', 'balcão sem telefone não abre WhatsApp');
   assert.equal((await db.doc(`lojas/lacarne/convites/${lancado[0].id}`).get()).exists, false);
+
+  // 7. balcão com telefone e entrega (pedido por ligação): conta o cliente, avisa no WhatsApp e manda a avaliação
+  await painel.evaluate(() => document.querySelector('#lancar').click());
+  // o balcão já está carregado (recarregou zerado depois do pedido anterior): põe a sacola e recarrega
+  await quadro.evaluate(() => {
+    localStorage.setItem('carrinhoBalcao', JSON.stringify([{ id: 'bruto', qtd: 1, escolhas: [['Ponto da carne', 'Ao ponto']], sem: [], extras: [], obs: '' }]));
+    location.reload();
+  }).catch(() => {}); // a recarga derruba o contexto do evaluate
+  await quadro.waitForFunction(() => document.querySelector('#status')?.textContent && customElements.get('md-dialog')
+    && document.querySelector('#cartBar.on'), { polling: 200 });
+  await quadro.evaluate(async () => {
+    const q = s => document.querySelector(s), set = (id, v) => { q('#' + id).value = v; };
+    q('#cartBarBtn').click();
+    await new Promise(r => setTimeout(r, 500));
+    q('md-radio[name=tipo][value=Entrega]').checked = true;
+    set('nome', 'Bia'); set('fone', '(81) 9 8888-7777'); set('rua', 'Rua B'); set('numero', '2'); set('bairro', 'Matriz');
+    q('md-radio[name=pag][value=Pix]').checked = true;
+    q('#cartDialog').dispatchEvent(new Event('change'));
+    q('#enviar').click();
+  });
+  await painel.waitForFunction(() => document.querySelector('#balcao').hidden && document.querySelector('#pedidoDialog[open] #avancar'), { timeout: 8000 });
+  const [ent] = (await db.collection('lojas/lacarne/pedidos').where('cliente.fone', '==', '(81) 9 8888-7777').get()).docs;
+  assert.deepEqual([ent.data().status, ent.data().entrega, ent.data().local, ent.data().taxa, ent.data().subtotal], ['preparo', true, false, 5, 32]);
+  const ficha = (await db.doc('lojas/lacarne/clientes/81988887777').get()).data();
+  assert.deepEqual([ficha.nome, ficha.pedidos, ficha.gasto, !!ficha.primeiro], ['Bia', 1, 32, true]);
+  const avisos = [];
+  for (const etapa of ['saiu', 'entregue']) {
+    await painel.evaluate(i => { location.hash = ''; location.hash = i; }, ent.id);
+    await painel.waitForSelector('#pedidoDialog[open] #avancar');
+    avisos.push(await painel.evaluate(async () => {
+      window.__url = '';
+      document.querySelector('#avancar').click();
+      await new Promise(r => setTimeout(r, 1500));
+      return decodeURIComponent(window.__url);
+    }));
+    assert.equal((await db.doc(`lojas/lacarne/pedidos/${ent.id}`).get()).data().status, etapa);
+  }
+  assert.match(avisos[0], /phone=5581988887777.*saiu pra entrega/s);
+  assert.ok(avisos[1].includes(`avaliar/#${ent.id}`), avisos[1]);
+  assert.equal((await db.doc(`lojas/lacarne/convites/${ent.id}`).get()).data().nome, 'Bia');
   assert.deepEqual(erros, []);
   console.log('e2e ok');
 } finally {
