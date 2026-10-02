@@ -25,6 +25,22 @@ service cloud.firestore {
         && (p.taxa == null || (p.taxa is number && p.taxa >= 0 && p.taxa <= 50));
     }
 
+    // avaliação: o convite (criado pelo painel ao marcar entregue) autoriza UMA avaliação daquele pedido,
+    // com nota 1–5 pra cada burger do convite e etiquetas da lista fixa (igual a avaliacao.js)
+    function avaliacaoValida(loja, id) {
+      let c = get(/databases/$(database)/documents/lojas/$(loja)/convites/$(id)).data;
+      let a = request.resource.data;
+      let campos = ['notas', 'tags', 'comentario', 'nome', 'criadoEm', 'vista', 'publica'];
+      return a.keys().hasOnly(campos) && a.keys().hasAll(campos)
+        && a.notas is map && a.notas.keys().hasOnly(c.ids) && a.notas.keys().hasAll(c.ids)
+        && a.notas.values().hasOnly([1, 2, 3, 4, 5])
+        && a.tags is list && a.tags.size() <= 11
+        && a.tags.hasOnly(['Saboroso', 'Chegou quente', 'Bem embalado', 'Entrega rápida', 'Bom atendimento',
+             'Chegou frio', 'Demorou', 'Faltou item', 'Veio errado', 'Embalagem ruim', 'Sabor deixou a desejar'])
+        && texto(a.comentario, 300) && a.nome == c.nome
+        && a.criadoEm == request.time && a.vista == false && a.publica == false;
+    }
+
     match /lojas/{loja} {
       allow read: if true;
       allow write: if admin(loja);
@@ -42,6 +58,31 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['status', 'aceitoEm', 'saiuEm', 'entregueEm', 'canceladoEm', 'motivo'])
           && request.resource.data.status in ['novo', 'preparo', 'saiu', 'entregue', 'cancelado'];
+      }
+
+      // create em documento que já existe conta como update (negado): uma avaliação por pedido
+      match /convites/{id} {
+        allow read: if true;
+        allow create: if admin(loja);
+      }
+      match /avaliacoes/{id} {
+        allow create: if exists(/databases/$(database)/documents/lojas/$(loja)/convites/$(id))
+          && avaliacaoValida(loja, id)
+          && existsAfter(/databases/$(database)/documents/lojas/$(loja)/notas/$(id));
+        allow read: if admin(loja);
+        allow update: if admin(loja) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vista', 'publica']);
+      }
+      // só as notas, públicas (média do site); criadas no mesmo lote da avaliação e iguais a ela
+      match /notas/{id} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['notas', 'criadoEm'])
+          && request.resource.data.criadoEm == request.time
+          && request.resource.data.notas == getAfter(/databases/$(database)/documents/lojas/$(loja)/avaliacoes/$(id)).data.notas;
+      }
+      // comentários que a loja liberou pro site
+      match /depoimentos/{id} {
+        allow read: if true;
+        allow create, delete: if admin(loja);
       }
     }
   }

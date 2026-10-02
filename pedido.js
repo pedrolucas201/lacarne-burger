@@ -43,13 +43,15 @@ export const bairroDaTabela = (taxas, nome) => chave(nome) && Object.keys(taxas)
 
 export const MOTIVOS = ['Acabou o item', 'Fora da área de entrega', 'Cliente desistiu', 'Loja fechando'];
 
-// tempoEntrega e endereco são opcionais na loja: sem eles, o aviso fica só com a frase base
-export function avisoCliente(etapa, p, motivo, loja = {}) {
+// tempoEntrega e endereco são opcionais na loja: sem eles, o aviso fica só com a frase base.
+// avaliar: link da avaliação (só no entregue, só se o pedido tem burger); sem link, entregue não manda nada
+export function avisoCliente(etapa, p, motivo, loja = {}, avaliar = '') {
   const tempo = p.entrega && loja.tempoEntrega ? ` Tempo médio de entrega: ${loja.tempoEntrega} min.` : '';
   const ondeRetirar = loja.endereco ? `\n📍 ${loja.endereco}\n${mapa(loja.endereco, loja.cidade)}` : '';
   return {
     preparo: `Pedido #${p.cod} aceito! 🍔 Já estamos preparando.${tempo}`,
     saiu: p.entrega ? `Pedido #${p.cod} saiu pra entrega! 🛵` : `Pedido #${p.cod} pronto pra retirar! 🏃${ondeRetirar}`,
     cancelado: `Pedido #${p.cod} cancelado: ${motivo}. Qualquer dúvida, é só chamar.`,
+    entregue: avaliar ? `Valeu pelo pedido! 🍔 Conta pra gente como foi: ${avaliar}` : undefined,
   }[etapa];
 }

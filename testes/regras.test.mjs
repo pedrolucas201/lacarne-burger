@@ -1,7 +1,7 @@
 import { test, before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, addDoc, collection, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, addDoc, collection, updateDoc, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 const P = 'lojas/lacarne';
 let env;
@@ -26,6 +26,8 @@ beforeEach(async () => {
     await setDoc(doc(db, P), { nome: 'La Carne' });
     await setDoc(doc(db, P, 'admins', 'dono@x.com'), {});
     await setDoc(doc(db, P, 'pedidos', 'p1'), { ...pedido(), criadoEm: new Date() });
+    await setDoc(doc(db, P, 'convites', 'p1'), { nome: 'Ana', ids: ['bruto', 'manso'],
+      burgers: [{ id: 'bruto', nome: 'Bruto' }, { id: 'manso', nome: 'Manso' }], entregueEm: new Date() });
   });
 });
 
@@ -69,3 +71,65 @@ test('pedido com localização do cliente', () =>
   assertSucceeds(addDoc(pedidos(anon()), pedido({ cliente: { ...pedido().cliente, loc: '-8.118012,-35.291400' } }))));
 test('localização gigante é negada', () =>
   assertFails(addDoc(pedidos(anon()), pedido({ cliente: { ...pedido().cliente, loc: 'x'.repeat(41) } }))));
+
+// ---------- avaliações ----------
+const avaliar = (db, id, notas, extra = {}) => {
+  const b = writeBatch(db);
+  b.set(doc(db, P, 'notas', id), { notas, criadoEm: serverTimestamp() });
+  b.set(doc(db, P, 'avaliacoes', id), { notas, tags: ['Saboroso'], comentario: 'Top', nome: 'Ana',
+    criadoEm: serverTimestamp(), vista: false, publica: false, ...extra });
+  return b.commit();
+};
+const ok = { bruto: 5, manso: 4 };
+test('avalia com convite', () => assertSucceeds(avaliar(anon(), 'p1', ok)));
+test('avaliar sem convite é negado', () => assertFails(avaliar(anon(), 'p9', { bruto: 5 })));
+test('segunda avaliação é negada', async () => {
+  await assertSucceeds(avaliar(anon(), 'p1', ok));
+  await assertFails(avaliar(anon(), 'p1', { bruto: 1, manso: 1 }));
+});
+test('nota fora de 1..5 é negada', async () => {
+  await assertFails(avaliar(anon(), 'p1', { bruto: 6, manso: 4 }));
+  await assertFails(avaliar(anon(), 'p1', { bruto: 0, manso: 4 }));
+});
+test('faltar burger ou burger de fora é negado', async () => {
+  await assertFails(avaliar(anon(), 'p1', { bruto: 5 }));
+  await assertFails(avaliar(anon(), 'p1', { ...ok, matuto: 5 }));
+});
+test('etiqueta inventada é negada', () => assertFails(avaliar(anon(), 'p1', ok, { tags: ['Péssimo'] })));
+test('comentário gigante é negado', () => assertFails(avaliar(anon(), 'p1', ok, { comentario: 'x'.repeat(301) })));
+test('avaliação já publicada ou com outro nome é negada', async () => {
+  await assertFails(avaliar(anon(), 'p1', ok, { publica: true }));
+  await assertFails(avaliar(anon(), 'p1', ok, { nome: 'Outro' }));
+});
+test('notas sem avaliação no mesmo lote é negado', () =>
+  assertFails(setDoc(doc(anon(), P, 'notas', 'p1'), { notas: ok, criadoEm: serverTimestamp() })));
+test('avaliação sem notas no mesmo lote é negada', () =>
+  assertFails(setDoc(doc(anon(), P, 'avaliacoes', 'p1'), { notas: ok, tags: [], comentario: '', nome: 'Ana',
+    criadoEm: serverTimestamp(), vista: false, publica: false })));
+test('notas diferentes nos dois documentos é negado', async () => {
+  const db = anon(), b = writeBatch(db);
+  b.set(doc(db, P, 'notas', 'p1'), { notas: { bruto: 5, manso: 5 }, criadoEm: serverTimestamp() });
+  b.set(doc(db, P, 'avaliacoes', 'p1'), { notas: { bruto: 1, manso: 1 }, tags: [], comentario: '', nome: 'Ana',
+    criadoEm: serverTimestamp(), vista: false, publica: false });
+  await assertFails(b.commit());
+});
+test('qualquer um lê convite e notas; só admin lê avaliação', async () => {
+  await assertSucceeds(avaliar(anon(), 'p1', ok));
+  await assertSucceeds(getDoc(doc(anon(), P, 'convites', 'p1')));
+  await assertSucceeds(getDoc(doc(anon(), P, 'notas', 'p1')));
+  await assertFails(getDoc(doc(anon(), P, 'avaliacoes', 'p1')));
+  await assertSucceeds(getDoc(doc(logado('dono@x.com'), P, 'avaliacoes', 'p1')));
+});
+test('só admin cria convite e depoimento; admin só muda vista/publica', async () => {
+  await assertSucceeds(avaliar(anon(), 'p1', ok));
+  await assertFails(setDoc(doc(anon(), P, 'convites', 'p2'), { nome: 'X', ids: ['bruto'], burgers: [], entregueEm: new Date() }));
+  await assertFails(setDoc(doc(anon(), P, 'depoimentos', 'p1'), { nome: 'Ana' }));
+  const adm = logado('dono@x.com');
+  await assertSucceeds(setDoc(doc(adm, P, 'convites', 'p2'), { nome: 'X', ids: ['bruto'], burgers: [], entregueEm: new Date() }));
+  await assertSucceeds(updateDoc(doc(adm, P, 'avaliacoes', 'p1'), { vista: true, publica: true }));
+  await assertFails(updateDoc(doc(adm, P, 'avaliacoes', 'p1'), { notas: { bruto: 1, manso: 1 } }));
+  await assertSucceeds(setDoc(doc(adm, P, 'depoimentos', 'p1'), { nome: 'Ana', comentario: 'Top', notas: ok, burgers: ['bruto', 'manso'], criadoEm: new Date() }));
+  await assertSucceeds(getDoc(doc(anon(), P, 'depoimentos', 'p1')));
+  await assertFails(deleteDoc(doc(anon(), P, 'depoimentos', 'p1')));
+  await assertSucceeds(deleteDoc(doc(adm, P, 'depoimentos', 'p1')));
+});

@@ -27,6 +27,7 @@ test('avisos pro cliente', () => {
   assert.match(avisoCliente('saiu', p({ entrega: false })), /pronto pra retirar/);
   assert.match(avisoCliente('cancelado', p(), 'Cliente desistiu'), /cancelado: Cliente desistiu/);
   assert.equal(avisoCliente('entregue', p()), undefined);
+  assert.match(avisoCliente('entregue', p(), null, {}, 'https://lacarne.com.br/avaliar/#abc'), /Conta pra gente como foi: https:\/\/lacarne\.com\.br\/avaliar\/#abc/);
 });
 test('link do mapa', () =>
   assert.equal(mapa('Rua A, 1 - Centro', 'Recife - PE'), 'https://maps.google.com/?q=Rua%20A%2C%201%20-%20Centro%2C%20Recife%20-%20PE'));
