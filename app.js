@@ -33,6 +33,7 @@ fb.then(m => m.onSnapshot(m.doc(m.db, 'lojas', LOJA_ID), s => {
   clearTimeout(demorou);
   loja = s.data();
   banco = m;
+  if (!aoVivo) carregarMedias();
   aoVivo = true;
   carrinho = validar(carrinho); // preço do banco vence o do arquivo
   renderLoja();
@@ -84,7 +85,7 @@ function renderLoja() {
       <div class="emoji ${i.foto ? 'com-foto' : i.boi ? 'com-boi' : 'sem-foto'}">${i.foto || i.boi
         ? `<img src="${esc(i.foto || i.boi)}" alt="" loading="lazy">` : ''}<span>${i.boi
           ? `<img class="mini-boi" src="${esc(i.boi)}" alt="">` : esc(i.emoji)}</span></div>
-      <h3>${esc(i.nome)}</h3>
+      <h3>${esc(i.nome)}${selo(i.id)}</h3>
       <p>${esc(i.desc)}</p>
       <div class="rodape">
         <strong>${brl(i.preco)}</strong>
@@ -147,6 +148,47 @@ function atualizarBebidas() {
     <div class="trilho">${bebidas.map(i => `<button type="button" data-beb="${esc(i.id)}" data-d="1">
       <img src="${esc(i.foto)}" alt=""><span>${esc(i.nome)}</span><strong>+ ${brl(i.preco)}</strong></button>`).join('')}</div>`;
 }
+// ---------- avaliações: nota no card e "O que acharam" no burger aberto ----------
+// média de cada burger (todas as notas contam) em segundo plano; selo só com 5+ notas. Sem banco, sem selo.
+let medias = {};
+const MIN_NOTAS = 5;
+const virgula = n => n.toFixed(1).replace('.', ',');
+const selo = id => medias[id] ? `<span class="selo-nota"><b>★ ${virgula(medias[id].media)}</b> (${medias[id].n})</span>` : '';
+async function carregarMedias() {
+  const { db, collection, query, where, getAggregateFromServer, count, average } = banco;
+  const notas = collection(db, 'lojas', LOJA_ID, 'notas');
+  const burgers = loja.cardapio.filter(i => i.tipo !== 'bebida');
+  const r = await Promise.all(burgers.map(b => getAggregateFromServer(query(notas, where(`notas.${b.id}`, '>=', 1)),
+    { n: count(), media: average(`notas.${b.id}`) }).catch(() => null)));
+  burgers.forEach((b, k) => { const d = r[k]?.data(); if (d?.n >= MIN_NOTAS) medias[b.id] = d; });
+  if (Object.keys(medias).length) renderLoja();
+}
+
+// comentários que a loja liberou; ordena aqui (sem orderBy não precisa de índice composto)
+// ponytail: traz todos os depoimentos do burger; com centenas, criar índice e usar orderBy + limit
+async function opinioes(item) {
+  if (!banco) return;
+  const { db, collection, query, where, getDocs } = banco;
+  const s = await getDocs(query(collection(db, 'lojas', LOJA_ID, 'depoimentos'), where('burgers', 'array-contains', item.id))).catch(() => null);
+  const deps = (s?.docs ?? []).map(d => d.data()).sort((a, b) => b.criadoEm.toMillis() - a.criadoEm.toMillis());
+  if (!deps.length || atual?.item.id !== item.id || !$('#itemDialog').open) return;
+  const mostrar = matchMedia('(min-width: 800px)').matches ? 2 : 3;
+  const estrelas = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+  const card = d => `<div class="opiniao"><span class="estr">${estrelas(d.notas[item.id] ?? 5)}</span> <small>${esc(d.nome)}</small>
+    <p>"${esc(d.comentario)}"</p></div>`;
+  const m = medias[item.id], resto = deps.length - mostrar;
+  const el = document.createElement('section');
+  el.className = 'opinioes';
+  el.innerHTML = `<h4>O que acharam ${m ? `<span class="selo-nota"><b>★ ${virgula(m.media)}</b> · ${m.n} notas</span>` : ''}</h4>
+    ${deps.slice(0, mostrar).map(card).join('')}
+    ${resto > 0 ? `<button type="button" class="mais-op">Ver mais ${resto} comentário${resto > 1 ? 's' : ''}</button>` : ''}`;
+  el.querySelector('.mais-op')?.addEventListener('click', e => {
+    e.target.insertAdjacentHTML('beforebegin', deps.slice(mostrar).map(card).join(''));
+    e.target.remove();
+  });
+  $('#itemCorpo').append(el);
+}
+
 function abrirItem(item) {
   if (!podePedir()) return toast(fechadoMsg(), true);
   if (esgotado(item.id)) return toast(`${item.nome} esgotou 😕`, true);
@@ -158,6 +200,7 @@ function abrirItem(item) {
     ${imagem ? `<div class="item-foto ${item.foto ? 'com-foto' : 'com-boi'}"><picture>
       ${item.fotoAlta ? `<source media="(min-width: 800px)" srcset="${esc(item.fotoAlta)}">` : ''}
       <img src="${esc(imagem)}" alt="${esc(item.nome)}"></picture></div>` : ''}
+    <div class="item-dir">
     <p class="desc">${esc(item.desc)}</p>
     ${item.escolhas.map((e, i) => `
       <fieldset><legend>${esc(e.titulo)} <span class="obrig">obrigatório</span></legend>
@@ -175,7 +218,9 @@ function abrirItem(item) {
         </div></div>`).join('')}
     </fieldset>` : ''}
     <md-outlined-text-field id="itemObs" maxlength="200" label="Observação (opcional)" type="textarea" rows="${matchMedia('(min-width: 800px)').matches ? 1 : 2}"
-      placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>`;
+      placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>
+    </div>`;
+  opinioes(item);
   // ponto escolhido fica destacado igual aos adicionais (o md-radio não expõe o "marcado" pro CSS)
   $('#itemCorpo').addEventListener('change', () =>
     $('#itemCorpo').querySelectorAll('.opt').forEach(o => o.classList.toggle('on', o.querySelector('md-radio').checked)));
