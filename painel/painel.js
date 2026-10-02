@@ -358,12 +358,13 @@ function renderNumeros(a, b) {
     <div class="blocos">
       <details class="bloco" ${aberto('Burgers mais vendidos')}><summary>Burgers mais vendidos</summary>${barras(a.maisVendidos.filter(([n]) => !ehBebida(n)))}</details>
       <details class="bloco" ${aberto('Bebidas mais vendidas')}><summary>Bebidas mais vendidas</summary>${barras(a.maisVendidos.filter(([n]) => ehBebida(n)))}</details>
-      <details class="bloco" ${aberto('Formas de pagamento')}><summary>Formas de pagamento</summary>${barras(a.pagamentos, brl)}</details>
-      <details class="bloco" ${aberto('Horário de pico')}><summary>Horário de pico</summary>${barras(faixas.map(f => [f, pico[f] || 0]))}</details>
       <details class="bloco" ${aberto('Bairros que mais pedem')}><summary>Bairros que mais pedem</summary>${barras(a.bairros.slice(0, 5))}${verTodos('bairros', a.bairros)}</details>
       <details class="bloco" ${aberto('Clientes')}><summary>Clientes</summary><p class="nota">${a.clientesNovos} novo(s) · ${a.clientesVoltaram} voltaram</p>
         ${barras(a.topClientes.slice(0, 5))}${verTodos('clientes', a.topClientes)}</details>
+      <details class="bloco" ${aberto('Formas de pagamento')}><summary>Formas de pagamento</summary>${barras(a.pagamentos, brl)}</details>
       <details class="bloco" ${aberto('Dia da semana mais forte')}><summary>Dia da semana mais forte</summary>${barras(a.diasSemana.map(([d, v]) => [DIAS[d], v]), brl)}</details>
+
+      <details class="bloco largo" ${aberto('Horário de pico')}><summary>Horário de pico</summary>${barras(faixas.map(f => [f, pico[f] || 0]))}</details>
     </div>`;
   listas = { bairros: a.bairros, clientes: a.topClientes };
 }

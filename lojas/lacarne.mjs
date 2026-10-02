@@ -9,7 +9,7 @@ export const LOJA = {
   cidade: 'Vitória de Santo Antão - PE',
   endereco: 'Rua do Borges, 489 - Bela Vista', // onde retira; vazio = não mostra
   tempoEntrega: 30, // minutos, média informada pelo Nicolas; 0 = não mostra
-  horario: { dias: [3, 4, 5, 6], abre: 18, fecha: 22, texto: 'Quarta a sábado · 18h às 22h' },
+  horario: { dias: [3, 4, 5, 6], abre: 18, fecha: 23, texto: 'Quarta a sábado · 18h às 23h' },
   // taxa de entrega por bairro (tabela da MotoJá); bairro fora da lista = "a confirmar no WhatsApp"
   taxas: {
     'Água Branca': 7, 'Alto do Cigano': 7, 'Alto José Leal (até o Mercado do Lar)': 7, 'Amparo': 6, 'Atacarejo': 9,
