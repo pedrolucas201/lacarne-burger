@@ -35,6 +35,7 @@
     <section id="aba-pedidos">
       <md-filled-tonal-button id="som"><md-icon slot="icon">notifications_active</md-icon>Ativar som</md-filled-tonal-button>
       <p id="somAviso" class="som-aviso" hidden>🔕 Toque na tela pra religar o som</p>
+      <div id="filtroPedidos" class="filtro" role="tablist"></div>
       <div id="listaPedidos"></div>
     </section>
     <section id="aba-numeros" hidden>
@@ -56,6 +57,15 @@
     <button data-aba="numeros"><md-icon>bar_chart</md-icon>Números</button>
     <button data-aba="loja"><md-icon>storefront</md-icon>Loja</button>
   </nav>
+
+  <md-dialog id="listaDialog">
+    <div slot="headline" class="headline"><span id="listaTitulo"></span>
+      <md-icon-button data-fechar aria-label="Fechar"><md-icon>close</md-icon></md-icon-button></div>
+    <div slot="content" class="lista-toda">
+      <input id="listaBusca" type="search" placeholder="Buscar…" aria-label="Buscar" autocomplete="off">
+      <div id="listaItens"></div>
+    </div>
+  </md-dialog>
 
   <md-dialog id="pedidoDialog">
     <div slot="headline" class="headline"><span id="pedTitulo"></span>

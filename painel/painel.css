@@ -6,10 +6,21 @@ body { padding-bottom: 72px; }
 .som-aviso { margin: 0 0 16px; padding: 8px 12px; border-radius: 12px; font-size: .9rem; background: var(--rosa); color: var(--md-sys-color-primary); }
 .vazio, .nota { color: var(--md-sys-color-on-surface-variant); font-size: .85rem; }
 
-/* pedidos */
+/* pedidos: pílulas por etapa (celular mostra um grupo por vez) */
+.filtro { position: sticky; top: 0; z-index: 3; display: flex; gap: 6px; overflow-x: auto; padding: 8px 0; margin-bottom: 8px; background: var(--md-sys-color-surface); }
+.filtro button {
+  flex: none; padding: 8px 14px; border-radius: 999px; font: inherit; font-size: .85rem; cursor: pointer;
+  color: var(--md-sys-color-on-surface); background: transparent; border: 1px solid var(--md-sys-color-outline-variant);
+}
+.filtro button b { margin-left: 4px; }
+.filtro button.on { background: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); color: #fff; }
+.filtro button.novo:not(.on) b { color: var(--md-sys-color-primary); }
+.filtro button.chamando { border-color: var(--md-sys-color-primary); color: var(--md-sys-color-primary); font-weight: 700; animation: chamar 1.2s ease-in-out infinite; }
+@keyframes chamar { 50% { background: var(--rosa); box-shadow: 0 0 0 4px rgb(179 55 42 / .25); } }
 .grupo { margin-bottom: 16px; }
-.grupo summary { padding: 8px 0; font-weight: 600; cursor: pointer; }
-.grupo.novo summary { color: var(--md-sys-color-primary); }
+.grupo:not(.ativa) { display: none; }
+.grupo h3 { display: none; margin: 4px 0 10px; font-size: 1rem; }
+.grupo.novo h3 { color: var(--md-sys-color-primary); }
 .pedido {
   display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; margin-bottom: 8px; padding: 12px;
   font: inherit; color: inherit; text-align: left; cursor: pointer;
@@ -31,7 +42,26 @@ body { padding-bottom: 72px; }
 .abas button.on { color: var(--md-sys-color-primary); font-weight: 600; }
 #novos { position: absolute; top: 4px; left: calc(50% + 8px); min-width: 18px; padding: 0 5px; border-radius: 9px; font-size: 11px; background: var(--md-sys-color-primary); color: #fff; }
 
+/* computador: mesmas pílulas do celular; a etapa escolhida aparece em 2 colunas de cartões */
+@media (min-width: 1000px) {
+  #app { max-width: 1100px; }
+  .grupo.ativa { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; align-content: start; }
+  .grupo.ativa > .vazio { grid-column: 1 / -1; }
+  .blocos { columns: 2; column-gap: 12px; } /* 2 colunas sem buraco entre seções de alturas diferentes */
+}
+
 /* números */
+.blocos { margin-top: 8px; }
+.bloco { padding: 4px 14px; border-radius: 16px; border: 1px solid var(--md-sys-color-outline-variant); break-inside: avoid; margin-bottom: 12px; }
+.bloco[open] { padding-bottom: 10px; }
+.bloco summary { padding: 10px 0; font-weight: 700; cursor: pointer; }
+.linha-lista { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 2px; border-bottom: 1px dashed var(--md-sys-color-outline-variant); }
+.linha-lista small { display: block; color: var(--md-sys-color-on-surface-variant); }
+.linha-lista b { white-space: nowrap; font-size: .85rem; }
+.lista-toda { display: grid; gap: 10px; }
+#listaBusca { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; border-radius: 12px; border: 1px solid var(--md-sys-color-outline); background: transparent; color: inherit; }
+#listaItens { max-height: calc(100dvh - 190px); overflow-y: auto; }
+@media (min-width: 700px) { #listaItens { max-height: 60vh; } }
 .periodos { display: flex; gap: 8px; margin-bottom: 16px; }
 .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .kpi { padding: 12px; border-radius: 16px; background: var(--creme); }

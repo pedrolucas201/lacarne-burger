@@ -77,6 +77,9 @@ const lerPedido = d => {
 };
 
 // ---------- pedidos ----------
+const COLUNAS = [['novo', 'Novos', ['novo']], ['preparo', 'Em preparo', ['preparo']], ['saiu', 'Saiu / pronto', ['saiu']],
+  ['fim', 'Finalizados', ['entregue', 'cancelado']]];
+let filtro = 'novo', chamando = false; // chamando: chegou pedido novo e a pessoa está em outra etapa
 // grupos da lista misturam entrega e retirada; o título, o botão e o aviso de cada pedido usam etapa()
 const ETAPAS = { novo: 'Novo', preparo: 'Em preparo', saiu: 'Saiu / pronto', entregue: 'Entregue / retirado', cancelado: 'Cancelado' };
 const etapa = (st, entrega) => (entrega
@@ -93,18 +96,25 @@ function renderPedidos() {
   const n = pedidos.filter(p => p.status === 'novo').length;
   $('#novos').hidden = !n;
   $('#novos').textContent = n;
-  const grupos = Object.keys(ETAPAS).map(st => [st, pedidos.filter(p => p.status === st)]).filter(([, l]) => l.length);
-  $('#listaPedidos').innerHTML = grupos.length ? grupos.map(([st, l]) => `
-    <details class="grupo ${st}" ${['entregue', 'cancelado'].includes(st) ? '' : 'open'}>
-      <summary>${ETAPAS[st]} · ${l.length}</summary>
+  // uma etapa por vez, escolhida nas pílulas (celular e computador)
+  const grupos = COLUNAS.map(([st, nome, sts]) => [st, nome, pedidos.filter(p => sts.includes(p.status))]);
+  $('#filtroPedidos').innerHTML = grupos.map(([st, nome, l]) =>
+    `<button type="button" role="tab" data-filtro="${st}" class="${st}${st === filtro ? ' on' : ''}${st === 'novo' && chamando && filtro !== 'novo' ? ' chamando' : ''}">${nome} <b>${l.length}</b></button>`).join('');
+  $('#listaPedidos').innerHTML = pedidos.length ? grupos.map(([st, nome, l]) => `
+    <section class="grupo ${st}${st === filtro ? ' ativa' : ''}">
+      <h3>${nome} · ${l.length}</h3>
       ${l.map(p => `<button class="pedido" data-id="${esc(p.id)}">
         <span><strong>#${esc(p.cod)} · ${esc(p.cliente.nome)}</strong>
-          <small>${hora(p.criadoEm)} · ${p.entrega ? esc(p.cliente.bairro) : 'Retirada'} · ${esc(p.pag)}</small></span>
+          <small>${hora(p.criadoEm)} · ${p.entrega ? esc(p.cliente.bairro) : 'Retirada'} · ${esc(p.pag)}${st === 'fim' ? ` · ${etapa(p.status, p.entrega)}` : ''}</small></span>
         <span class="valor">${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}${conferir(p, loja).ok ? '' : ' ⚠'}</span>
-      </button>`).join('')}
-    </details>`).join('') : '<p class="vazio">Nenhum pedido hoje ainda.</p>';
+      </button>`).join('') || '<p class="vazio">Nenhum</p>'}
+    </section>`).join('') : '<p class="vazio">Nenhum pedido hoje ainda.</p>';
   if (atualId && $('#pedidoDialog').open) abrirPedido(atualId); // detalhe aberto acompanha a mudança
 }
+$('#filtroPedidos').addEventListener('click', e => {
+  const b = e.target.closest('[data-filtro]');
+  if (b) { filtro = b.dataset.filtro; if (filtro === 'novo') chamando = false; renderPedidos(); }
+});
 $('#listaPedidos').addEventListener('click', e => {
   const b = e.target.closest('[data-id]');
   if (b) abrirPedido(b.dataset.id);
@@ -238,6 +248,7 @@ function bip() {
 }
 function alertar() {
   bip();
+  if (filtro !== 'novo') { chamando = true; renderPedidos(); }
   if (audio?.state !== 'running' || document.hidden) document.title = `🔔 Pedido novo! · ${titulo}`;
   setTimeout(bip, 700);
   navigator.vibrate?.([200, 100, 200]);
@@ -298,6 +309,36 @@ function seta(atual, anterior) {
   const v = variacao(atual, anterior);
   return v === null ? '' : `<small class="${v >= 0 ? 'sobe' : 'desce'}">${v >= 0 ? '↑' : '↓'} ${Math.abs(v)}%</small>`;
 }
+// computador: todas as seções abertas; celular: só a primeira (as outras abrem com um toque)
+const aberto = titulo => matchMedia('(min-width: 1000px)').matches || titulo === 'Burgers mais vendidos' ? 'open' : '';
+const ehBebida = nome => loja.cardapio.some(i => i.nome === nome && i.tipo === 'bebida');
+// listas longas (clientes, bairros): 5 na tela + "Ver todos" numa janela com busca e rolagem só lá dentro
+let listas = {};
+const TITULOS = { bairros: 'Todos os bairros', clientes: 'Todos os clientes' };
+const verTodos = (qual, l) => l.length > 5 ? `<md-text-button class="ver-todos" data-lista="${qual}">Ver todos (${l.length})</md-text-button>` : '';
+const semAcento = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+function filtrarLista() {
+  const q = semAcento($('#listaBusca').value.trim()), soDig = q.replace(/\D/g, '');
+  const l = (listas[$('#listaDialog').dataset.qual] || [])
+    .filter(([k]) => !q || semAcento(k).includes(q) || (soDig && k.replace(/\D/g, '').includes(soDig)));
+  const qual = $('#listaDialog').dataset.qual;
+  $('#listaItens').innerHTML = l.length ? l.map(([k, v]) => {
+    const [nome, fone] = k.split(' · ');
+    return `<div class="linha-lista"><span>${esc(nome)}${fone ? `<small>${esc(fone)}</small>` : ''}</span>
+      <b>${v} ${v > 1 ? 'pedidos' : 'pedido'}</b></div>`;
+  }).join('') : '<p class="vazio">Nada encontrado</p>';
+}
+$('#numeros').addEventListener('click', e => {
+  const b = e.target.closest('[data-lista]');
+  if (!b) return;
+  $('#listaDialog').dataset.qual = b.dataset.lista;
+  $('#listaTitulo').textContent = TITULOS[b.dataset.lista];
+  $('#listaBusca').value = '';
+  $('#listaBusca').placeholder = b.dataset.lista === 'clientes' ? 'Buscar por nome ou telefone…' : 'Buscar bairro…';
+  filtrarLista();
+  $('#listaDialog').show();
+});
+$('#listaBusca').addEventListener('input', filtrarLista);
 function barras(lista, fmt = String) {
   const max = Math.max(1, ...lista.map(([, v]) => v));
   return lista.map(([k, v]) => `<div class="barra"><span>${esc(k)}</span><i style="--w:${v / max * 100}%"></i><b>${fmt(v)}</b></div>`).join('')
@@ -314,14 +355,17 @@ function renderNumeros(a, b) {
       <div class="kpi"><small>Entregas (repasse do motoboy)</small><strong>${brl(a.taxas)}</strong></div>
     </div>
     <p class="nota">Setas comparam com ${ANTERIOR[periodoAtual]}, até o mesmo horário.${a.cancelados ? ` ${a.cancelados} cancelado(s) fora da conta.` : ''}</p>
-    <h3>Mais vendidos</h3>${barras(a.maisVendidos)}
-    <h3>Formas de pagamento</h3>${barras(a.pagamentos, brl)}
-    <h3>Horário de pico</h3>${barras(faixas.map(f => [f, pico[f] || 0]))}
-    <h3>Dia da semana mais forte</h3>${barras(a.diasSemana.map(([d, v]) => [DIAS[d], v]), brl)}
-    <h3>Bairros que mais pedem</h3>${barras(a.bairros.slice(0, 8))}
-    <h3>Clientes</h3>
-    <p>${a.clientesNovos} novo(s) · ${a.clientesVoltaram} voltaram</p>
-    ${barras(a.topClientes)}`;
+    <div class="blocos">
+      <details class="bloco" ${aberto('Burgers mais vendidos')}><summary>Burgers mais vendidos</summary>${barras(a.maisVendidos.filter(([n]) => !ehBebida(n)))}</details>
+      <details class="bloco" ${aberto('Bebidas mais vendidas')}><summary>Bebidas mais vendidas</summary>${barras(a.maisVendidos.filter(([n]) => ehBebida(n)))}</details>
+      <details class="bloco" ${aberto('Formas de pagamento')}><summary>Formas de pagamento</summary>${barras(a.pagamentos, brl)}</details>
+      <details class="bloco" ${aberto('Horário de pico')}><summary>Horário de pico</summary>${barras(faixas.map(f => [f, pico[f] || 0]))}</details>
+      <details class="bloco" ${aberto('Bairros que mais pedem')}><summary>Bairros que mais pedem</summary>${barras(a.bairros.slice(0, 5))}${verTodos('bairros', a.bairros)}</details>
+      <details class="bloco" ${aberto('Clientes')}><summary>Clientes</summary><p class="nota">${a.clientesNovos} novo(s) · ${a.clientesVoltaram} voltaram</p>
+        ${barras(a.topClientes.slice(0, 5))}${verTodos('clientes', a.topClientes)}</details>
+      <details class="bloco" ${aberto('Dia da semana mais forte')}><summary>Dia da semana mais forte</summary>${barras(a.diasSemana.map(([d, v]) => [DIAS[d], v]), brl)}</details>
+    </div>`;
+  listas = { bairros: a.bairros, clientes: a.topClientes };
 }
 
 $('#planilha').onclick = () => {

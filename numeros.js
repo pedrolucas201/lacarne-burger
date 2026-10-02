@@ -52,7 +52,7 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
     pico: Object.entries(pico).sort(),
     clientesNovos: fones.filter(f => !voltou(f)).length,
     clientesVoltaram: fones.filter(voltou).length,
-    topClientes: ranking(ok, p => [[`${p.cliente.nome} · ${p.cliente.fone}`, 1]]).slice(0, 5),
+    topClientes: ranking(ok, p => [[`${p.cliente.nome} · ${p.cliente.fone}`, 1]]), // todos; a tela mostra os 5 primeiros
   };
 }
 
