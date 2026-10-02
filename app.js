@@ -112,9 +112,10 @@ const tocarBebida = e => {
 };
 $('#bebidas').addEventListener('click', tocarBebida);
 $('#sugestao').addEventListener('click', tocarBebida);
+// o card inteiro abre o burger (não só o botão Adicionar)
 $('#menu').addEventListener('click', e => {
-  const b = e.target.closest('[data-id]');
-  if (b) abrirItem(itemDe(b.dataset.id));
+  const card = e.target.closest('[data-card]');
+  if (card) abrirItem(itemDe(card.dataset.card));
 });
 
 // ---------- personalizar item ----------
@@ -152,7 +153,11 @@ function abrirItem(item) {
   if (item.tipo === 'bebida') return pegarBebida(item);
   atual = { item, qtd: 1, extras: {} }; // extras: { cheddar: 2 }
   $('#itemTitulo').textContent = item.nome;
+  const imagem = item.foto || item.boi;
   $('#itemCorpo').innerHTML = `
+    ${imagem ? `<div class="item-foto ${item.foto ? 'com-foto' : 'com-boi'}"><picture>
+      ${item.fotoAlta ? `<source media="(min-width: 800px)" srcset="${esc(item.fotoAlta)}">` : ''}
+      <img src="${esc(imagem)}" alt="${esc(item.nome)}"></picture></div>` : ''}
     <p class="desc">${esc(item.desc)}</p>
     ${item.escolhas.map((e, i) => `
       <fieldset><legend>${esc(e.titulo)} <span class="obrig">obrigatório</span></legend>
@@ -169,7 +174,7 @@ function abrirItem(item) {
           <md-icon-button data-x="${esc(a.id)}" data-d="1" aria-label="Mais ${esc(a.nome)}"><md-icon>add</md-icon></md-icon-button>
         </div></div>`).join('')}
     </fieldset>` : ''}
-    <md-outlined-text-field id="itemObs" maxlength="200" label="Observação (opcional)" type="textarea" rows="2"
+    <md-outlined-text-field id="itemObs" maxlength="200" label="Observação (opcional)" type="textarea" rows="${matchMedia('(min-width: 800px)').matches ? 1 : 2}"
       placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>`;
   $('#extras')?.addEventListener('click', e => {
     const b = e.target.closest('[data-x]');
