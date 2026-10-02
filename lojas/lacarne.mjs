@@ -29,6 +29,7 @@ export const LOJA = {
     { id: 'coalho', nome: 'Queijo coalho (1 fatia)', preco: 5 },
     { id: 'cebola', nome: 'Cebola caramelizada', preco: 3 },
     { id: 'bacon', nome: 'Bacon', preco: 4 },
+    { id: 'carne', nome: 'Carne (blend 150g)', preco: 7 }, // Brenda, 02/10
   ],
   // tira: todo ingrediente pode sair, menos pão e carne (Brenda, 01/10)
   // fotoAlta: versão vertical (das originais em alta) pra tela larga do computador
@@ -43,7 +44,7 @@ export const LOJA = {
     { id: 'matuto', nome: 'Matuto', preco: 25, emoji: '🧀', foto: 'img/matuto.webp', fotoAlta: 'img/matuto-alta.webp', boi: 'img/boi-matuto.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), queijo coalho no mel, queijo cheddar e cebola caramelizada.',
       tira: ['Queijo coalho', 'Mel', 'Queijo cheddar', 'Cebola caramelizada'] },
-    // Praiêro e Amostradinho (01/10): descrição e preço da Brenda; "tira" sugerido pelo Pedro, confirmar com a loja
+    // Praiêro e Amostradinho (01/10): descrição e preço da Brenda; "tira" confirmado pela loja (02/10)
     { id: 'praiero', nome: 'Praiêro', preco: 26, emoji: '🍍', foto: 'img/praiero.webp', fotoAlta: 'img/praiero-alta.webp', boi: 'img/boi-praiero.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), abacaxi grelhado com mel e queijo muçarela.',
       tira: ['Abacaxi', 'Mel', 'Queijo muçarela'] },
