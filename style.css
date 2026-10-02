@@ -316,6 +316,8 @@ md-outlined-text-field { width: 100%; }
   box-shadow: 0 10px 24px -8px rgb(0 0 0 / .4) !important;
 }
 .toast.erro { background: var(--md-sys-color-primary) !important; }
+/* desfaz o posicionamento padrão de popover (centralizado na tela); quem posiciona é o Toastify */
+.toastify[popover] { bottom: auto; margin-top: 0; margin-bottom: 0; border: 0; overflow: visible; }
 
 @keyframes surgir { from { opacity: 0; transform: translateY(16px); } }
 @keyframes flutuar { 50% { transform: translateY(-10px); } }
