@@ -60,3 +60,13 @@ test('planilha com ; , vírgula decimal e proteção contra fórmula', () => {
   assert.match(s, /"2026-10-01 19:10";"X";"'=HACK\(\)"/);
   assert.match(s, /"32,00";"5,00";"Pix";"entregue"/);
 });
+test('pedido sem telefone (balcão) entra no faturamento mas não vira cliente', () => {
+  const r = calcular([ped('2026-10-01T19:10'),
+    ped('2026-10-01T19:20', { entrega: false, local: true, taxa: 0, cliente: { nome: 'Mesa 3', fone: '', bairro: '' } })], DIA, {});
+  assert.equal(r.faturamento, 64);
+  assert.equal(r.clientesNovos, 1);
+  assert.deepEqual(r.topClientes.map(([k]) => k), ['Ana · (81) 9 9999-9999']);
+  assert.deepEqual(r.bairros, [['Matriz', 1]]);
+});
+test('planilha marca consumo no local', () =>
+  assert.match(csv([ped('2026-10-01T19:10', { entrega: false, local: true, cliente: { nome: 'Mesa 3', fone: '' } })]), /"Mesa 3";"";"No local"/));

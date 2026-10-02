@@ -86,9 +86,10 @@ const COLUNAS = [['novo', 'Novos', ['novo']], ['preparo', 'Em preparo', ['prepar
 let filtro = 'novo', chamando = false; // chamando: chegou pedido novo e a pessoa está em outra etapa
 // grupos da lista misturam entrega e retirada; o título, o botão e o aviso de cada pedido usam etapa()
 const ETAPAS = { novo: 'Novo', preparo: 'Em preparo', saiu: 'Saiu / pronto', entregue: 'Entregue / retirado', cancelado: 'Cancelado' };
-const etapa = (st, entrega) => (entrega
-  ? { saiu: 'Saiu pra entrega', entregue: 'Entregue' }
+const etapa = (st, p) => (p.local ? { saiu: 'Pronto', entregue: 'Entregue' }
+  : p.entrega ? { saiu: 'Saiu pra entrega', entregue: 'Entregue' }
   : { saiu: 'Pronto pra retirar', entregue: 'Retirado' })[st] ?? ETAPAS[st];
+const tipo = p => p.entrega ? esc(p.cliente.bairro) : p.local ? 'No local' : 'Retirada';
 const CAMPO = { preparo: 'aceitoEm', saiu: 'saiuEm', entregue: 'entregueEm', cancelado: 'canceladoEm' };
 const PROXIMA = { novo: 'preparo', preparo: 'saiu', saiu: 'entregue' };
 const hora = d => d ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Recife' }) : '';
@@ -109,7 +110,7 @@ function renderPedidos() {
       <h3>${nome} · ${l.length}</h3>
       ${l.map(p => `<button class="pedido" data-id="${esc(p.id)}">
         <span><strong>#${esc(p.cod)} · ${esc(p.cliente.nome)}</strong>
-          <small>${hora(p.criadoEm)} · ${p.entrega ? esc(p.cliente.bairro) : 'Retirada'} · ${esc(p.pag)}${st === 'fim' ? ` · ${etapa(p.status, p.entrega)}` : ''}</small></span>
+          <small>${hora(p.criadoEm)} · ${tipo(p)} · ${esc(p.pag)}${st === 'fim' ? ` · ${etapa(p.status, p)}` : ''}</small></span>
         <span class="valor">${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}${conferir(p, loja).ok ? '' : ' ⚠'}</span>
       </button>`).join('') || '<p class="vazio">Nenhum</p>'}
     </section>`).join('') : '<p class="vazio">Nenhum pedido hoje ainda.</p>';
@@ -131,27 +132,26 @@ function abrirPedido(id) {
   atualId = id;
   const c = conferir(p, loja), cl = p.cliente;
   const noMapa = mapa(`${cl.rua}, ${cl.numero}, ${cl.bairro}`, loja.cidade);
-  $('#pedTitulo').textContent = `#${p.cod} · ${etapa(p.status, p.entrega)}`;
+  $('#pedTitulo').textContent = `#${p.cod} · ${etapa(p.status, p)}`;
   $('#pedCorpo').innerHTML = `
     ${c.ok ? '' : `<p class="alerta">⚠ Valor não confere com o cardápio: deveria ser ${brl(c.subtotal)}${p.entrega
       ? ` + ${c.taxa === null ? 'entrega a confirmar' : `${brl(c.taxa)} de entrega`}` : ''}.</p>`}
-    <p><strong>${esc(cl.nome)}</strong> · <a href="${whats(cl.fone, '')}" target="_blank" rel="noopener">${esc(cl.fone)}</a>
+    <p><strong>${esc(cl.nome)}</strong>${cl.fone ? ` · <a href="${whats(cl.fone, '')}" target="_blank" rel="noopener">${esc(cl.fone)}</a>` : ''}
       <br><small>feito às ${hora(p.criadoEm)}</small></p>
     <p>${p.entrega ? `🛵 ${esc(cl.rua)}, ${esc(cl.numero)} · ${esc(cl.bairro)}${cl.compl ? ` · ${esc(cl.compl)}` : ''}
       ${cl.ref ? `<br><small>${esc(cl.ref)}</small>` : ''}<br><a href="${noMapa}" target="_blank" rel="noopener">Abrir no mapa</a>${cl.loc
         ? ` · <a href="${mapa(cl.loc)}" target="_blank" rel="noopener">📍 Localização exata (GPS)</a>` : ''}`
-      : '🏃 Retirada no local'}</p>
+      : p.local ? '🍽️ Consumo no local' : '🏃 Retirada no local'}</p>
     <ul class="itens">${p.itens.map(i => `<li><strong>${esc(i.qtd)}x ${esc(i.nome)}</strong>
       ${Object.entries(i.escolhas || {}).map(([t, v]) => `<br><small>${esc(t)}: ${esc(v)}</small>`).join('')}
       ${i.sem?.length ? `<br><small>Sem: ${esc(i.sem.join(', '))}</small>` : ''}
       ${i.extras?.length ? `<br><small>+ ${esc(agrupar(i.extras, loja.adicionais).join(', '))}</small>` : ''}
       ${i.obs ? `<br><small>Obs: ${esc(i.obs)}</small>` : ''}</li>`).join('')}</ul>
-    <p>Subtotal ${brl(p.subtotal)} · Entrega ${p.entrega ? (p.taxa === null ? 'a confirmar' : brl(p.taxa)) : '—'}
-      <br><strong>Total ${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}</strong> · ${esc(p.pag)}${p.pag === 'Dinheiro' && p.troco ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
+    <p>${p.entrega ? `Subtotal ${brl(p.subtotal)} · Entrega ${p.taxa === null ? 'a confirmar' : brl(p.taxa)}<br>` : ''}<strong>Total ${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}</strong> · ${esc(p.pag)}${p.pag === 'Dinheiro' && p.troco ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
     ${p.obs ? `<p>📝 ${esc(p.obs)}</p>` : ''}
     ${p.status === 'cancelado' ? `<p>Motivo: ${esc(p.motivo)}</p>` : ''}`;
   const prox = PROXIMA[p.status];
-  const rotulo = prox === 'preparo' ? 'Aceitar' : etapa(prox, p.entrega);
+  const rotulo = prox === 'preparo' ? 'Aceitar' : etapa(prox, p);
   const fim = ['entregue', 'cancelado'].includes(p.status);
   $('#pedAcoes').innerHTML = `
     ${fim ? '' : `<md-text-button id="cancelar">${p.status === 'novo' ? 'Recusar' : 'Cancelar'}</md-text-button>`}
@@ -172,17 +172,19 @@ function pedirMotivo(p) {
 }
 
 // aceitar conta o cliente; cancelar um pedido já aceito desconta. Os dois numa transação junto com o status.
-// entregue com burger: cria o convite de avaliação junto com o status e manda o link na mensagem
+// entregue com burger: cria o convite de avaliação junto com o status e manda o link na mensagem.
+// Sem telefone (lançado no balcão): sem mensagem, sem convite e sem ficha de cliente
 async function mudar(p, status, motivo = null) {
-  const burgers = status === 'entregue' ? burgersDoPedido(p.itens, loja.cardapio) : [];
+  const fone = soDigitos(p.cliente.fone);
+  const burgers = status === 'entregue' && fone ? burgersDoPedido(p.itens, loja.cardapio) : [];
   const avaliar = burgers.length ? `${new URL('../avaliar/', location.href).href}#${p.id}` : '';
   const texto = avisoCliente(status, p, motivo, loja, avaliar);
-  if (texto) window.open(whats(p.cliente.fone, texto), '_blank', 'noopener'); // antes de qualquer await, senão o navegador bloqueia
+  if (texto && fone) window.open(whats(p.cliente.fone, texto), '_blank', 'noopener'); // antes de qualquer await, senão o navegador bloqueia
   const ref = doc(pedidosRef, p.id);
   const mudanca = { status, [CAMPO[status]]: serverTimestamp(), ...(motivo ? { motivo } : {}) };
-  const conta = status === 'preparo' ? 1 : status === 'cancelado' && VALIDOS.includes(p.status) ? -1 : 0;
+  const conta = !fone ? 0 : status === 'preparo' ? 1 : status === 'cancelado' && VALIDOS.includes(p.status) ? -1 : 0;
   $('#pedidoDialog').close();
-  toast(`#${p.cod}: ${etapa(status, p.entrega)}`);
+  toast(`#${p.cod}: ${etapa(status, p)}`);
   try {
     if (!conta && !avaliar) return await updateDoc(ref, mudanca);
     if (!conta) {
@@ -218,6 +220,23 @@ async function abrirDoLink() {
   abrirPedido(id);
 }
 addEventListener('hashchange', () => { if (iniciado) abrirDoLink(); });
+
+// ---------- balcão: o site em modo balcão abre por cima; o painel segue vivo (som e pedidos chegando) ----------
+const balcao = $('#balcao'), quadro = balcao.querySelector('iframe');
+$('#lancar').onclick = () => {
+  if (!quadro.getAttribute('src')) quadro.src = '../?balcao'; // carrega na primeira vez e fica pronto pros próximos
+  balcao.hidden = false;
+};
+$('#fecharBalcao').onclick = () => { balcao.hidden = true; }; // fechar no meio guarda a sacola pra quando voltar
+addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data?.lancado) return;
+  balcao.hidden = true;
+  quadro.contentWindow.location.reload(); // zera o formulário pro próximo, em segundo plano
+  filtro = 'preparo';
+  renderPedidos();
+  location.hash = e.data.lancado;
+  toast('Pedido lançado ✅');
+});
 
 // ---------- som e tela acesa ----------
 // o navegador só libera áudio depois de um toque, e isso zera a cada abertura da página (regra do Chrome/Safari).

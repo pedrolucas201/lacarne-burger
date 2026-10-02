@@ -45,7 +45,9 @@ export const MOTIVOS = ['Acabou o item', 'Fora da área de entrega', 'Cliente de
 
 // tempoEntrega e endereco são opcionais na loja: sem eles, o aviso fica só com a frase base.
 // avaliar: link da avaliação (só no entregue, só se o pedido tem burger); sem link, entregue não manda nada
+// consumo no local: o cliente está na loja, só o link da avaliação vai pelo WhatsApp
 export function avisoCliente(etapa, p, motivo, loja = {}, avaliar = '') {
+  if (p.local && etapa !== 'entregue') return undefined;
   const tempo = p.entrega && loja.tempoEntrega ? ` Tempo médio de entrega: ${loja.tempoEntrega} min.` : '';
   const ondeRetirar = loja.endereco ? `\n📍 ${loja.endereco}\n${mapa(loja.endereco, loja.cidade)}` : '';
   return {

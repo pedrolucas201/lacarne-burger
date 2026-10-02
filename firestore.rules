@@ -8,11 +8,12 @@ service cloud.firestore {
     function texto(v, max) { return v is string && v.size() <= max; }
 
     // ponytail: conteúdo de cada item não é validado (regras não fazem laço); o painel escapa tudo e confere o valor
-    function pedidoValido(p) {
-      let campos = ['cod', 'criadoEm', 'status', 'entrega', 'pag', 'troco', 'obs', 'cliente', 'itens', 'subtotal', 'taxa'];
+    // site: status 'novo', sem campos extras. Balcão (loja lança): já aceito, com local e aceitoEm
+    function pedidoValido(p, status, extras) {
+      let campos = ['cod', 'criadoEm', 'status', 'entrega', 'pag', 'troco', 'obs', 'cliente', 'itens', 'subtotal', 'taxa'].concat(extras);
       let c = p.cliente;
       return p.keys().hasOnly(campos) && p.keys().hasAll(campos)
-        && p.status == 'novo' && p.criadoEm == request.time
+        && p.status == status && p.criadoEm == request.time
         && texto(p.cod, 10) && p.entrega is bool && texto(p.obs, 300)
         && p.pag in ['Pix', 'Cartão de crédito', 'Cartão de débito', 'Dinheiro']
         && p.troco is number && p.troco >= 0 && p.troco <= 1000
@@ -61,7 +62,10 @@ service cloud.firestore {
         allow read, write: if admin(loja);
       }
       match /pedidos/{id} {
-        allow create: if pedidoValido(request.resource.data);
+        allow create: if pedidoValido(request.resource.data, 'novo', [])
+          || (admin(loja) && pedidoValido(request.resource.data, 'preparo', ['local', 'aceitoEm'])
+            && request.resource.data.aceitoEm == request.time && request.resource.data.local is bool
+            && !(request.resource.data.local && request.resource.data.entrega));
         allow read: if admin(loja);
         allow update: if admin(loja)
           && request.resource.data.diff(resource.data).affectedKeys()

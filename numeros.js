@@ -37,7 +37,7 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
     const k = `${String(l.getUTCHours()).padStart(2, '0')}:${l.getUTCMinutes() < 30 ? '00' : '30'}`;
     pico[k] = (pico[k] || 0) + 1;
   });
-  const fones = [...new Set(ok.map(p => soDigitos(p.cliente.fone)))];
+  const fones = [...new Set(ok.map(p => soDigitos(p.cliente.fone)).filter(Boolean))]; // balcão sem telefone não vira cliente
   const voltou = f => clientes[f]?.primeiro < ini;
   return {
     faturamento,
@@ -52,7 +52,7 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
     pico: Object.entries(pico).sort(),
     clientesNovos: fones.filter(f => !voltou(f)).length,
     clientesVoltaram: fones.filter(voltou).length,
-    topClientes: ranking(ok, p => [[`${p.cliente.nome} · ${p.cliente.fone}`, 1]]), // todos; a tela mostra os 5 primeiros
+    topClientes: ranking(ok, p => p.cliente.fone ? [[`${p.cliente.nome} · ${p.cliente.fone}`, 1]] : []), // todos; a tela mostra os 5 primeiros
   };
 }
 
@@ -65,7 +65,7 @@ export function csv(pedidos) {
   const num = v => (v ?? 0).toFixed(2).replace('.', ',');
   const linhas = pedidos.map(p => [
     local(p.criadoEm).toISOString().slice(0, 16).replace('T', ' '), p.cod, p.cliente.nome, p.cliente.fone,
-    p.entrega ? p.cliente.bairro : 'Retirada', p.itens.map(i => `${i.qtd}x ${i.nome}`).join(' + '),
+    p.entrega ? p.cliente.bairro : p.local ? 'No local' : 'Retirada', p.itens.map(i => `${i.qtd}x ${i.nome}`).join(' + '),
     num(p.subtotal), num(p.taxa), p.pag, p.status,
   ].map(cel).join(';'));
   return '﻿' + ['Data;Pedido;Cliente;Telefone;Bairro;Itens;Subtotal;Taxa;Pagamento;Status', ...linhas].join('\r\n');

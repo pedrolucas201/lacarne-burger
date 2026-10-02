@@ -93,12 +93,13 @@
       <ul id="cartItens"></ul>
       <div id="sugestao" hidden></div>
 
-      <h3>Seus dados</h3>
+      <h3 id="dadosTit">Seus dados</h3>
       <md-outlined-text-field id="nome" label="Nome" maxlength="60" required autocomplete="name"></md-outlined-text-field>
       <md-outlined-text-field id="fone" maxlength="16" inputmode="numeric" label="Telefone / WhatsApp" type="tel" required autocomplete="tel" placeholder="(81) 9 0000-0000"></md-outlined-text-field>
 
-      <h3>Como quer receber?</h3>
+      <h3 id="tipoTit">Como quer receber?</h3>
       <div class="radios">
+        <label id="tipoLocal" hidden><md-radio name="tipo" value="Local"></md-radio>Consumo no local</label>
         <label><md-radio name="tipo" value="Entrega" checked></md-radio>Entrega</label>
         <label><md-radio name="tipo" value="Retirada"></md-radio>Retirar no local</label>
       </div>

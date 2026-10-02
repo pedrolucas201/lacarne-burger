@@ -118,6 +118,51 @@ try {
   await site.waitForFunction(() => document.querySelector('#status').textContent && customElements.get('md-dialog'));
   await site.evaluate(() => document.querySelector('[data-card="bruto"] h3').click());
   await site.waitForFunction(() => document.querySelector('.opinioes')?.innerText.includes('Bruto absurdo'), { timeout: 8000 });
+  await site.close(); // libera conexões (limite de 6 do HTTP/1.1): o balcão abre mais um Firebase dentro do painel
+
+  // 6. balcão: loja lança pedido no local, sem telefone, por dentro do painel; nasce aceito, sem WhatsApp e sem convite
+  await painel.bringToFront();
+  await painel.evaluate(() => {
+    localStorage.setItem('carrinhoBalcao', JSON.stringify([{ id: 'manso', qtd: 2, escolhas: [['Ponto da carne', 'Ao ponto']], sem: [], extras: ['bacon'], obs: '' }]));
+    window.__url = '';
+    document.querySelector('[data-aba="pedidos"]').click();
+    document.querySelector('#lancar').click();
+  });
+  const quadro = await (await painel.waitForSelector('#balcao iframe')).contentFrame();
+  await quadro.waitForFunction(() => document.querySelector('#status').textContent && customElements.get('md-dialog'), { polling: 200 });
+  const balcaoErro = await quadro.evaluate(async () => {
+    window.open = u => { window.__url = u; };
+    const q = s => document.querySelector(s);
+    if (getComputedStyle(q('.hero')).display !== 'none') return 'capa aparecendo no balcão';
+    q('#cartBarBtn').click();
+    await new Promise(r => setTimeout(r, 500));
+    if (!q('md-radio[name=tipo][value=Local]').checked) return 'consumo no local não veio marcado';
+    q('#nome').value = 'Mesa 3';
+    q('md-radio[name=pag][value=Dinheiro]').checked = true;
+    q('#cartDialog').dispatchEvent(new Event('change'));
+    q('#enviar').click();
+    return window.__url || '';
+  });
+  assert.equal(balcaoErro, '');
+  await painel.waitForFunction(() => document.querySelector('#balcao').hidden && document.querySelector('#pedidoDialog[open] #avancar'), { timeout: 8000 });
+  const lancado = (await db.collection('lojas/lacarne/pedidos').where('local', '==', true).get()).docs;
+  assert.equal(lancado.length, 1);
+  const pl = lancado[0].data();
+  assert.equal(pl.status, 'preparo');
+  assert.equal(pl.subtotal, 2 * (20 + 4)); // 2 Manso + bacon; o painel confere contra o cardápio (sem ⚠)
+  assert.equal(pl.cliente.fone, '');
+  assert.ok(pl.aceitoEm);
+  assert.match(await painel.$eval('#pedTitulo', e => e.textContent), /Em preparo/);
+  assert.ok(!(await painel.$eval('#listaPedidos', e => e.innerText)).includes('⚠'));
+  for (const [etapa, rotulo] of [['saiu', 'Pronto'], ['entregue', 'Entregue']]) {
+    await painel.evaluate(i => { location.hash = ''; location.hash = i; }, lancado[0].id);
+    await painel.waitForSelector('#pedidoDialog[open] #avancar');
+    assert.equal(await painel.$eval('#avancar', e => e.textContent.trim()), rotulo);
+    await painel.evaluate(async () => { document.querySelector('#avancar').click(); await new Promise(r => setTimeout(r, 1500)); });
+    assert.equal((await db.doc(`lojas/lacarne/pedidos/${lancado[0].id}`).get()).data().status, etapa);
+  }
+  assert.equal(await painel.evaluate(() => window.__url), '', 'balcão sem telefone não abre WhatsApp');
+  assert.equal((await db.doc(`lojas/lacarne/convites/${lancado[0].id}`).get()).exists, false);
   assert.deepEqual(erros, []);
   console.log('e2e ok');
 } finally {
