@@ -137,7 +137,11 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
   #itemCorpo > .item-foto img { position: absolute; inset: 0; }
   #itemCorpo > .opinioes { grid-column: 1; grid-row: 2; margin-top: 12px; }
   .item-dir { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; }
-  .item-dir:has(~ .opinioes .mais-op) { padding-bottom: 34px; }
+  /* a borda da Observação termina na linha do último comentário: desce o contador "0 / 200" (23px) pra fora
+     e, com "Ver mais" (36px com o espaço), sobe o mesmo tanto */
+  .item-dir:has(~ .opinioes) { margin-bottom: -23px; }
+  #itemCorpo:has(> .opinioes) { padding-bottom: 23px; } /* espaço do contador que desceu */
+  .item-dir:has(~ .opinioes .mais-op) { padding-bottom: 36px; }
   .item-dir:has(~ .opinioes) #itemObs { flex: 1; }
   #itemCorpo .desc { margin-bottom: 10px; }
   #itemCorpo fieldset { margin-bottom: 10px; }
@@ -351,25 +355,29 @@ md-outlined-text-field { width: 100%; }
 
 /* avaliar (página do cliente) */
 .avaliar { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+@media (min-width: 800px) { .avaliar { padding-top: 48px; } }
+.avaliar .nota { margin: 0; font-size: .88rem; color: var(--md-sys-color-on-surface-variant); }
 .av-carregando { text-align: center; padding-top: 30vh; }
 .av-caixa { display: grid; gap: 12px; padding: 22px 18px; border-radius: 24px; background: #fff; border: 1px solid var(--md-sys-color-outline-variant); }
 .av-caixa .grande, .av-fim .grande { margin: 0; text-align: center; font-weight: 600; font-size: 1.2rem; }
-.av-caixa > .nota { margin: 0; text-align: center; }
+.av-caixa > .nota { text-align: center; }
+.av-caixa > .nota:first-of-type { margin-top: -6px; }
 .av-linha { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border-radius: 14px; border: 1px solid var(--md-sys-color-outline-variant); }
 .av-linha img { width: 44px; height: 44px; object-fit: contain; }
 .av-linha b { flex: 1; }
 .av-estrelas { display: flex; }
-.av-estrelas button { font-size: 1.75rem; line-height: 1; padding: 2px; border: 0; background: none; cursor: pointer; color: #dccfc9; transition: transform .1s; }
+.av-estrelas button { font-size: 1.75rem; line-height: 1; padding: 4px 2px; border: 0; background: none; cursor: pointer; color: #dccfc9; transition: transform .1s; }
 .av-estrelas button.on { color: #f2b01e; }
 .av-estrelas button:active { transform: scale(1.2); }
 .av-caixa #avTags .nota { margin: 4px 0 8px; }
+.av-caixa #avTags:empty { display: none; }
 .av-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .av-tag { padding: 7px 11px; border-radius: 10px; font: inherit; font-size: .82rem; cursor: pointer; background: transparent; border: 1px solid var(--md-sys-color-outline); color: inherit; }
 .av-tag.on { background: var(--rosa); border-color: var(--md-sys-color-primary); color: var(--md-sys-color-primary); font-weight: 600; }
 .av-fim { min-height: 70vh; display: grid; place-content: center; justify-items: center; gap: 14px; text-align: center; }
 .av-fim img { width: 150px; height: 150px; border-radius: 50%; }
 .av-fim img.apagado { opacity: .45; filter: grayscale(1); }
-.av-fim .nota { margin: 0; }
+.av-fim .grande { max-width: 22ch; text-wrap: balance; }
 
 /* nota no card e "O que acharam" no burger aberto */
 .card h3 { display: flex; align-items: center; gap: 8px; }

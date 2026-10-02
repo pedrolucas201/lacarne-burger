@@ -102,4 +102,11 @@ body { padding-bottom: 72px; }
 .av-lin { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; font-size: .85rem; }
 .av-lin small { color: var(--md-sys-color-on-surface-variant); }
 .av-sw { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: .85rem; cursor: pointer; }
-@media (min-width: 1000px) { #listaAv { grid-template-columns: 1fr 1fr; } }
+/* computador: resumo, nota por burger e etiquetas lado a lado; avaliações em 2 colunas */
+@media (min-width: 1000px) {
+  #avResumo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+  #avResumo .blocos { display: contents; }
+  #avResumo .av-resumo { margin: 0; }
+  #avResumo .bloco { margin: 0; }
+  #listaAv { grid-template-columns: 1fr 1fr; }
+}

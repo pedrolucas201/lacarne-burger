@@ -21,7 +21,7 @@ function fim(titulo, sub = '', apagado = false) {
 try {
   const [conv, nt] = id ? await Promise.all([getDoc(doc(loja, 'convites', id)), getDoc(doc(loja, 'notas', id))]) : [];
   if (!conv?.exists()) fim('Não encontramos esse pedido.', 'Confere se o link está completo.', true);
-  else if (nt.exists()) fim('Você já avaliou esse pedido, valeu! 🙌');
+  else if (nt.exists()) fim('Você já avaliou esse pedido, valeu!&nbsp;🙌');
   else montar(conv.data());
 } catch (e) {
   console.error(e);
@@ -74,7 +74,7 @@ function montar(c) {
       });
       await b.commit();
       scrollTo(0, 0);
-      fim('Valeu pela avaliação! 🙌', 'Ela ajuda a gente a melhorar cada pedido.');
+      fim('Valeu pela avaliação!&nbsp;🙌', 'Ela ajuda a gente a melhorar cada pedido.');
     } catch (e) {
       console.error(e);
       $('#avEnviar').disabled = false;

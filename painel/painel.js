@@ -353,8 +353,7 @@ $('#numeros').addEventListener('click', e => {
   $('#listaDialog').show();
 });
 $('#listaBusca').addEventListener('input', filtrarLista);
-function barras(lista, fmt = String) {
-  const max = Math.max(1, ...lista.map(([, v]) => v));
+function barras(lista, fmt = String, max = Math.max(1, ...lista.map(([, v]) => v))) {
   return lista.map(([k, v]) => `<div class="barra"><span>${esc(k)}</span><i style="--w:${v / max * 100}%"></i><b>${fmt(v)}</b></div>`).join('')
     || '<p class="vazio">Sem dados ainda</p>';
 }
@@ -439,7 +438,7 @@ function renderAv() {
     </div>
     <div class="blocos">
       <details class="bloco" open><summary>Nota de cada burger</summary>
-        ${barras(r.porBurger.sort((a, b) => b[1] - a[1]).map(([n, m, q]) => [`${n} (${q})`, m]), virgula)}</details>
+        ${barras(r.porBurger.sort((a, b) => b[1] - a[1]).map(([n, m, q]) => [`${n} (${q})`, m]), virgula, 5)}</details>
       <details class="bloco" open><summary>O que mais falam</summary>
         <div class="av-chips">${r.tags.map(([t, n, boa]) => `<span class="${boa ? 'bom' : 'ruim'}">${esc(t)} · ${n}</span>`).join('') || '<p class="vazio">Nenhuma etiqueta marcada</p>'}</div></details>
     </div>`;
