@@ -142,7 +142,8 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
   .item-dir:has(~ .opinioes) { margin-bottom: -23px; }
   #itemCorpo:has(> .opinioes) { padding-bottom: 23px; } /* espaço do contador que desceu */
   .item-dir:has(~ .opinioes .mais-op) { padding-bottom: 36px; }
-  .item-dir:has(~ .opinioes) #itemObs { flex: 1; }
+  .item-dir:has(~ .opinioes:not(.expandida)) #itemObs { flex: 1; }
+  .item-dir:has(~ .opinioes.expandida) { margin-bottom: 0; }
   #itemCorpo .desc { margin-bottom: 10px; }
   #itemCorpo fieldset { margin-bottom: 10px; }
   /* ponto da carne: 3 opções lado a lado */

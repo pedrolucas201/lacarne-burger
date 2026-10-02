@@ -188,7 +188,11 @@ async function opinioes(item) {
   el.innerHTML = `<h4>O que acharam ${m ? `<span class="selo-nota"><b>★ ${virgula(m.media)}</b> · ${m.n} notas</span>` : ''}</h4>
     ${deps.slice(0, mostrar).map(card).join('')}
     ${resto > 0 ? `<button type="button" class="mais-op">Ver mais ${resto} comentário${resto > 1 ? 's' : ''}</button>` : ''}`;
+  // expandiu: só a coluna dos comentários cresce; a foto fica do tamanho que estava e a Observação volta ao normal
   el.querySelector('.mais-op')?.addEventListener('click', e => {
+    const foto = $('#itemCorpo > .item-foto');
+    if (foto) foto.style.minHeight = `${foto.offsetHeight}px`;
+    el.classList.add('expandida');
     e.target.insertAdjacentHTML('beforebegin', deps.slice(mostrar).map(card).join(''));
     e.target.remove();
   });
