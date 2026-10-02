@@ -34,7 +34,7 @@ export const LOJA = {
   // fotoAlta: versão vertical (das originais em alta) pra tela larga do computador
   // boi: desenho de cada burger (PDF da Brenda); aparece quando ainda não tem foto
   cardapio: [
-    { id: 'manso', nome: 'Manso', preco: 20, emoji: '🍔', boi: 'img/boi-manso.webp', escolhas: [PONTO],
+    { id: 'manso', nome: 'Manso', preco: 20, emoji: '🍔', foto: 'img/manso.webp', fotoAlta: 'img/manso-alta.webp', boi: 'img/boi-manso.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), queijo cheddar e maionese da casa.',
       tira: ['Queijo cheddar', 'Maionese da casa'] },
     { id: 'abusado', nome: 'Abusado', preco: 22, emoji: '🍫', boi: 'img/boi-abusado.webp', escolhas: [PONTO],
