@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "bundle": "esbuild vendor-src/material.js --bundle --minify --format=esm --outfile=vendor/material.js && esbuild vendor-src/base.js vendor-src/auth.js --bundle --minify --splitting --format=esm --outdir=vendor/firebase",
-    "test": "node --test testes/horario.test.mjs testes/pedido.test.mjs testes/numeros.test.mjs",
+    "test": "node --test testes/horario.test.mjs testes/pedido.test.mjs testes/numeros.test.mjs testes/cardapio.test.mjs",
     "test:regras": "firebase emulators:exec --only firestore --project demo-lacarne \"node --test testes/regras.test.mjs\"",
     "dev": "firebase emulators:start --only firestore,auth,hosting --project demo-lacarne",
     "seed:local": "node scripts/seed.mjs --local --admin dono@teste.com",
