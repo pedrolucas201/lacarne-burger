@@ -176,12 +176,17 @@ function abrirItem(item) {
     </fieldset>` : ''}
     <md-outlined-text-field id="itemObs" maxlength="200" label="Observação (opcional)" type="textarea" rows="${matchMedia('(min-width: 800px)').matches ? 1 : 2}"
       placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>`;
+  // ponto escolhido fica destacado igual aos adicionais (o md-radio não expõe o "marcado" pro CSS)
+  $('#itemCorpo').addEventListener('change', () =>
+    $('#itemCorpo').querySelectorAll('.opt').forEach(o => o.classList.toggle('on', o.querySelector('md-radio').checked)));
   $('#extras')?.addEventListener('click', e => {
     const b = e.target.closest('[data-x]');
     if (!b) return;
     const x = b.dataset.x, n = Math.min(MAX_EXTRA, Math.max(0, (atual.extras[x] || 0) + +b.dataset.d));
     atual.extras[x] = n;
-    $('#itemCorpo').querySelector(`[data-n="${x}"]`).textContent = n;
+    const contador = $('#itemCorpo').querySelector(`[data-n="${x}"]`);
+    contador.textContent = n;
+    contador.closest('.extra').classList.toggle('on', n > 0);
     atualizarItem();
   });
   atualizarItem();
