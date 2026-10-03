@@ -74,9 +74,13 @@ service cloud.firestore {
       }
 
       // create em documento que já existe conta como update (negado): uma avaliação por pedido
+      // abertura: a página de avaliar marca uma vez só quando e por onde o cliente chegou (rastreio do envio)
       match /convites/{id} {
         allow read: if true;
         allow create: if admin(loja);
+        allow update: if !('abertoEm' in resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['abertoEm', 'abertoPor'])
+          && request.resource.data.abertoEm == request.time && request.resource.data.abertoPor in ['link', 'qr'];
       }
       match /avaliacoes/{id} {
         allow create: if exists(/databases/$(database)/documents/lojas/$(loja)/convites/$(id))

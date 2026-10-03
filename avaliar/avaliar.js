@@ -2,7 +2,7 @@
 // existir `notas/<id>` = já avaliou. As regras do banco garantem uma avaliação só e notas 1–5.
 import '../vendor/material.js';
 import { db, LOJA_ID } from '../firebase.js';
-import { doc, getDoc, writeBatch, serverTimestamp } from '../vendor/firebase/base.js';
+import { doc, getDoc, updateDoc, writeBatch, serverTimestamp } from '../vendor/firebase/base.js';
 import { LOJA } from '../lojas/lacarne.mjs';
 import { etiquetas, quando } from '../avaliacao.js';
 import { $, esc, toast } from '../util.js';
@@ -23,6 +23,10 @@ try {
   if (!conv?.exists()) fim('Não encontramos esse pedido.', 'Confere se o link está completo.', true);
   else if (nt.exists()) fim('Você já avaliou esse pedido, valeu!&nbsp;🙌');
   else montar(conv.data());
+  // rastreio: primeira abertura (?qr = veio da comanda; sem = link do WhatsApp). Falhar aqui não atrapalha o cliente
+  if (conv?.exists() && !conv.data().abertoEm) updateDoc(conv.ref, {
+    abertoEm: serverTimestamp(), abertoPor: new URLSearchParams(location.search).has('qr') ? 'qr' : 'link',
+  }).catch(console.error);
 } catch (e) {
   console.error(e);
   fim('Não deu pra abrir agora.', 'Confere a internet e tenta de novo.');

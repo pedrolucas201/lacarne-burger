@@ -99,6 +99,10 @@ try {
   // site + painel + avaliar na mesma janela esgotam isso e a escrita fica na fila pra sempre
   const av = await pagina(`${BASE}avaliar/#${id}`, await b.createBrowserContext());
   await av.waitForSelector('[data-b="bruto"] [data-n="5"]');
+  await espera(1000);
+  const conv = (await db.doc(`lojas/lacarne/convites/${id}`).get()).data();
+  assert.equal(conv.abertoPor, 'link'); // rastreio: abrir o link do WhatsApp marca o convite
+  assert.ok(conv.abertoEm);
   await av.click('[data-b="bruto"] [data-n="5"]');
   await av.click('[data-t="Saboroso"]');
   await av.evaluate(() => { document.querySelector('[data-b="bruto"] .av-coment').value = 'Bruto absurdo'; document.querySelector('#avEnviar').click(); });
@@ -108,6 +112,8 @@ try {
 
   await painel.evaluate(() => document.querySelector('[data-aba="avaliacoes"]').click());
   await painel.waitForSelector(`[data-pub="${id}"][data-b="bruto"]`);
+  const funil = await painel.evaluate(() => document.querySelector('#avConvites').innerText);
+  assert.match(funil, /Convites: 1 · 1 aberto · 1 avaliado/, funil);
   await painel.evaluate(i => document.querySelector(`[data-pub="${i}"][data-b="bruto"]`).shadowRoot.querySelector('input').click(), id);
   await espera(1500);
   assert.equal((await db.doc(`lojas/lacarne/depoimentos/${id}_bruto`).get()).data().comentario, 'Bruto absurdo');
