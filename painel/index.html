@@ -36,6 +36,12 @@
       <md-filled-tonal-button id="som"><md-icon slot="icon">notifications_active</md-icon>Ativar som</md-filled-tonal-button>
       <p id="somAviso" class="som-aviso" hidden>🔕 Toque na tela pra religar o som</p>
       <md-filled-button id="lancar"><md-icon slot="icon">add</md-icon>Lançar pedido</md-filled-button>
+      <div class="dias">
+        <md-icon-button id="diaAntes" aria-label="Dia anterior"><md-icon>chevron_left</md-icon></md-icon-button>
+        <input id="diaData" type="date" aria-label="Escolher o dia">
+        <md-icon-button id="diaDepois" aria-label="Próximo dia" disabled><md-icon>chevron_right</md-icon></md-icon-button>
+        <button id="diaHoje" type="button" class="on">Hoje</button>
+      </div>
       <div id="filtroPedidos" class="filtro" role="tablist"></div>
       <div id="listaPedidos"></div>
     </section>
@@ -92,5 +98,8 @@
     <div slot="content" id="pedCorpo"></div>
     <div slot="actions" class="acoes" id="pedAcoes"></div>
   </md-dialog>
+
+  <div id="comanda"></div>
+
 </body>
 </html>
