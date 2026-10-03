@@ -227,8 +227,8 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 .rodape { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .rodape strong { font-size: 1.2rem; }
 
-footer { margin-top: 56px; padding: 24px 16px; text-align: center; font-size: .9rem; background: var(--creme); }
-footer p { margin: 4px 0; }
+footer { margin-top: 40px; padding: 14px 16px; text-align: center; font-size: .85rem; line-height: 1.4; background: var(--creme); }
+footer p { margin: 2px 0; }
 /* só abre espaço quando a barra da sacola aparece, pra ela não cobrir os links */
 body:has(.cart-bar.on) footer { padding-bottom: 96px; }
 footer a { color: var(--md-sys-color-primary); }
@@ -385,7 +385,7 @@ md-outlined-text-field { width: 100%; }
   .balcao .card { grid-template-columns: minmax(0, 1fr); } /* balcão não tem foto: o card ocupa a largura toda */
 }
 /* rodapé: assinatura discreta do Pede Direto (fala com o dono de loja, o cliente ignora) */
-footer .pd { margin-top: 14px; font-size: .75rem; color: #8a7a72; }
+footer .pd { margin-top: 8px; font-size: .75rem; color: #8a7a72; }
 footer .pd a { color: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
