@@ -128,26 +128,27 @@ body { padding-bottom: 72px; }
 #diaHoje.on { color: #fff; background: var(--md-sys-color-primary); }
 #diaHoje.chamando { font-weight: 700; animation: chamar 1.2s ease-in-out infinite; }
 
-/* comanda: só existe na impressão (térmica 58/80 mm ou "Salvar como PDF") */
-#comanda { display: none; }
+/* comanda: só aparece na impressão. Página do tamanho da comanda (80 mm x altura do pedido, @page montado no
+   painel.js): o PDF sai numa tira só e a térmica de 80 mm recebe o papel certo.
+   ponytail: largura fixa de 80 mm; térmica de 58 mm precisa de outra largura (ver com a impressora real da loja) */
+#comanda { display: none; width: 80mm; box-sizing: border-box; padding: 3mm 4mm; color: #000; background: #fff;
+  font: 13px/1.35 'Courier New', monospace; }
+#comanda.medindo { display: block; position: fixed; left: -10000px; top: 0; }
+#comanda * { margin: 0; }
+#comanda .c-topo, #comanda .c-qr { text-align: center; }
+#comanda .c-topo img { width: 22mm; filter: grayscale(1) contrast(1.6); }
+#comanda h1 { font: 800 18px/1.1 Poppins, sans-serif; letter-spacing: .5px; }
+#comanda .c-cod { margin: 2mm 0; font-size: 22px; font-weight: 700; }
+#comanda .c-tipo { margin: 2mm 0; padding: 1mm; text-align: center; font-size: 15px; font-weight: 700; border: 1.5px solid #000; }
+#comanda hr { margin: 2.5mm 0; border: 0; border-top: 1px dashed #000; }
+#comanda .c-item { margin-bottom: 1.5mm; }
+#comanda .c-item b, #comanda .c-item small { display: block; }
+#comanda .c-item small { padding-left: 3ch; font-size: 12px; }
+#comanda .c-l { display: flex; justify-content: space-between; gap: 8px; }
+#comanda .c-total { font-size: 16px; font-weight: 700; }
+#comanda .c-qr svg { display: block; width: 32mm; height: 32mm; margin: 2mm auto; }
 @media print {
-  @page { margin: 0; }
   body { padding: 0; background: #fff; }
   body > :not(#comanda) { display: none !important; }
-  /* ponytail: largura pela folha (58 ou 80 mm); conferir com a impressora real da loja */
-  #comanda { display: block; width: 100%; max-width: 72mm; box-sizing: border-box; padding: 3mm 2mm; color: #000; background: #fff;
-    font: 13px/1.35 'Courier New', monospace; }
-  #comanda * { margin: 0; }
-  #comanda .c-topo, #comanda .c-qr { text-align: center; }
-  #comanda .c-topo img { width: 22mm; filter: grayscale(1) contrast(1.6); }
-  #comanda h1 { font: 800 18px/1.1 Poppins, sans-serif; letter-spacing: .5px; }
-  #comanda .c-cod { margin: 2mm 0; font-size: 22px; font-weight: 700; }
-  #comanda .c-tipo { margin: 2mm 0; padding: 1mm; text-align: center; font-size: 15px; font-weight: 700; border: 1.5px solid #000; }
-  #comanda hr { margin: 2.5mm 0; border: 0; border-top: 1px dashed #000; }
-  #comanda .c-item { margin-bottom: 1.5mm; }
-  #comanda .c-item b, #comanda .c-item small { display: block; }
-  #comanda .c-item small { padding-left: 3ch; font-size: 12px; }
-  #comanda .c-l { display: flex; justify-content: space-between; gap: 8px; }
-  #comanda .c-total { font-size: 16px; font-weight: 700; }
-  #comanda .c-qr svg { display: block; width: 32mm; height: 32mm; margin: 2mm auto; }
+  #comanda { display: block; }
 }

@@ -265,8 +265,15 @@ async function imprimir(p) {
     q.make();
     qr = q.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
   }
-  $('#comanda').innerHTML = comanda(p, loja, qr);
-  await $('#comanda img').decode().catch(() => {}); // logo carregado antes de abrir a impressão
+  const c = $('#comanda');
+  c.innerHTML = comanda(p, loja, qr);
+  await c.querySelector('img').decode().catch(() => {}); // logo carregado antes de medir e imprimir
+  // página = tamanho da comanda (mede fora da tela; 96 px = 1 polegada), senão o PDF sai em A4
+  c.classList.add('medindo');
+  const mm = Math.ceil(c.offsetHeight * 25.4 / 96) + 2;
+  c.classList.remove('medindo');
+  ($('#pagina') ?? document.head.appendChild(Object.assign(document.createElement('style'), { id: 'pagina' })))
+    .textContent = `@page { size: 80mm ${mm}mm; margin: 0; }`;
   print();
 }
 
