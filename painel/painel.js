@@ -413,7 +413,7 @@ $('#planilha').onclick = () => {
 // ---------- avaliações ----------
 // ponytail: lê todas as avaliações do período a cada abertura; com milhares por mês, paginar
 const avRef = collection(lojaRef, 'avaliacoes');
-let avPeriodo = 'mes', avFiltro = 'novas', avLista = [];
+let avPeriodo = 'mes', avFiltro = 'novas', avLista = [], convites = [];
 const estrelas = n => '★'.repeat(n) + '☆'.repeat(5 - n);
 const virgula = n => n.toFixed(1).replace('.', ',');
 
@@ -428,8 +428,13 @@ function vigiarNovasAv() {
 async function carregarAv() {
   $('#listaAv').innerHTML = '<p class="vazio">Carregando…</p>';
   try {
-    const s = await getDocs(query(avRef, where('criadoEm', '>=', Timestamp.fromDate(periodo(avPeriodo).ini)), orderBy('criadoEm', 'desc')));
+    const ini = Timestamp.fromDate(periodo(avPeriodo).ini);
+    const [s, cs] = await Promise.all([
+      getDocs(query(avRef, where('criadoEm', '>=', ini), orderBy('criadoEm', 'desc'))),
+      getDocs(query(collection(lojaRef, 'convites'), where('entregueEm', '>=', ini), orderBy('entregueEm', 'desc'))),
+    ]);
     avLista = s.docs.map(d => ({ id: d.id, ...d.data(), criadoEm: data(d.data().criadoEm) ?? new Date() }));
+    convites = cs.docs.map(d => ({ id: d.id, ...d.data(), entregueEm: data(d.data().entregueEm), abertoEm: data(d.data().abertoEm) }));
   } catch (e) {
     console.error(e);
     $('#listaAv').innerHTML = '<p class="vazio">Não deu pra carregar. Confere a internet e toca no período de novo.</p>';
@@ -461,6 +466,15 @@ function renderAv() {
       <details class="bloco" open><summary>O que mais falam</summary>
         <div class="av-chips">${r.tags.map(([t, n, boa]) => `<span class="${boa ? 'bom' : 'ruim'}">${esc(t)} · ${n}</span>`).join('') || '<p class="vazio">Nenhuma etiqueta marcada</p>'}</div></details>
     </div>`;
+  // rastreio: convite criado → link aberto (WhatsApp ou QR) → avaliado. Ninguém abre nada = a loja não está enviando
+  // ponytail: "avaliou" olha só as avaliações do período; convite do fim do mês avaliado no mês seguinte aparece como "abriu"
+  const avaliou = new Set(avLista.map(a => a.id)), POR = { link: 'pelo WhatsApp', qr: 'pelo QR' };
+  const abertos = convites.filter(c => c.abertoEm || avaliou.has(c.id)).length, avaliados = convites.filter(c => avaliou.has(c.id)).length;
+  $('#avConvites').innerHTML = !convites.length ? '' : `<details class="bloco"><summary>Convites: ${convites.length} · ${abertos} ${
+    abertos === 1 ? 'aberto' : 'abertos'} · ${avaliados} ${avaliados === 1 ? 'avaliado' : 'avaliados'}</summary>
+    <p class="nota">Se ninguém abre o link, o mais provável é que a mensagem não está saindo pelo WhatsApp.</p>
+    ${convites.map(c => `<div class="linha-lista"><span>${esc(c.nome)}<small>${c.entregueEm ? `${quando(c.entregueEm)} ${hora(c.entregueEm)} · ` : ''}${esc(c.burgers.map(b => b.nome).join(' + '))}</small></span>
+      <b>${avaliou.has(c.id) ? 'Avaliou' : c.abertoEm ? `Abriu ${POR[c.abertoPor] ?? ''} ${hora(c.abertoEm)}` : 'Não abriu'}</b></div>`).join('')}</details>`;
   const grupos = { novas: avLista.filter(a => !a.vista), todas: avLista, site: avLista.filter(a => a.publicas?.length) };
   $('#filtroAv').innerHTML = [['novas', 'Novas'], ['todas', 'Todas'], ['site', 'No site']]
     .map(([k, n]) => `<button type="button" data-fav="${k}" class="${k === avFiltro ? 'on' : ''}">${n} <b>${grupos[k].length}</b></button>`).join('');

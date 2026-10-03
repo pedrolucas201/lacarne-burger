@@ -155,3 +155,12 @@ test('só admin cria convite e depoimento; admin só muda vista/publica', async 
   await assertFails(deleteDoc(doc(anon(), P, 'depoimentos', 'p1_bruto')));
   await assertSucceeds(deleteDoc(doc(adm, P, 'depoimentos', 'p1_bruto')));
 });
+test('cliente marca a abertura do convite uma vez só, com a hora do servidor', async () => {
+  const c = doc(anon(), P, 'convites', 'p1');
+  await assertFails(updateDoc(c, { abertoEm: new Date(0), abertoPor: 'link' }));
+  await assertFails(updateDoc(c, { abertoEm: serverTimestamp(), abertoPor: 'email' }));
+  await assertFails(updateDoc(c, { abertoEm: serverTimestamp(), abertoPor: 'link', nome: 'X' }));
+  await assertSucceeds(updateDoc(c, { abertoEm: serverTimestamp(), abertoPor: 'qr' }));
+  await assertFails(updateDoc(c, { abertoEm: serverTimestamp(), abertoPor: 'link' }));
+  await assertFails(setDoc(doc(logado('dono@x.com'), P, 'convites', 'p1'), { nome: 'Ana', ids: ['bruto'], burgers: [], entregueEm: new Date() }));
+});
