@@ -148,7 +148,7 @@ body { padding-bottom: 72px; }
 #comanda .c-total { font-size: 16px; font-weight: 700; }
 #comanda .c-qr svg { display: block; width: 32mm; height: 32mm; margin: 2mm auto; }
 @media print {
-  body { padding: 0; background: #fff; }
+  body { min-height: 0; padding: 0; background: #fff; } /* 100dvh vira a altura da tela no Chrome e sobra folha em branco */
   body > :not(#comanda) { display: none !important; }
   #comanda { display: block; }
 }
