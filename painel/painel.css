@@ -37,6 +37,7 @@ body { padding-bottom: 72px; }
 .alerta { padding: 8px 12px; border-radius: 12px; font-weight: 600; background: var(--rosa); color: var(--md-sys-color-primary); }
 .itens { padding-left: 18px; }
 .motivos { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+#pedAcoes #imprimir { margin-right: auto; } /* Imprimir à esquerda; Recusar/Cancelar junto do Aceitar */
 
 /* abas */
 .abas { position: fixed; inset: auto 0 0 0; z-index: 5; display: flex; background: var(--md-sys-color-surface-container); border-top: 1px solid var(--md-sys-color-outline-variant); }
@@ -148,7 +149,7 @@ body { padding-bottom: 72px; }
 #comanda .c-total { font-size: 16px; font-weight: 700; }
 #comanda .c-qr svg { display: block; width: 32mm; height: 32mm; margin: 2mm auto; }
 @media print {
-  body { padding: 0; background: #fff; }
+  body { min-height: 0; padding: 0; background: #fff; } /* 100dvh vira a altura da tela no Chrome e sobra folha em branco */
   body > :not(#comanda) { display: none !important; }
   #comanda { display: block; }
 }
