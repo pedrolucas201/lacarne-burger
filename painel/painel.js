@@ -1,9 +1,11 @@
 import '../vendor/material.js';
 import { app, db, LOJA_ID, LOCAL } from '../firebase.js';
 import {
-  doc, collection, query, where, orderBy, onSnapshot, getDoc, getDocs, updateDoc, runTransaction, serverTimestamp, increment, Timestamp,
+  doc, collection, query, where, orderBy, onSnapshot, getDoc, getDocs, setDoc, updateDoc, runTransaction, serverTimestamp, increment, Timestamp,
   writeBatch,
 } from '../vendor/firebase/base.js';
+import qrcode from '../vendor/qrcode.js';
+import { comanda } from '../comanda.js';
 import {
   getAuth, connectAuthEmulator, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged,
 } from '../vendor/firebase/auth.js';
@@ -22,6 +24,8 @@ if (LOCAL) {
 const lojaRef = doc(db, 'lojas', LOJA_ID);
 const pedidosRef = collection(lojaRef, 'pedidos');
 let loja = null, pedidos = [], pararPedidos = null, iniciado = false;
+// pedidos: hoje, ao vivo (apita). Outro dia escolhido: pedidosDia, também ao vivo, sem apito
+let diaVivo = hoje(), dia = diaVivo, pedidosDia = [], pararDia = null;
 
 // ---------- login ----------
 const google = new GoogleAuthProvider();
@@ -31,7 +35,8 @@ $('#sair').onclick = () => signOut(auth);
 
 onAuthStateChanged(auth, async user => {
   pararPedidos?.();
-  pararPedidos = null;
+  pararDia?.();
+  pararPedidos = pararDia = null;
   const acesso = user ? await getDoc(doc(lojaRef, 'admins', user.email)).then(d => d.exists(), () => false) : false;
   $('#login').hidden = acesso;
   $('#app').hidden = $('#abas').hidden = !acesso;
@@ -65,7 +70,9 @@ function iniciar() {
     onSnapshot(lojaRef, s => { loja = s.data(); renderLoja(); renderPedidos(); });
     vigiarNovasAv();
   }
-  const inicioDoDia = new Date(`${hoje()}T00:00:00-03:00`);
+  diaVivo = hoje();
+  verDia(dia > diaVivo ? diaVivo : dia);
+  const inicioDoDia = new Date(`${diaVivo}T00:00:00-03:00`);
   let primeira = true;
   pararPedidos = onSnapshot(query(pedidosRef, where('criadoEm', '>=', Timestamp.fromDate(inicioDoDia)), orderBy('criadoEm', 'desc')), s => {
     const chegou = s.docChanges().some(c => c.type === 'added' && c.doc.data().status === 'novo');
@@ -96,16 +103,20 @@ const hora = d => d ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '
 const total = p => p.subtotal + (p.taxa ?? 0);
 let atualId = null;
 
+const ehHoje = () => dia === diaVivo;
+const naTela = () => ehHoje() ? pedidos : pedidosDia;
+
 function renderPedidos() {
   if (!loja) return;
   const n = pedidos.filter(p => p.status === 'novo').length;
   $('#novos').hidden = !n;
   $('#novos').textContent = n;
+  $('#diaHoje').classList.toggle('chamando', chamando && !ehHoje());
   // uma etapa por vez, escolhida nas pílulas (celular e computador)
-  const grupos = COLUNAS.map(([st, nome, sts]) => [st, nome, pedidos.filter(p => sts.includes(p.status))]);
+  const lista = naTela(), grupos = COLUNAS.map(([st, nome, sts]) => [st, nome, lista.filter(p => sts.includes(p.status))]);
   $('#filtroPedidos').innerHTML = grupos.map(([st, nome, l]) =>
-    `<button type="button" role="tab" data-filtro="${st}" class="${st}${st === filtro ? ' on' : ''}${st === 'novo' && chamando && filtro !== 'novo' ? ' chamando' : ''}">${nome} <b>${l.length}</b></button>`).join('');
-  $('#listaPedidos').innerHTML = pedidos.length ? grupos.map(([st, nome, l]) => `
+    `<button type="button" role="tab" data-filtro="${st}" class="${st}${st === filtro ? ' on' : ''}${st === 'novo' && chamando && filtro !== 'novo' && ehHoje() ? ' chamando' : ''}">${nome} <b>${l.length}</b></button>`).join('');
+  $('#listaPedidos').innerHTML = lista.length ? grupos.map(([st, nome, l]) => `
     <section class="grupo ${st}${st === filtro ? ' ativa' : ''}">
       <h3>${nome} · ${l.length}</h3>
       ${l.map(p => `<button class="pedido" data-id="${esc(p.id)}">
@@ -113,7 +124,7 @@ function renderPedidos() {
           <small>${hora(p.criadoEm)} · ${tipo(p)} · ${esc(p.pag)}${st === 'fim' ? ` · ${etapa(p.status, p)}` : ''}</small></span>
         <span class="valor">${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}${conferir(p, loja).ok ? '' : ' ⚠'}</span>
       </button>`).join('') || '<p class="vazio">Nenhum</p>'}
-    </section>`).join('') : '<p class="vazio">Nenhum pedido hoje ainda.</p>';
+    </section>`).join('') : `<p class="vazio">${ehHoje() ? 'Nenhum pedido hoje ainda.' : 'Nenhum pedido neste dia.'}</p>`;
   if (atualId && $('#pedidoDialog').open) abrirPedido(atualId); // detalhe aberto acompanha a mudança
 }
 $('#filtroPedidos').addEventListener('click', e => {
@@ -126,8 +137,36 @@ $('#listaPedidos').addEventListener('click', e => {
 });
 $('#pedidoDialog').addEventListener('closed', () => { atualId = null; });
 
+// ---------- outros dias: setas, calendário e "Hoje" ----------
+const somaDias = (d, n) => hoje(new Date(new Date(`${d}T12:00:00-03:00`).getTime() + n * 864e5));
+function verDia(d) {
+  dia = d > diaVivo ? diaVivo : d;
+  pararDia?.();
+  pararDia = null;
+  pedidosDia = [];
+  $('#diaData').value = dia;
+  $('#diaData').max = diaVivo;
+  $('#diaDepois').disabled = ehHoje();
+  $('#diaHoje').classList.toggle('on', ehHoje());
+  if (ehHoje()) { filtro = 'novo'; chamando = false; return renderPedidos(); }
+  const ini = new Date(`${dia}T00:00:00-03:00`);
+  let primeira = true;
+  $('#listaPedidos').innerHTML = '<p class="vazio">Carregando…</p>';
+  pararDia = onSnapshot(query(pedidosRef, where('criadoEm', '>=', Timestamp.fromDate(ini)),
+    where('criadoEm', '<', Timestamp.fromDate(new Date(ini.getTime() + 864e5))), orderBy('criadoEm', 'desc')), s => {
+    pedidosDia = s.docs.map(lerPedido);
+    // abre na primeira etapa com pedido: o que ficou parado aparece antes dos finalizados
+    if (primeira) { primeira = false; filtro = COLUNAS.find(([, , sts]) => pedidosDia.some(p => sts.includes(p.status)))?.[0] ?? 'fim'; }
+    renderPedidos();
+  }, e => { console.error(e); $('#listaPedidos').innerHTML = '<p class="vazio">Não deu pra carregar esse dia. Confere a internet.</p>'; });
+}
+$('#diaAntes').onclick = () => verDia(somaDias(dia, -1));
+$('#diaDepois').onclick = () => verDia(somaDias(dia, 1));
+$('#diaHoje').onclick = () => verDia(diaVivo);
+$('#diaData').addEventListener('change', e => { if (e.target.value) verDia(e.target.value); });
+
 function abrirPedido(id) {
-  const p = pedidos.find(x => x.id === id);
+  const p = pedidos.find(x => x.id === id) ?? pedidosDia.find(x => x.id === id);
   if (!p) return toast('Pedido não encontrado', true);
   atualId = id;
   const c = conferir(p, loja), cl = p.cliente;
@@ -154,8 +193,10 @@ function abrirPedido(id) {
   const rotulo = prox === 'preparo' ? 'Aceitar' : etapa(prox, p);
   const fim = ['entregue', 'cancelado'].includes(p.status);
   $('#pedAcoes').innerHTML = `
+    ${p.status === 'cancelado' ? '' : '<md-text-button id="imprimir"><md-icon slot="icon">print</md-icon>Imprimir</md-text-button>'}
     ${fim ? '' : `<md-text-button id="cancelar">${p.status === 'novo' ? 'Recusar' : 'Cancelar'}</md-text-button>`}
     ${prox ? `<md-filled-button id="avancar">${rotulo}</md-filled-button>` : ''}`;
+  $('#imprimir')?.addEventListener('click', () => imprimir(p));
   $('#avancar')?.addEventListener('click', () => mudar(p, prox));
   $('#cancelar')?.addEventListener('click', () => pedirMotivo(p));
   $('#pedidoDialog').show();
@@ -173,13 +214,16 @@ function pedirMotivo(p) {
 
 // aceitar conta o cliente; cancelar um pedido já aceito desconta. Os dois numa transação junto com o status.
 // entregue com burger: cria o convite de avaliação junto com o status e manda o link na mensagem.
-// Sem telefone (lançado no balcão): sem mensagem, sem convite e sem ficha de cliente
+// Sem telefone (lançado no balcão): sem mensagem, sem convite e sem ficha de cliente.
+// Pedido de outro dia: sem mensagem nem convite ("pedido pronto" no dia seguinte só confunde); a ficha conta igual
+// Convite que já existe (comanda impressa antes): só manda o link, sem recriar (a regra nega e derrubaria o status junto)
+const nomeConvite = p => soDigitos(p.cliente.fone) ? p.cliente.nome.trim().split(/\s+/)[0] : p.cliente.nome.trim(); // balcão: "Mesa 4" inteiro
 async function mudar(p, status, motivo = null) {
-  const fone = soDigitos(p.cliente.fone);
-  const burgers = status === 'entregue' && fone ? burgersDoPedido(p.itens, loja.cardapio) : [];
+  const fone = soDigitos(p.cliente.fone), doDia = hoje(p.criadoEm ?? new Date()) === hoje();
+  const burgers = status === 'entregue' && fone && doDia ? burgersDoPedido(p.itens, loja.cardapio) : [];
   const avaliar = burgers.length ? `${new URL('../avaliar/', location.href).href}#${p.id}` : '';
   const texto = avisoCliente(status, p, motivo, loja, avaliar);
-  if (texto && fone) window.open(whats(p.cliente.fone, texto), '_blank', 'noopener'); // antes de qualquer await, senão o navegador bloqueia
+  if (texto && fone && doDia) window.open(whats(p.cliente.fone, texto), '_blank', 'noopener'); // antes de qualquer await, senão o navegador bloqueia
   const ref = doc(pedidosRef, p.id);
   const mudanca = { status, [CAMPO[status]]: serverTimestamp(), ...(motivo ? { motivo } : {}) };
   const conta = !fone ? 0 : status === 'preparo' ? 1 : status === 'cancelado' && VALIDOS.includes(p.status) ? -1 : 0;
@@ -188,10 +232,11 @@ async function mudar(p, status, motivo = null) {
   try {
     if (!conta && !avaliar) return await updateDoc(ref, mudanca);
     if (!conta) {
+      const convRef = doc(lojaRef, 'convites', p.id);
+      if (await getDoc(convRef).then(d => d.exists(), () => false)) return await updateDoc(ref, mudanca);
       const b = writeBatch(db);
       b.update(ref, mudanca);
-      b.set(doc(lojaRef, 'convites', p.id),
-        { nome: p.cliente.nome.trim().split(/\s+/)[0], ids: burgers.map(x => x.id), burgers, entregueEm: serverTimestamp() });
+      b.set(convRef, { nome: nomeConvite(p), ids: burgers.map(x => x.id), burgers, entregueEm: serverTimestamp() });
       return await b.commit();
     }
     await runTransaction(db, async t => {
@@ -204,6 +249,32 @@ async function mudar(p, status, motivo = null) {
       }, { merge: true });
     });
   } catch (e) { console.error(e); toast(`#${p.cod} não salvou, tenta de novo`, true); }
+}
+
+// comanda: o QR leva pra avaliação (?qr = rastreio "pelo QR"). O convite nasce aqui, porque o papel vai junto com o
+// lanche: quem tem a comanda na mão já recebeu, e avalia sem depender de a loja marcar Entregue
+async function imprimir(p) {
+  const burgers = burgersDoPedido(p.itens, loja.cardapio);
+  let qr = '';
+  if (burgers.length) {
+    // já existe (impressa de novo, ou já entregue com telefone): a regra nega sobrescrever e o QR continua valendo
+    setDoc(doc(lojaRef, 'convites', p.id), { nome: nomeConvite(p), ids: burgers.map(x => x.id), burgers, entregueEm: serverTimestamp() })
+      .catch(() => {});
+    const q = qrcode(0, 'M');
+    q.addData(`${new URL('../avaliar/', location.href).href}?qr#${p.id}`);
+    q.make();
+    qr = q.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
+  }
+  const c = $('#comanda');
+  c.innerHTML = comanda(p, loja, qr);
+  await c.querySelector('img').decode().catch(() => {}); // logo carregado antes de medir e imprimir
+  // página = tamanho da comanda (mede fora da tela; 96 px = 1 polegada), senão o PDF sai em A4
+  c.classList.add('medindo');
+  const mm = Math.ceil(c.offsetHeight * 25.4 / 96) + 2;
+  c.classList.remove('medindo');
+  ($('#pagina') ?? document.head.appendChild(Object.assign(document.createElement('style'), { id: 'pagina' })))
+    .textContent = `@page { size: 80mm ${mm}mm; margin: 0; }`;
+  print();
 }
 
 // link "Abrir no painel" do WhatsApp: /painel/#<id>
@@ -281,7 +352,7 @@ function bip() {
 }
 function alertar() {
   bip();
-  if (filtro !== 'novo') { chamando = true; renderPedidos(); }
+  if (filtro !== 'novo' || !ehHoje()) { chamando = true; renderPedidos(); }
   if (audio?.state !== 'running' || document.hidden) document.title = `🔔 Pedido novo! · ${titulo}`;
   setTimeout(bip, 700);
   navigator.vibrate?.([200, 100, 200]);

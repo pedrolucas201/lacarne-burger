@@ -2,8 +2,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "bundle": "esbuild vendor-src/material.js --bundle --minify --format=esm --outfile=vendor/material.js && esbuild vendor-src/base.js vendor-src/auth.js --bundle --minify --splitting --format=esm --outdir=vendor/firebase",
-    "test": "node --test testes/horario.test.mjs testes/pedido.test.mjs testes/numeros.test.mjs testes/cardapio.test.mjs testes/avaliacao.test.mjs",
+    "bundle": "esbuild vendor-src/material.js --bundle --minify --format=esm --outfile=vendor/material.js && esbuild vendor-src/base.js vendor-src/auth.js --bundle --minify --splitting --format=esm --outdir=vendor/firebase && esbuild vendor-src/qrcode.js --bundle --minify --format=esm --outfile=vendor/qrcode.js",
+    "test": "node --test testes/horario.test.mjs testes/pedido.test.mjs testes/numeros.test.mjs testes/cardapio.test.mjs testes/avaliacao.test.mjs testes/comanda.test.mjs",
     "test:regras": "firebase emulators:exec --only firestore --project demo-lacarne \"node --test testes/regras.test.mjs\"",
     "dev": "firebase emulators:start --only firestore,auth,hosting --project demo-lacarne",
     "seed:local": "node scripts/seed.mjs --local --admin dono@teste.com",
@@ -17,6 +17,7 @@
     "firebase": "^12.19.0",
     "firebase-admin": "^14.5.0",
     "firebase-tools": "^15.7.0",
-    "puppeteer-core": "^25.12.0"
+    "puppeteer-core": "^25.12.0",
+    "qrcode-generator": "^2.0.4"
   }
 }

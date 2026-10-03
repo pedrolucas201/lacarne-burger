@@ -161,6 +161,15 @@ try {
   assert.ok(pl.aceitoEm);
   assert.match(await painel.$eval('#pedTitulo', e => e.textContent), /Em preparo/);
   assert.ok(!(await painel.$eval('#listaPedidos', e => e.innerText)).includes('⚠'));
+  // comanda: imprime com QR e cria o convite (sem telefone também: quem tem o papel avalia pelo QR)
+  const impresso = await painel.evaluate(async () => {
+    window.print = () => { window.__impresso = document.querySelector('#comanda').innerHTML; };
+    document.querySelector('#imprimir').click();
+    await new Promise(r => setTimeout(r, 1500));
+    return window.__impresso || '';
+  });
+  for (const s of ['CONSUMO NO LOCAL', 'Mesa 3', '2x Manso', 'Avalie seu lanche', '<svg']) assert.ok(impresso.includes(s), `comanda sem "${s}"`);
+  assert.equal((await db.doc(`lojas/lacarne/convites/${lancado[0].id}`).get()).data().nome, 'Mesa 3');
   for (const [etapa, rotulo] of [['saiu', 'Pronto'], ['entregue', 'Entregue']]) {
     await painel.evaluate(i => { location.hash = ''; location.hash = i; }, lancado[0].id);
     await painel.waitForSelector('#pedidoDialog[open] #avancar');
@@ -169,7 +178,6 @@ try {
     assert.equal((await db.doc(`lojas/lacarne/pedidos/${lancado[0].id}`).get()).data().status, etapa);
   }
   assert.equal(await painel.evaluate(() => window.__url), '', 'balcão sem telefone não abre WhatsApp');
-  assert.equal((await db.doc(`lojas/lacarne/convites/${lancado[0].id}`).get()).exists, false);
 
   // 7. balcão com telefone e entrega (pedido por ligação): conta o cliente, avisa no WhatsApp e manda a avaliação
   await painel.evaluate(() => document.querySelector('#lancar').click());
@@ -195,6 +203,10 @@ try {
   assert.deepEqual([ent.data().status, ent.data().entrega, ent.data().local, ent.data().taxa, ent.data().subtotal], ['preparo', true, false, 5, 32]);
   const ficha = (await db.doc('lojas/lacarne/clientes/81988887777').get()).data();
   assert.deepEqual([ficha.nome, ficha.pedidos, ficha.gasto, !!ficha.primeiro], ['Bia', 1, 32, true]);
+  // comanda impressa antes de entregar: o convite já existe e o Entregue tem que salvar mesmo assim (e mandar o link)
+  await painel.evaluate(async () => { document.querySelector('#imprimir').click(); await new Promise(r => setTimeout(r, 1500)); });
+  assert.equal((await db.doc(`lojas/lacarne/convites/${ent.id}`).get()).data().nome, 'Bia');
+  assert.match(await painel.evaluate(() => window.__impresso), /ENTREGA[\s\S]*Rua B, 2 · Matriz/);
   const avisos = [];
   for (const etapa of ['saiu', 'entregue']) {
     await painel.evaluate(i => { location.hash = ''; location.hash = i; }, ent.id);
@@ -210,6 +222,25 @@ try {
   assert.match(avisos[0], /phone=5581988887777.*saiu pra entrega/s);
   assert.ok(avisos[1].includes(`avaliar/#${ent.id}`), avisos[1]);
   assert.equal((await db.doc(`lojas/lacarne/convites/${ent.id}`).get()).data().nome, 'Bia');
+
+  // 8. histórico: pedido de ontem que ficou parado em "pronto"; marcar Retirado não abre WhatsApp nem cria convite
+  const ontem = new Date(Date.now() - 864e5);
+  const velho = await db.collection('lojas/lacarne/pedidos').add({ ...salvo, cod: 'ONTEM1', status: 'saiu', entrega: false, taxa: 0, criadoEm: ontem });
+  await painel.evaluate(() => { location.hash = ''; document.querySelector('#diaAntes').click(); });
+  await painel.waitForFunction(() => document.querySelector('#listaPedidos').textContent.includes('ONTEM1'), { timeout: 5000 });
+  assert.match(await painel.$eval('#filtroPedidos .on', e => e.textContent), /Saiu \/ pronto/); // abre onde ficou parado
+  await painel.evaluate(async i => {
+    window.__url = '';
+    document.querySelector(`[data-id="${i}"]`).click();
+    await new Promise(r => setTimeout(r, 500));
+    document.querySelector('#avancar').click();
+    await new Promise(r => setTimeout(r, 1500));
+  }, velho.id);
+  assert.equal((await velho.get()).data().status, 'entregue');
+  assert.equal(await painel.evaluate(() => window.__url), '', 'pedido de outro dia não abre WhatsApp');
+  assert.equal((await db.doc(`lojas/lacarne/convites/${velho.id}`).get()).exists, false);
+  await painel.evaluate(() => document.querySelector('#diaHoje').click());
+  await painel.waitForFunction(() => document.querySelector('#listaPedidos').textContent.includes('Mesa 3'));
   assert.deepEqual(erros, []);
   console.log('e2e ok');
 } finally {
