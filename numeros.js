@@ -20,6 +20,14 @@ export function periodo(tipo, agora = new Date()) {
   return { ini: deLocal(new Date(ini)), fim: agora, iniAnt: deLocal(new Date(iniAnt)), fimAnt: deLocal(new Date(fimAnt)) };
 }
 
+// período livre: datas 'AAAA-MM-DD' de Recife, "até" incluso. Compara com os mesmos N dias logo antes;
+// se o período chega em hoje, os dois param no mesmo ponto (como em periodo())
+export function intervalo(de, ate, agora = new Date()) {
+  const ini = Date.parse(de), fimDia = Date.parse(ate) + DIA, fim = Math.min(fimDia, local(agora).getTime());
+  const iniAnt = ini - (fimDia - ini);
+  return { ini: deLocal(new Date(ini)), fim: deLocal(new Date(fim)), iniAnt: deLocal(new Date(iniAnt)), fimAnt: deLocal(new Date(iniAnt + fim - ini)) };
+}
+
 // soma valores por chave e ordena do maior pro menor: [[chave, total], ...]
 function ranking(pedidos, pares) {
   const m = {};
