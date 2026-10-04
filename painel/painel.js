@@ -10,7 +10,7 @@ import {
   getAuth, connectAuthEmulator, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged,
 } from '../vendor/firebase/auth.js';
 import { conferir, whats, avisoCliente, MOTIVOS, soDigitos, mapa, agrupar } from '../pedido.js';
-import { periodo, calcular, variacao, csv, VALIDOS } from '../numeros.js';
+import { periodo, intervalo, calcular, variacao, csv, VALIDOS } from '../numeros.js';
 import { hoje } from '../horario.js';
 import { burgersDoPedido, resumo, quando, TAGS_BOAS } from '../avaliacao.js';
 import { $, brl, esc, toast } from '../util.js';
@@ -398,21 +398,32 @@ $('#periodos').addEventListener('click', e => {
   if (!c) return;
   document.querySelectorAll('#periodos [data-p]').forEach(x => { x.selected = x === c; });
   periodoAtual = c.dataset.p;
+  $('#livre').hidden = periodoAtual !== 'livre';
+  if (periodoAtual === 'livre' && !$('#ate').value) { // abre nos últimos 7 dias
+    $('#de').max = $('#ate').max = $('#ate').value = hoje();
+    $('#de').value = hoje(new Date(Date.now() - 6 * 864e5));
+  }
   carregarNumeros();
 });
+$('#livre').addEventListener('change', () => carregarNumeros());
+const diasLivre = () => (Date.parse($('#ate').value) - Date.parse($('#de').value)) / 864e5 + 1;
 
 // ponytail: lê o período atual + anterior e a coleção de clientes inteira a cada abertura; com milhares de clientes, agregar no aceite
 async function carregarNumeros() {
-  const per = periodo(periodoAtual);
+  if (periodoAtual === 'livre' && !(diasLivre() >= 1)) {
+    $('#numeros').innerHTML = '<p class="vazio">Escolhe a data do começo antes da data do fim.</p>';
+    return;
+  }
+  const per = periodoAtual === 'livre' ? intervalo($('#de').value, $('#ate').value) : periodo(periodoAtual);
   $('#numeros').innerHTML = '<p class="vazio">Carregando…</p>';
   try {
     const [ps, cs] = await Promise.all([
-      getDocs(query(pedidosRef, where('criadoEm', '>=', Timestamp.fromDate(per.iniAnt)))),
+      getDocs(query(pedidosRef, where('criadoEm', '>=', Timestamp.fromDate(per.iniAnt)), where('criadoEm', '<', Timestamp.fromDate(per.fim)))),
       getDocs(collection(lojaRef, 'clientes')),
     ]);
     const lista = ps.docs.map(lerPedido);
     const clientes = Object.fromEntries(cs.docs.map(d => [d.id, { ...d.data(), primeiro: data(d.data().primeiro) }]));
-    doPeriodo = lista.filter(p => p.criadoEm >= per.ini).sort((a, b) => a.criadoEm - b.criadoEm);
+    doPeriodo = lista.filter(p => p.criadoEm >= per.ini && p.criadoEm < per.fim).sort((a, b) => a.criadoEm - b.criadoEm);
     renderNumeros(calcular(lista, per, clientes), calcular(lista, { ini: per.iniAnt, fim: per.fimAnt }, clientes));
   } catch (e) {
     console.error(e);
@@ -468,7 +479,8 @@ function renderNumeros(a, b) {
       <div class="kpi"><small>Ticket médio</small><strong>${brl(a.ticket)}</strong>${seta(a.ticket, b.ticket)}</div>
       <div class="kpi"><small>Entregas (repasse do motoboy)</small><strong>${brl(a.taxas)}</strong></div>
     </div>
-    <p class="nota">Setas comparam com ${ANTERIOR[periodoAtual]}, até o mesmo horário.${a.cancelados ? ` ${a.cancelados} cancelado(s) fora da conta.` : ''}</p>
+    <p class="nota">Setas comparam com ${periodoAtual !== 'livre' ? `${ANTERIOR[periodoAtual]}, até o mesmo horário`
+      : `${diasLivre() > 1 ? `os ${diasLivre()} dias` : 'o dia'} logo antes${$('#ate').value === hoje() ? ', até o mesmo horário' : ''}`}.${a.cancelados ? ` ${a.cancelados} cancelado(s) fora da conta.` : ''}</p>
     <div class="blocos">
       <details class="bloco" ${aberto('Burgers mais vendidos')}><summary>Burgers mais vendidos</summary>${barras(a.maisVendidos.filter(([n]) => !ehBebida(n)))}</details>
       <details class="bloco" ${aberto('Bebidas mais vendidas')}><summary>Bebidas mais vendidas</summary>${barras(a.maisVendidos.filter(([n]) => ehBebida(n)))}</details>
@@ -487,7 +499,7 @@ $('#planilha').onclick = () => {
   if (!doPeriodo.length) return toast('Nenhum pedido no período', true);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv(doPeriodo)], { type: 'text/csv;charset=utf-8' }));
-  a.download = `pedidos-${periodoAtual}-${hoje()}.csv`;
+  a.download = periodoAtual === 'livre' ? `pedidos-${$('#de').value}-a-${$('#ate').value}.csv` : `pedidos-${periodoAtual}-${hoje()}.csv`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };

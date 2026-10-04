@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { periodo, calcular, variacao, csv } from '../numeros.js';
+import { periodo, intervalo, calcular, variacao, csv } from '../numeros.js';
 
 const R = s => new Date(s + '-03:00'); // horário de Recife
 const ped = (criado, extra = {}) => ({
@@ -21,6 +21,16 @@ test('hoje compara com o mesmo dia da semana passada', () => {
 test('mês compara com o anterior sem invadir o atual', () => {
   const p = periodo('mes', R('2026-03-31T20:00'));
   assert.deepEqual([p.ini, p.iniAnt, p.fimAnt], [R('2026-03-01T00:00'), R('2026-02-01T00:00'), R('2026-03-01T00:00')]);
+});
+test('período livre fechado compara com os mesmos N dias logo antes', () => {
+  const p = intervalo('2026-09-10', '2026-09-12', R('2026-10-03T21:00'));
+  assert.deepEqual([p.ini, p.fim, p.iniAnt, p.fimAnt],
+    [R('2026-09-10T00:00'), R('2026-09-13T00:00'), R('2026-09-07T00:00'), R('2026-09-10T00:00')]);
+});
+test('período livre que chega em hoje para no mesmo ponto nos dois', () => {
+  const p = intervalo('2026-10-03', '2026-10-03', R('2026-10-03T21:00'));
+  assert.deepEqual([p.ini, p.fim, p.iniAnt, p.fimAnt],
+    [R('2026-10-03T00:00'), R('2026-10-03T21:00'), R('2026-10-02T00:00'), R('2026-10-02T21:00')]);
 });
 test('faturamento sem taxa, só aceitos, cancelados à parte', () => {
   const r = calcular([ped('2026-10-01T19:10'), ped('2026-10-01T19:40', { status: 'cancelado' }),

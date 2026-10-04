@@ -123,7 +123,8 @@ body { padding-bottom: 72px; }
 
 /* pedidos: navegar pelos dias (hoje continua ao vivo e apitando mesmo vendo outro dia) */
 .dias { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
-#diaData { padding: 8px 10px; font: inherit; font-size: .9rem; color: inherit; background: transparent; border-radius: 12px; border: 1px solid var(--md-sys-color-outline-variant); }
+#livre { gap: 8px; margin: -8px 0 16px; }
+#diaData, #livre input { padding: 8px 10px; font: inherit; font-size: .9rem; color: inherit; background: transparent; border-radius: 12px; border: 1px solid var(--md-sys-color-outline-variant); }
 #diaHoje { margin-left: auto; padding: 8px 14px; border-radius: 999px; font: inherit; font-size: .85rem; cursor: pointer;
   color: var(--md-sys-color-primary); background: transparent; border: 1px solid var(--md-sys-color-primary); }
 #diaHoje.on { color: #fff; background: var(--md-sys-color-primary); }
