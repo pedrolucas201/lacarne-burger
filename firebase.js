@@ -9,6 +9,6 @@ export const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
 // local = emuladores com projeto demo: nada toca o banco real.
 // authDomain = o próprio domínio (o Hosting serve /__/auth), evita problema de cookie de terceiros no login
 export const app = initializeApp(LOCAL ? { projectId: 'demo-lacarne', apiKey: 'demo' } : { ...CONFIG, authDomain: location.host });
-if (!LOCAL && RECAPTCHA) initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
+export const appCheck = !LOCAL && RECAPTCHA ? initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true }) : null;
 export const db = getFirestore(app);
 if (LOCAL) connectFirestoreEmulator(db, '127.0.0.1', 8080);
