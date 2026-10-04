@@ -1,8 +1,8 @@
 import '../vendor/material.js';
-import { app, db, LOJA_ID, LOCAL } from '../firebase.js';
+import { app, appCheck, db, LOJA_ID, LOCAL } from '../firebase.js';
 import {
   doc, collection, query, where, orderBy, onSnapshot, getDoc, getDocs, setDoc, updateDoc, runTransaction, serverTimestamp, increment, Timestamp,
-  writeBatch,
+  writeBatch, getToken,
 } from '../vendor/firebase/base.js';
 import qrcode from '../vendor/qrcode.js';
 import { comanda } from '../comanda.js';
@@ -37,16 +37,27 @@ onAuthStateChanged(auth, async user => {
   pararPedidos?.();
   pararDia?.();
   pararPedidos = pararDia = null;
-  const acesso = user ? await getDoc(doc(lojaRef, 'admins', user.email)).then(d => d.exists(), () => false) : false;
+  let falha = '';
+  const acesso = user ? await getDoc(doc(lojaRef, 'admins', user.email)).then(d => d.exists(), async e => { falha = await diagnostico(e); return false; }) : false;
+  if (user !== auth.currentUser) return; // trocou de conta enquanto conferia: vale a resposta da conta nova
   $('#login').hidden = acesso;
   $('#app').hidden = $('#abas').hidden = !acesso;
   $('#sair').hidden = !user;
   $('#verSite').hidden = !acesso;
   // marca o navegador pro atalho "Painel" aparecer no site (só conveniência: quem não é admin não lê nada do painel)
   try { acesso ? localStorage.setItem('admin', 'true') : localStorage.removeItem('admin'); } catch {}
-  $('#loginMsg').textContent = user && !acesso ? `${user.email} não tem acesso a este painel.` : 'Entre com a conta Google da loja.';
+  $('#loginMsg').textContent = falha ? `Não deu pra conferir o acesso de ${user.email}. Manda um print desta tela pro suporte. ${falha}`
+    : user && !acesso ? `${user.email} não tem acesso a este painel.` : 'Entre com a conta Google da loja.';
   if (acesso) iniciar();
 });
+
+// a regra deixa qualquer um logado ler o próprio admin: se a leitura falha, é conexão ou App Check, não a conta.
+// O banco responde "permission-denied" nos dois casos; o token do App Check diz qual. Vai na tela pro print da loja.
+async function diagnostico(e) {
+  const ac = appCheck && await getToken(appCheck).then(() => 'ok', x => x.message);
+  console.error('painel: falha ao conferir acesso', e, ac);
+  return `Erro: ${e.code ?? e.message}${ac ? ` | App Check: ${ac}` : ''} | Hora do aparelho: ${new Date().toLocaleString('pt-BR')}`;
+}
 
 // ---------- abas e conexão ----------
 $('#abas').addEventListener('click', e => {
