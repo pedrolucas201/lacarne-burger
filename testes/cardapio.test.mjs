@@ -7,3 +7,9 @@ test('cada "tirar" existe na descrição do burger', () => {
   for (const b of LOJA.cardapio.filter(i => i.tipo !== 'bebida'))
     for (const t of b.tira) assert.ok(sem(b.desc).includes(sem(t).replace(/^queijo /, '')), `${b.nome}: "${t}" não está na descrição`);
 });
+
+// Números e painel agrupam vendas pelo nome
+test('nomes do cardápio não se repetem', () => {
+  const nomes = LOJA.cardapio.map(i => i.nome);
+  assert.equal(new Set(nomes).size, nomes.length);
+});
