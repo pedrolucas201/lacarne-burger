@@ -1,6 +1,6 @@
 import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
 import { pix } from './pix.js';
-import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar, locBoa, metros, soDigitos } from './pedido.js';
+import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar, locBoa, metros, soDigitos, foneOk } from './pedido.js';
 import { $, brl, esc, toast } from './util.js';
 import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
 
@@ -457,7 +457,7 @@ $('#enviar').onclick = () => {
   const vazio = ['nome', ...(BALCAO ? [] : ['fone']), ...(entrega ? ['rua', 'numero', 'bairro'] : []),
     ...(entrega && f('bairro') === 'outro' ? ['bairroOutro'] : [])].find(id => !f(id));
   if (vazio) { $('#' + vazio).reportValidity(); $('#' + vazio).focus(); return toast(`Preencha: ${$('#' + vazio).label || $('#' + vazio).ariaLabel}`, true); }
-  if ((!BALCAO || f('fone')) && f('fone').replace(/\D/g, '').length < 10) { $('#fone').focus(); return toast('Telefone inválido (inclua o DDD)', true); }
+  if ((!BALCAO || f('fone')) && !foneOk(f('fone'))) { $('#fone').focus(); return toast('Telefone inválido: DDD + celular com o 9 (ex.: 81 9 9999-9999)', true); }
   if (!pag) return toast('Escolha a forma de pagamento', true);
   const sub = subtotal(), tx = taxa(), total = sub + (tx ?? 0), troco = +f('troco') || 0;
   if (pag === 'Dinheiro' && troco && troco < total) return toast(`O troco precisa ser maior que ${brl(total)}`, true);

@@ -1,5 +1,7 @@
 // Regras de pedido compartilhadas entre site e painel (sem DOM, sem Firebase)
 export const soDigitos = s => String(s ?? '').replace(/\D/g, '');
+// celular com DDD e o 9: 11 dígitos. Barra o número sem o 9 (viraria outro cliente) e o +55 digitado (a máscara corta e o DDD vira 55)
+export const foneOk = s => /^[1-9]{2}9\d{8}$/.test(soDigitos(s));
 
 // 0 na retirada; null = bairro fora da tabela (taxa a confirmar no WhatsApp)
 export const taxaDe = (loja, entrega, bairro) => !entrega ? 0 : loja.taxas[bairro] ?? null;

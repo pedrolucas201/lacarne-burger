@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar, locBoa, metros } from '../pedido.js';
+import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar, locBoa, metros, foneOk } from '../pedido.js';
+
+test('telefone: celular com DDD e o 9', () => {
+  assert.ok(foneOk('(81) 9 9325-9534'));
+  assert.ok(!foneOk('(81) 9325-9534'), 'sem o 9');
+  assert.ok(!foneOk('(55) 8 1993-2595'), '+55 cortado pela máscara');
+  assert.ok(!foneOk('(01) 9 9325-9534'), 'DDD inválido');
+  assert.ok(!foneOk(''));
+});
 
 const loja = { taxas: { Matriz: 5 }, cardapio: [{ id: 'bruto', preco: 32 }, { id: 'manso', preco: 20 }] };
 const p = (extra = {}) => ({
