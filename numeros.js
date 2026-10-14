@@ -47,6 +47,9 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
   });
   const fones = [...new Set(ok.map(p => soDigitos(p.cliente.fone)).filter(Boolean))]; // balcão sem telefone não vira cliente
   const voltou = f => clientes[f]?.primeiro < ini;
+  // mesmo telefone = mesmo cliente, com o nome do pedido mais recente (o cliente pode digitar o nome diferente)
+  const ultimo = {};
+  ok.forEach(p => { const f = soDigitos(p.cliente.fone); if (f && !(ultimo[f]?.criadoEm > p.criadoEm)) ultimo[f] = p; });
   return {
     faturamento,
     taxas: ok.reduce((s, p) => s + (p.taxa || 0), 0),
@@ -60,7 +63,7 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
     pico: Object.entries(pico).sort(),
     clientesNovos: fones.filter(f => !voltou(f)).length,
     clientesVoltaram: fones.filter(voltou).length,
-    topClientes: ranking(ok, p => p.cliente.fone ? [[`${p.cliente.nome} · ${p.cliente.fone}`, 1]] : []), // todos; a tela mostra os 5 primeiros
+    topClientes: ranking(ok, p => { const c = ultimo[soDigitos(p.cliente.fone)]; return c ? [[`${c.cliente.nome} · ${c.cliente.fone}`, 1]] : []; }), // todos; a tela mostra os 5 primeiros
   };
 }
 

@@ -78,5 +78,11 @@ test('pedido sem telefone (balcão) entra no faturamento mas não vira cliente',
   assert.deepEqual(r.topClientes.map(([k]) => k), ['Ana · (81) 9 9999-9999']);
   assert.deepEqual(r.bairros, [['Matriz', 1]]);
 });
+test('mesmo telefone com nomes diferentes é um cliente só, com o nome mais recente', () => {
+  const r = calcular([ped('2026-10-01T19:30', { cliente: { nome: 'Pedro Gomes', fone: '(81) 9 9999-9999' } }),
+    ped('2026-10-01T19:10', { cliente: { nome: 'Pedro Lucas', fone: '81999999999' } })], DIA, {});
+  assert.deepEqual(r.topClientes, [['Pedro Gomes · (81) 9 9999-9999', 2]]);
+  assert.equal(r.clientesNovos, 1);
+});
 test('planilha marca consumo no local', () =>
   assert.match(csv([ped('2026-10-01T19:10', { entrega: false, local: true, cliente: { nome: 'Mesa 3', fone: '' } })]), /"Mesa 3";"";"No local"/));
