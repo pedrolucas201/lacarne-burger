@@ -60,6 +60,12 @@ test('clientes novos x que voltaram', () => {
   assert.equal(r.clientesVoltaram, 1);
   assert.equal(r.clientesNovos, 1);
 });
+test('quem estreou e comprou de novo no período é novo e voltou', () => {
+  const clientes = { '81999999999': { primeiro: R('2026-10-01T12:00') } }; // a ficha guarda o criadoEm do 1º pedido
+  const r = calcular([ped('2026-10-01T12:00'), ped('2026-10-01T19:10'),
+    ped('2026-10-01T19:20', { cliente: { nome: 'Bia', fone: '81988887777', bairro: 'Amparo' } })], DIA, clientes);
+  assert.deepEqual([r.clientes, r.clientesNovos, r.clientesVoltaram], [2, 2, 1]);
+});
 test('variação', () => {
   assert.equal(variacao(118, 100), 18);
   assert.equal(variacao(5, 0), null);
