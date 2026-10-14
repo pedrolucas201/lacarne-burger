@@ -47,6 +47,12 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
   });
   const fones = [...new Set(ok.map(p => soDigitos(p.cliente.fone)).filter(Boolean))]; // balcão sem telefone não vira cliente
   const voltou = f => clientes[f]?.primeiro < ini;
+  // bairro digitado em "Outro bairro" pode vir com maiúscula, acento ou espaço diferente: junta e mostra a 1ª grafia
+  const grafia = {};
+  const bairro = p => { const b = p.cliente.bairro.trim(); return grafia[b.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ')] ??= b; };
+  // mesmo telefone = mesmo cliente, com o nome do pedido mais recente (o cliente pode digitar o nome diferente)
+  const ultimo = {};
+  ok.forEach(p => { const f = soDigitos(p.cliente.fone); if (f && !(ultimo[f]?.criadoEm > p.criadoEm)) ultimo[f] = p; });
   return {
     faturamento,
     taxas: ok.reduce((s, p) => s + (p.taxa || 0), 0),
@@ -55,12 +61,12 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
     cancelados: dentro.filter(p => p.status === 'cancelado').length,
     maisVendidos: ranking(ok, p => p.itens.map(i => [i.nome, i.qtd])),
     pagamentos: ranking(ok, p => [[p.pag, p.subtotal]]),
-    bairros: ranking(ok, p => p.entrega ? [[p.cliente.bairro, 1]] : []),
+    bairros: ranking(ok, p => p.entrega ? [[bairro(p), 1]] : []),
     diasSemana: ranking(ok, p => [[local(p.criadoEm).getUTCDay(), p.subtotal]]),
     pico: Object.entries(pico).sort(),
     clientesNovos: fones.filter(f => !voltou(f)).length,
     clientesVoltaram: fones.filter(voltou).length,
-    topClientes: ranking(ok, p => p.cliente.fone ? [[`${p.cliente.nome} · ${p.cliente.fone}`, 1]] : []), // todos; a tela mostra os 5 primeiros
+    topClientes: ranking(ok, p => { const c = ultimo[soDigitos(p.cliente.fone)]; return c ? [[`${c.cliente.nome} · ${c.cliente.fone}`, 1]] : []; }), // todos; a tela mostra os 5 primeiros
   };
 }
 
