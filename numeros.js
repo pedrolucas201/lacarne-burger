@@ -45,8 +45,13 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
     const k = `${String(l.getUTCHours()).padStart(2, '0')}:${l.getUTCMinutes() < 30 ? '00' : '30'}`;
     pico[k] = (pico[k] || 0) + 1;
   });
-  const fones = [...new Set(ok.map(p => soDigitos(p.cliente.fone)).filter(Boolean))]; // balcão sem telefone não vira cliente
-  const voltou = f => clientes[f]?.primeiro < ini;
+  const porFone = {}; // balcão sem telefone não vira cliente
+  ok.forEach(p => { const f = soDigitos(p.cliente.fone); if (f) (porFone[f] ??= []).push(p.criadoEm); });
+  const fones = Object.keys(porFone);
+  // novo: o primeiro pedido da vida caiu no período. Voltou: pediu no período algo que não foi o primeiro pedido da vida
+  // (comprou de novo). Quem estreou e repetiu no período conta nos dois
+  const primeiro = f => Math.min(clientes[f]?.primeiro ?? Infinity, ...porFone[f]);
+  const voltou = f => porFone[f].some(d => d > primeiro(f));
   // bairro digitado em "Outro bairro" pode vir com maiúscula, acento ou espaço diferente: junta e mostra a 1ª grafia
   const grafia = {};
   const bairro = p => { const b = p.cliente.bairro.trim(); return grafia[b.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ')] ??= b; };
@@ -64,7 +69,8 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
     bairros: ranking(ok, p => p.entrega ? [[bairro(p), 1]] : []),
     diasSemana: ranking(ok, p => [[local(p.criadoEm).getUTCDay(), p.subtotal]]),
     pico: Object.entries(pico).sort(),
-    clientesNovos: fones.filter(f => !voltou(f)).length,
+    clientes: fones.length,
+    clientesNovos: fones.filter(f => primeiro(f) >= ini).length,
     clientesVoltaram: fones.filter(voltou).length,
     topClientes: ranking(ok, p => { const c = ultimo[soDigitos(p.cliente.fone)]; return c ? [[`${c.cliente.nome} · ${c.cliente.fone}`, 1]] : []; }), // todos; a tela mostra os 5 primeiros
   };
