@@ -40,12 +40,12 @@ try {
     q('#enviar').click();
     return decodeURIComponent(window.__url.split('text=')[1]);
   });
-  assert.match(msg, /VALOR FINAL: R\$\s37,00/);
+  assert.match(msg, /VALOR FINAL: R\$\s40,00/);
   const id = msg.match(/painel\/#(\w+)/)[1];
   await espera(1500);
   const salvo = (await db.doc(`lojas/lacarne/pedidos/${id}`).get()).data();
   assert.equal(salvo.status, 'novo');
-  assert.equal(salvo.subtotal, 32);
+  assert.equal(salvo.subtotal, 35);
   assert.equal(salvo.taxa, 5);
   assert.deepEqual(salvo.itens[0].escolhas, { 'Ponto da carne': 'Ao ponto' });
 
@@ -73,7 +73,7 @@ try {
 
   // 4. números contam o pedido aceito, sem a taxa
   await painel.evaluate(() => document.querySelector('[data-aba="numeros"]').click());
-  await painel.waitForFunction(() => document.querySelector('.kpi strong')?.textContent.includes('32,00'), { timeout: 5000 });
+  await painel.waitForFunction(() => document.querySelector('.kpi strong')?.textContent.includes('35,00'), { timeout: 5000 });
 
   // 5. entregue cria o convite e manda o link; cliente avalia uma vez; loja libera; comentário aparece no burger aberto
   await db.doc('lojas/lacarne').update({ 'esgotados.bruto': null });
@@ -200,9 +200,9 @@ try {
   });
   await painel.waitForFunction(() => document.querySelector('#balcao').hidden && document.querySelector('#pedidoDialog[open] #avancar'), { timeout: 8000 });
   const [ent] = (await db.collection('lojas/lacarne/pedidos').where('cliente.fone', '==', '(81) 9 8888-7777').get()).docs;
-  assert.deepEqual([ent.data().status, ent.data().entrega, ent.data().local, ent.data().taxa, ent.data().subtotal], ['preparo', true, false, 5, 32]);
+  assert.deepEqual([ent.data().status, ent.data().entrega, ent.data().local, ent.data().taxa, ent.data().subtotal], ['preparo', true, false, 5, 35]);
   const ficha = (await db.doc('lojas/lacarne/clientes/81988887777').get()).data();
-  assert.deepEqual([ficha.nome, ficha.pedidos, ficha.gasto, !!ficha.primeiro], ['Bia', 1, 32, true]);
+  assert.deepEqual([ficha.nome, ficha.pedidos, ficha.gasto, !!ficha.primeiro], ['Bia', 1, 35, true]);
   // comanda impressa antes de entregar: o convite já existe e o Entregue tem que salvar mesmo assim (e mandar o link)
   await painel.evaluate(async () => { document.querySelector('#imprimir').click(); await new Promise(r => setTimeout(r, 1500)); });
   assert.equal((await db.doc(`lojas/lacarne/convites/${ent.id}`).get()).data().nome, 'Bia');
