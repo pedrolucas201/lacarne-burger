@@ -67,6 +67,6 @@ export const LOJA = {
     { id: 'limoneto', tipo: 'bebida', nome: 'H2OH! Limoneto', preco: 7, foto: 'img/bebida-limoneto.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
     { id: 'monster', tipo: 'bebida', nome: 'Monster Energy', preco: 12, foto: 'img/bebida-monster.webp', desc: 'Lata 473 ml', escolhas: [], tira: [] }, // Nicolas, 15/10
     { id: 'agua', tipo: 'bebida', nome: 'Água mineral', preco: 2, foto: 'img/bebida-agua.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
-    { id: 'agua-gas', tipo: 'bebida', nome: 'Água com gás', preco: 7, foto: 'img/bebida-agua-gas.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] }, // Nicolas, 15/10
+    { id: 'agua-gas', tipo: 'bebida', nome: 'Água com gás', preco: 4, foto: 'img/bebida-agua-gas.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] }, // Nicolas, 15/10; preço 16/10
   ],
 };
