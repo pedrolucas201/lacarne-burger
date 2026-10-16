@@ -30,6 +30,7 @@ export const LOJA = {
     { id: 'cebola', nome: 'Cebola caramelizada', preco: 3 },
     { id: 'bacon', nome: 'Bacon', preco: 4 },
     { id: 'carne', nome: 'Carne (blend 150g)', preco: 7 }, // Brenda, 02/10
+    { id: 'abacaxi', nome: 'Abacaxi (porção extra)', preco: 4 }, // Nicolas, 15/10
   ],
   // tira: todo ingrediente pode sair, menos pão e carne (Brenda, 01/10)
   // fotoAlta: versão vertical (das originais em alta) pra tela larga do computador
@@ -64,6 +65,8 @@ export const LOJA = {
     { id: 'coca-1l-pet', tipo: 'bebida', nome: 'Coca-Cola 1 L Pet', preco: 12, foto: 'img/bebida-coca-1l-pet.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
     { id: 'coca-zero-1l', tipo: 'bebida', nome: 'Coca-Cola Zero 1 L', preco: 12, foto: 'img/bebida-coca-zero-1l.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
     { id: 'limoneto', tipo: 'bebida', nome: 'H2OH! Limoneto', preco: 7, foto: 'img/bebida-limoneto.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
+    { id: 'monster', tipo: 'bebida', nome: 'Monster Energy', preco: 12, foto: 'img/bebida-monster.webp', desc: 'Lata 473 ml', escolhas: [], tira: [] }, // Nicolas, 15/10
     { id: 'agua', tipo: 'bebida', nome: 'Água mineral', preco: 2, foto: 'img/bebida-agua.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
+    { id: 'agua-gas', tipo: 'bebida', nome: 'Água com gás', preco: 7, foto: 'img/bebida-agua-gas.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] }, // Nicolas, 15/10
   ],
 };
