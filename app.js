@@ -16,6 +16,7 @@ const store = {
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 const radio = name => [...document.querySelectorAll(`md-radio[name="${name}"]`)].find(r => r.checked)?.value;
+const centavos = v => Math.round(v * 100) / 100;
 // ?teste no link libera pedidos fora do horário (pra demonstrar o site)
 const TESTE = new URLSearchParams(location.search).has('teste');
 // ?balcao: a loja lança o pedido (o painel abre isto por cima dele). Usa o login do painel, ignora o horário,
@@ -337,7 +338,46 @@ function salvar() {
     : loja.endereco && !BALCAO ? `<p class="onde">📍 Retire em ${esc(loja.endereco)}<br>
       <a href="${mapa(loja.endereco, loja.cidade)}" target="_blank" rel="noopener">ver no mapa</a></p>` : ''}
     <div class="total"><span>Total</span><span>${brl(subtotal() + (tx ?? 0))}${tx === null ? ' + entrega' : ''}</span></div>`;
+  atualizarPag();
 }
+// balcão e edição: uma forma (tocar em outra troca). Com "Pagar com 2 formas" ligado, marca 2,
+// digita o valor de uma e a outra completa o total
+const chips = () => [...document.querySelectorAll('#pagChips md-filter-chip')];
+const formas = () => BALCAO ? chips().filter(c => c.selected).map(c => c.dataset.pag) : [radio('pag')].filter(Boolean);
+const totalAgora = () => subtotal() + (taxa() ?? 0);
+function atualizarPag() {
+  const [pag, pag2] = formas(), v1 = +$('#valor1').value;
+  $('#divisao').hidden = !pag2;
+  if (pag2) {
+    $('#valor1').setAttribute('label', pag);
+    $('#valor2').setAttribute('label', pag2);
+    if (v1 > 0) $('#valor2').value = String(centavos(totalAgora() - v1)); // a sacola mudou: a 2ª acompanha
+    $('#resto').textContent = taxa() === null ? 'Com a entrega a confirmar não dá pra dividir'
+      : `Digite um valor, o outro completa ${brl(totalAgora())}`;
+  }
+  $('#pagDica').hidden = !(BALCAO && $('#dividir').selected && !pag2);
+  $('#troco').hidden = !formas().includes('Dinheiro');
+}
+const completar = (de, para) => $(de).addEventListener('input', () => {
+  const v = +$(de).value;
+  $(para).value = v > 0 ? String(centavos(totalAgora() - v)) : '';
+});
+completar('#valor1', '#valor2');
+completar('#valor2', '#valor1');
+$('#pagChips').addEventListener('click', e => {
+  const c = e.target.closest('md-filter-chip');
+  if (c) setTimeout(() => { // o chip troca o selected depois do clique
+    const outros = chips().filter(x => x.selected && x !== c);
+    if (c.selected && !$('#dividir').selected) outros.forEach(x => { x.selected = false; });
+    else if (c.selected && outros.length > 1) { c.selected = false; toast('No máximo 2 formas', true); }
+    atualizarPag();
+  });
+});
+// desligou: fica só a primeira forma marcada
+$('#dividir').addEventListener('change', () => {
+  if (!$('#dividir').selected) chips().filter(c => c.selected).slice(1).forEach(c => { c.selected = false; });
+  atualizarPag();
+});
 $('#cartItens').addEventListener('click', e => {
   const b = e.target.closest('[data-k]');
   if (!b) return;
@@ -348,7 +388,6 @@ $('#cartItens').addEventListener('click', e => {
 });
 dCart.addEventListener('change', () => {
   $('#endereco').hidden = radio('tipo') !== 'Entrega';
-  $('#troco').hidden = radio('pag') !== 'Dinheiro';
   $('#bairroOutro').hidden = $('#bairro').value !== 'outro';
   salvar();
 });
@@ -460,7 +499,7 @@ $('#enviar').onclick = () => {
   if (acabou) return toast(`${acabou.nome} esgotou, tira da sacola 😕`, true);
   const f = id => $('#' + id).value.trim();
   const entrega = radio('tipo') === 'Entrega', local = radio('tipo') === 'Local';
-  const pag = radio('pag');
+  const [pag, pag2 = null] = formas();
   const vazio = !EDITAR && ['nome', ...(BALCAO ? [] : ['fone']), ...(entrega ? ['rua', 'numero', 'bairro'] : []),
     ...(entrega && f('bairro') === 'outro' ? ['bairroOutro'] : [])].find(id => !f(id));
   if (vazio) { $('#' + vazio).reportValidity(); $('#' + vazio).focus(); return toast(`Preencha: ${$('#' + vazio).label || $('#' + vazio).ariaLabel}`, true); }
@@ -468,10 +507,21 @@ $('#enviar').onclick = () => {
   const pedeFone = EDITAR ? f('fone') || soDigitos(orig?.cliente.fone) : !BALCAO || f('fone');
   if (pedeFone && !foneOk(f('fone'))) { $('#fone').focus(); return toast('Telefone inválido: DDD + celular com o 9 (ex.: 81 9 9999-9999)', true); }
   if (!pag) return toast('Escolha a forma de pagamento', true);
+  if (BALCAO && $('#dividir').selected && !pag2) return toast('Marque a 2ª forma ou desligue Pagar com 2 formas', true);
   const sub = subtotal(), tx = taxa(), total = sub + (tx ?? 0), troco = +f('troco') || 0;
-  if (pag === 'Dinheiro' && troco && troco < total) return toast(`O troco precisa ser maior que ${brl(total)}`, true);
+  const v1 = centavos(+$('#valor1').value || 0);
+  if (pag2) {
+    if (tx === null) return toast('Com a entrega a confirmar não dá pra dividir', true);
+    if (!(v1 > 0 && v1 < total)) return toast(`${pag} e ${pag2} precisam somar ${brl(total)}, cada um mais que zero`, true);
+  }
+  const divisao = pag2 ? [{ pag, valor: v1 }, { pag: pag2, valor: centavos(total - v1) }] : null;
+  const emDinheiro = divisao ? divisao.find(d => d.pag === 'Dinheiro')?.valor : pag === 'Dinheiro' ? total : 0;
+  if (emDinheiro && troco && troco < emDinheiro) return toast(`O troco precisa ser maior que ${brl(emDinheiro)}`, true);
   if (troco > 1000) return toast('Troco até R$ 1.000', true);
-  if (EDITAR) return alterar({ itens: paraBanco(), subtotal: sub, pag, troco: pag === 'Dinheiro' ? troco : 0, obs: f('obsGeral') }, f('fone'));
+  const forma = divisao ? `${pag} + ${pag2}` : pag, comTroco = emDinheiro ? troco : 0;
+  // voltou pra uma forma só: divisao null apaga a antiga
+  if (EDITAR) return alterar({ itens: paraBanco(), subtotal: sub, pag: forma, ...(divisao || orig.divisao ? { divisao } : {}),
+    troco: comTroco, obs: f('obsGeral') }, f('fone'));
 
   const c = Object.fromEntries(CAMPOS.map(k => [k, f(k)]));
   if (!BALCAO) store.set('cliente', c);
@@ -485,8 +535,8 @@ $('#enviar').onclick = () => {
     const { db, doc, collection, setDoc, serverTimestamp } = banco;
     const ref = doc(collection(db, 'lojas', LOJA_ID, 'pedidos'));
     const pedido = {
-      cod, criadoEm: serverTimestamp(), status: 'novo', entrega, pag, obs: f('obsGeral'),
-      troco: pag === 'Dinheiro' ? troco : 0, subtotal: sub, taxa: tx,
+      cod, criadoEm: serverTimestamp(), status: 'novo', entrega, pag: forma, ...(divisao ? { divisao } : {}), obs: f('obsGeral'),
+      troco: comTroco, subtotal: sub, taxa: tx,
       cliente: { nome: c.nome, fone: c.fone, rua: entrega ? c.rua : '', numero: entrega ? c.numero : '',
         bairro: entrega ? bairro : '', compl: entrega ? c.compl : '', ref: entrega ? c.ref : '', loc: entrega ? loc : '' },
       itens: paraBanco(),
@@ -529,7 +579,7 @@ async function alterar(m, fone) {
       const fichaDe = de ? doc(loj, 'clientes', de) : null, fichaPara = para ? doc(loj, 'clientes', para) : null;
       const [velha, nova] = trocou ? await Promise.all([fichaDe && t.get(fichaDe), fichaPara && t.get(fichaPara)]) : [];
       // antes: o pedido como chegou, gravado na primeira alteração e nunca mais (a regra confere)
-      const como = x => ({ itens: x.itens, subtotal: x.subtotal, pag: x.pag, troco: x.troco, obs: x.obs, fone: x.cliente.fone });
+      const como = x => ({ itens: x.itens, subtotal: x.subtotal, pag: x.pag, divisao: x.divisao ?? null, troco: x.troco, obs: x.obs, fone: x.cliente.fone });
       const reg = registrar(t, 'alterou', EDITAR, { cod: atual.cod, antes: como(atual), depois: como(novo) });
       t.update(ref, { ...m, ...(fone !== atual.cliente.fone ? { 'cliente.fone': fone } : {}), alteradoEm: serverTimestamp(), reg,
         antes: atual.antes ?? { itens: atual.itens, subtotal: atual.subtotal, pag: atual.pag, fone: atual.cliente.fone } });
@@ -653,6 +703,9 @@ if (BALCAO) {
   document.body.classList.add('balcao');
   const tipo = v => $(`md-radio[name="tipo"][value="${v}"]`);
   $('#tipoLocal').hidden = false;
+  $('#pagRadios').hidden = true;
+  $('#pagChips').hidden = false;
+  $('#dividirLinha').hidden = false;
   tipo('Entrega').removeAttribute('checked');
   tipo('Local').setAttribute('checked', '');
   $('#endereco').hidden = true;
@@ -678,12 +731,16 @@ if (EDITAR) {
     if (carrinho.length < orig.itens.length) toast('Algum item saiu do cardápio e ficou fora da sacola', true);
     const tipo = orig.entrega ? 'Entrega' : orig.local ? 'Local' : 'Retirada';
     document.querySelectorAll('md-radio[name="tipo"]').forEach(r => { r.checked = r.value === tipo; });
-    document.querySelectorAll('md-radio[name="pag"]').forEach(r => { r.checked = r.value === orig.pag; });
+    const [p1, p2] = orig.divisao ?? [{ pag: orig.pag }];
+    document.querySelectorAll('md-radio[name="pag"]').forEach(r => { r.checked = r.value === p1.pag; });
+    chips().forEach(c => { c.selected = [p1.pag, p2?.pag].includes(c.dataset.pag); });
+    $('#dividir').selected = !!p2;
+    $('#valor1').value = String(p1.valor ?? '');
+    $('#valor2').value = String(p2?.valor ?? '');
     $('#troco').value = orig.troco || '';
     $('#obsGeral').value = orig.obs;
     $('#fone').value = mascaraFone(orig.cliente.fone);
     if (orig.cliente.fone) $('#fone').setAttribute('label', 'Telefone'); // trocar pode, apagar não
-    $('#troco').hidden = orig.pag !== 'Dinheiro';
     salvar();
     dCart.show();
   }).catch(e => { console.error(e); toast('Não deu pra abrir o pedido. Confere a internet', true); });

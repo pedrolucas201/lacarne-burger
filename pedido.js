@@ -46,7 +46,12 @@ export const metros = m => m < 1000 ? `${Math.round(m)} m`
 const chave = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 export const bairroDaTabela = (taxas, nome) => chave(nome) && Object.keys(taxas).find(b => chave(b) === chave(nome)) || null;
 
-export const MOTIVOS = ['Acabou o item', 'Fora da área de entrega', 'Cliente desistiu', 'Loja fechando'];
+// pagamento dividido (só a loja): divisao = [{ pag, valor }, { pag, valor }] somando o total, e pag = 'Pix + Dinheiro'
+export const pagTexto = p => p.divisao ? p.divisao.map(d => `${d.pag} ${brl(d.valor)}`).join(' + ') : p.pag;
+// quanto do total é Pix (taxa à parte: na alteração ela não muda)
+const noPix = (p, taxa) => p.divisao ? p.divisao.find(d => d.pag === 'Pix')?.valor ?? 0 : p.pag === 'Pix' ? p.subtotal + (taxa ?? 0) : 0;
+
+export const MOTIVOS =['Acabou o item', 'Fora da área de entrega', 'Cliente desistiu', 'Loja fechando'];
 
 // tempoEntrega e endereco são opcionais na loja: sem eles, o aviso fica só com a frase base.
 // avaliar: link da avaliação (só no entregue, só se o pedido tem burger); sem link, entregue não manda nada
@@ -64,18 +69,19 @@ export function avisoCliente(etapa, p, motivo, loja = {}, avaliar = '') {
 }
 
 // pedido alterado pela loja: itens, total e pagamento de novo. antes = o pedido como estava (mesma taxa).
-// Era Pix e continua: o cliente pode já ter pago, então o código é só da diferença (ou a loja devolve)
+// Tinha Pix e continua: o cliente pode já ter pago, então o código é só da diferença do Pix (ou a loja devolve)
 export function avisoAlteracao(p, loja, antes) {
   const total = p.subtotal + (p.taxa ?? 0), dif = p.subtotal - antes.subtotal;
-  const jaPix = p.pag === 'Pix' && antes.pag === 'Pix', valorPix = jaPix ? dif : total;
-  const comPix = p.pag === 'Pix' && loja.pix && p.taxa !== null && valorPix > 0;
+  const pixNovo = noPix(p, p.taxa), pixAntes = noPix(antes, p.taxa), jaPix = pixNovo > 0 && pixAntes > 0;
+  const valorPix = jaPix ? pixNovo - pixAntes : pixNovo, difPix = jaPix ? valorPix : 0;
+  const comPix = pixNovo > 0 && loja.pix && p.taxa !== null && valorPix > 0;
   return [
     `Pedido #${p.cod} alterado ✏️`, '',
     ...p.itens.map(i => `${i.qtd}x ${i.nome}${i.extras?.length ? ` + ${agrupar(i.extras, loja.adicionais).join(', ')}` : ''}`), '',
     `Total: ${brl(total)}${p.taxa === null ? ' + entrega' : ''}${dif ? ` (antes ${brl(total - dif)})` : ''}`,
-    `Pagamento: ${p.pag}${p.pag === 'Dinheiro' && p.troco ? ` (troco para ${brl(p.troco)})` : ''}`,
-    ...(jaPix && dif > 0 ? ['', `Se já pagou o Pix, falta ${brl(dif)}.`] : []),
-    ...(jaPix && dif < 0 ? ['', `Se já pagou o Pix, a loja devolve ${brl(-dif)}.`] : []),
+    `Pagamento: ${pagTexto(p)}${p.troco && p.pag.includes('Dinheiro') ? ` (troco para ${brl(p.troco)})` : ''}`,
+    ...(difPix > 0 ? ['', `Se já pagou o Pix, falta ${brl(difPix)}.`] : []),
+    ...(difPix < 0 ? ['', `Se já pagou o Pix, a loja devolve ${brl(-difPix)}.`] : []),
     ...(comPix ? ['', 'Pix copia e cola:', pix({ chave: loja.pix, nome: loja.nome, cidade: loja.cidade.split(' - ')[0], valor: valorPix, txid: p.cod })] : []),
   ].join('\n');
 }

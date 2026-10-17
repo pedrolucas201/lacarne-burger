@@ -145,7 +145,7 @@ try {
     await new Promise(r => setTimeout(r, 500));
     if (!q('md-radio[name=tipo][value=Local]').checked) return 'consumo no local não veio marcado';
     q('#nome').value = 'Mesa 3';
-    q('md-radio[name=pag][value=Dinheiro]').checked = true;
+    document.querySelectorAll('#pagChips md-filter-chip').forEach(c => { c.selected = ['Dinheiro'].includes(c.dataset.pag); });
     q('#cartDialog').dispatchEvent(new Event('change'));
     q('#enviar').click();
     return window.__url || '';
@@ -194,7 +194,7 @@ try {
     await new Promise(r => setTimeout(r, 500));
     q('md-radio[name=tipo][value=Entrega]').checked = true;
     set('nome', 'Bia'); set('fone', '(81) 9 8888-7777'); set('rua', 'Rua B'); set('numero', '2'); set('bairro', 'Matriz');
-    q('md-radio[name=pag][value=Pix]').checked = true;
+    document.querySelectorAll('#pagChips md-filter-chip').forEach(c => { c.selected = ['Pix'].includes(c.dataset.pag); });
     q('#cartDialog').dispatchEvent(new Event('change'));
     q('#enviar').click();
   });
@@ -220,13 +220,13 @@ try {
     window.open = u => { window.__url = u; };
     const q = s => document.querySelector(s), espera = ms => new Promise(r => setTimeout(r, ms));
     if (getComputedStyle(q('#nome')).display !== 'none') return 'nome aparecendo na edição';
-    if (!q('md-radio[name=pag][value=Pix]').checked) return 'pagamento antigo não veio marcado';
+    if (!q('#pagChips [data-pag=Pix]').selected) return 'pagamento antigo não veio marcado';
     q('[data-ctrl="coca"] [data-beb]').click();
     q('[data-card="matuto"] h3').click();
     await espera(300);
     q('#itemCorpo md-radio').checked = true;
     q('#itemAdd').click();
-    q('md-radio[name=pag][value=Dinheiro]').checked = true;
+    document.querySelectorAll('#pagChips md-filter-chip').forEach(c => { c.selected = ['Dinheiro'].includes(c.dataset.pag); });
     if (q('#fone').value !== '(81) 9 8888-7777') return 'telefone não veio preenchido';
     q('#fone').value = '(81) 9 8888-6666'; // cliente passou o número errado
     q('#cartDialog').dispatchEvent(new Event('change'));
@@ -273,6 +273,15 @@ try {
     const q = s => document.querySelector(s);
     if (q('#fone').value) return 'mesa veio com telefone';
     q('#fone').value = '(81) 9 8888-6666';
+    // pagou 20 no Pix e o resto em dinheiro, com troco pra 50
+    q('#dividir').selected = true;
+    document.querySelectorAll('#pagChips md-filter-chip').forEach(c => { c.selected = ['Pix', 'Dinheiro'].includes(c.dataset.pag); });
+    q('#cartDialog').dispatchEvent(new Event('change'));
+    if (q('#divisao').hidden || q('#troco').hidden) return 'valores ou troco não apareceram';
+    q('#valor2').value = '28'; // digitou o do dinheiro: o Pix completa
+    q('#valor2').dispatchEvent(new Event('input'));
+    if (q('#valor1').value !== '20') return 'Pix não completou: ' + q('#valor1').value;
+    q('#troco').value = '50';
     q('#enviar').click();
     await new Promise(r => setTimeout(r, 1500));
     return window.__url || '';
@@ -281,6 +290,7 @@ try {
   const mesa = (await db.doc(`lojas/lacarne/pedidos/${lancado[0].id}`).get()).data();
   const junta = (await db.doc('lojas/lacarne/clientes/81988886666').get()).data();
   assert.deepEqual([mesa.cliente.fone, mesa.antes.fone, junta.nome, junta.pedidos, junta.gasto], ['(81) 9 8888-6666', '', 'Bia', 2, 66 + 48]);
+  assert.deepEqual([mesa.pag, mesa.divisao, mesa.troco], ['Pix + Dinheiro', [{ pag: 'Pix', valor: 20 }, { pag: 'Dinheiro', valor: 28 }], 50]);
   assert.equal(junta.primeiro.toMillis(), mesa.criadoEm.toMillis());
 
   // 8. histórico: pedido de ontem que ficou parado em "pronto"; marcar Retirado não abre WhatsApp nem cria convite

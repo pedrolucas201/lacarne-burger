@@ -9,7 +9,7 @@ import { comanda } from '../comanda.js';
 import {
   getAuth, connectAuthEmulator, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged,
 } from '../vendor/firebase/auth.js';
-import { conferir, whats, avisoCliente, MOTIVOS, soDigitos, mapa, agrupar } from '../pedido.js';
+import { conferir, whats, avisoCliente, MOTIVOS, soDigitos, mapa, agrupar, pagTexto } from '../pedido.js';
 import { periodo, intervalo, calcular, variacao, csv, VALIDOS } from '../numeros.js';
 import { hoje } from '../horario.js';
 import { burgersDoPedido, resumo, quando, TAGS_BOAS } from '../avaliacao.js';
@@ -204,7 +204,7 @@ function abrirPedido(id) {
       ${i.sem?.length ? `<br><small>Sem: ${esc(i.sem.join(', '))}</small>` : ''}
       ${i.extras?.length ? `<br><small>+ ${esc(agrupar(i.extras, loja.adicionais).join(', '))}</small>` : ''}
       ${i.obs ? `<br><small>Obs: ${esc(i.obs)}</small>` : ''}</li>`).join('')}</ul>
-    <p>${p.entrega ? `Subtotal ${brl(p.subtotal)} · Entrega ${p.taxa === null ? 'a confirmar' : brl(p.taxa)}<br>` : ''}<strong>Total ${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}</strong> · ${esc(p.pag)}${p.pag === 'Dinheiro' && p.troco ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
+    <p>${p.entrega ? `Subtotal ${brl(p.subtotal)} · Entrega ${p.taxa === null ? 'a confirmar' : brl(p.taxa)}<br>` : ''}<strong>Total ${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}</strong> · ${esc(pagTexto(p))}${p.troco && p.pag.includes('Dinheiro') ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
     ${p.obs ? `<p>📝 ${esc(p.obs)}</p>` : ''}
     ${p.antes ? `<p class="antes"><small>Antes da alteração: ${esc(p.antes.itens.map(i => `${i.qtd}x ${i.nome}`).join(', '))}
       · ${brl(p.antes.subtotal + (p.taxa ?? 0))} · ${esc(p.antes.pag)}${'fone' in p.antes && p.antes.fone !== p.cliente.fone

@@ -24,8 +24,8 @@ export function comanda(p, loja, qr = '') {
     <hr>
     ${p.entrega ? linha('Subtotal', brl(p.subtotal)) + linha('Entrega', p.taxa === null ? 'a confirmar' : brl(p.taxa)) : ''}
     ${linha('TOTAL', `${brl(total)}${p.taxa === null ? ' + entrega' : ''}`, 'c-total')}
-    ${linha('Pagamento', esc(p.pag))}
-    ${p.pag === 'Dinheiro' && p.troco ? linha('Troco para', brl(p.troco)) : ''}
+    ${p.divisao ? p.divisao.map(d => linha(esc(d.pag), brl(d.valor))).join('') : linha('Pagamento', esc(p.pag))}
+    ${p.troco && p.pag.includes('Dinheiro') ? linha('Troco para', brl(p.troco)) : ''}
     ${p.obs ? `<p>Obs: ${esc(p.obs)}</p>` : ''}
     ${qr ? `<hr><div class="c-qr"><p><b>Gostou? Avalie seu lanche</b></p>${qr}<p>Aponte a câmera do celular</p></div>` : ''}`;
 }

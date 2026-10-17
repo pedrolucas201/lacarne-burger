@@ -35,3 +35,9 @@ test('pedido alterado sai marcado com a hora', () => {
   assert.ok(texto(comanda(p({ alteradoEm: new Date('2026-10-02T22:05:00-03:00') }), loja)).includes('ALTERADO 22:05'));
   assert.ok(!texto(comanda(p(), loja)).includes('ALTERADO'));
 });
+
+test('pagamento dividido: uma linha por forma, com o valor', () => {
+  const t = texto(comanda(p({ pag: 'Pix + Dinheiro', divisao: [{ pag: 'Pix', valor: 20 }, { pag: 'Dinheiro', valor: 25 }], troco: 50 }), loja)).replace(/ /g, ' ');
+  for (const s of ['Pix R$ 20,00', 'Dinheiro R$ 25,00', 'Troco para R$ 50,00']) assert.ok(t.includes(s), `faltou "${s}" em: ${t}`);
+  assert.ok(!t.includes('Pagamento'), t);
+});

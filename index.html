@@ -118,11 +118,24 @@
       </div>
 
       <h3>Pagamento</h3>
-      <div class="radios">
+      <div class="radios" id="pagRadios">
         <label><md-radio name="pag" value="Pix"></md-radio>Pix</label>
         <label><md-radio name="pag" value="Cartão de crédito"></md-radio>Crédito</label>
         <label><md-radio name="pag" value="Cartão de débito"></md-radio>Débito</label>
         <label><md-radio name="pag" value="Dinheiro"></md-radio>Dinheiro</label>
+      </div>
+      <md-chip-set id="pagChips" hidden>
+        <md-filter-chip label="Pix" data-pag="Pix"></md-filter-chip>
+        <md-filter-chip label="Crédito" data-pag="Cartão de crédito"></md-filter-chip>
+        <md-filter-chip label="Débito" data-pag="Cartão de débito"></md-filter-chip>
+        <md-filter-chip label="Dinheiro" data-pag="Dinheiro"></md-filter-chip>
+      </md-chip-set>
+      <label id="dividirLinha" class="dividir" hidden><md-switch id="dividir"></md-switch>Pagar com 2 formas</label>
+      <p id="pagDica" class="nota-loc" hidden>Marque a 2ª forma</p>
+      <div id="divisao" hidden>
+        <md-outlined-text-field id="valor1" prefix-text="R$ " type="number" min="0" step="0.01"></md-outlined-text-field>
+        <md-outlined-text-field id="valor2" prefix-text="R$ " type="number" min="0" step="0.01"></md-outlined-text-field>
+        <p id="resto" class="nota-loc"></p>
       </div>
       <md-outlined-text-field id="troco" max="1000" label="Troco para quanto?" prefix-text="R$ " type="number" min="0" hidden
         supporting-text="Deixe vazio se não precisar de troco"></md-outlined-text-field>
