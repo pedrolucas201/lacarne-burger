@@ -58,7 +58,7 @@ test('admin muda status', () =>
 test('admin não muda valor', () => assertFails(updateDoc(doc(logado('dono@x.com'), P, 'pedidos', 'p1'), { subtotal: 1 })));
 // ---------- alterar pedido (painel > Editar) ----------
 const alterar = (db, extra = {}, id = 'p1') => updateDoc(doc(db, P, 'pedidos', id), { itens: [...pedido().itens, { id: 'coca', nome: 'Coca-Cola', unit: 6, qtd: 1 }],
-  subtotal: 38, pag: 'Dinheiro', troco: 50, obs: 'sem gelo', alteradoEm: serverTimestamp(), antes: { itens: pedido().itens, subtotal: 32, pag: 'Pix' }, ...extra });
+  subtotal: 38, pag: 'Dinheiro', troco: 50, obs: 'sem gelo', alteradoEm: serverTimestamp(), antes: { itens: pedido().itens, subtotal: 32, pag: 'Pix', fone: pedido().cliente.fone }, ...extra });
 test('admin altera itens e pagamento', () => assertSucceeds(alterar(logado('dono@x.com'))));
 test('estranho não altera pedido', () => assertFails(alterar(logado('outro@x.com'))));
 test('alteração com hora do aparelho, sacola vazia ou pagamento inventado é negada', async () => {
@@ -74,11 +74,18 @@ test('alteração não mexe no cliente nem na taxa', async () => {
 });
 test('a primeira alteração grava o pedido como chegou; depois o antes não muda', async () => {
   const adm = logado('dono@x.com');
-  await assertFails(alterar(adm, { antes: { itens: pedido().itens, subtotal: 1, pag: 'Pix' } }));
+  await assertFails(alterar(adm, { antes: { itens: pedido().itens, subtotal: 1, pag: 'Pix', fone: pedido().cliente.fone } }));
+  await assertFails(alterar(adm, { antes: { itens: pedido().itens, subtotal: 32, pag: 'Pix' } }));
   await assertFails(updateDoc(doc(adm, P, 'pedidos', 'p1'), { subtotal: 38, alteradoEm: serverTimestamp() }));
   await assertSucceeds(alterar(adm));
-  await assertSucceeds(alterar(adm, { subtotal: 44, antes: { itens: pedido().itens, subtotal: 32, pag: 'Pix' } }));
+  await assertSucceeds(alterar(adm, { subtotal: 44 }));
   await assertFails(alterar(adm, { antes: { itens: [], subtotal: 38, pag: 'Dinheiro' } }));
+});
+test('alteração troca o telefone, mas não apaga nem mexe no resto do cliente', async () => {
+  const adm = logado('dono@x.com');
+  await assertFails(alterar(adm, { 'cliente.fone': '' }));
+  await assertFails(alterar(adm, { 'cliente.nome': 'Outro', 'cliente.fone': '(81) 9 7777-1111' }));
+  await assertSucceeds(alterar(adm, { 'cliente.fone': '(81) 9 7777-1111' }));
 });
 test('pedido cancelado não altera', async () => {
   await env.withSecurityRulesDisabled(c => updateDoc(doc(c.firestore(), P, 'pedidos', 'p1'), { status: 'cancelado' }));

@@ -227,18 +227,23 @@ try {
     q('#itemCorpo md-radio').checked = true;
     q('#itemAdd').click();
     q('md-radio[name=pag][value=Dinheiro]').checked = true;
+    if (q('#fone').value !== '(81) 9 8888-7777') return 'telefone não veio preenchido';
+    q('#fone').value = '(81) 9 8888-6666'; // cliente passou o número errado
     q('#cartDialog').dispatchEvent(new Event('change'));
     q('#enviar').click();
     return decodeURIComponent(window.__url || '');
   });
-  assert.match(alterado, /phone=5581988887777.*alterado.*1x Coca-Cola.*1x Matuto.*Total: R\$.71,00 \(antes R\$.37,00\).*Pagamento: Dinheiro/s);
+  assert.match(alterado, /phone=5581988886666.*alterado.*1x Coca-Cola.*1x Matuto.*Total: R\$.71,00 \(antes R\$.37,00\).*Pagamento: Dinheiro/s);
   await painel.waitForFunction(() => document.querySelector('#balcao').hidden
     && document.querySelector('#pedidoDialog[open] #pedCorpo')?.textContent.includes('alterado às'), { timeout: 8000 });
   const ed = (await ent.ref.get()).data();
   assert.deepEqual([ed.subtotal, ed.pag, ed.itens.length, !!ed.alteradoEm, ed.status], [32 + 28 + 6, 'Dinheiro', 3, true, 'preparo']);
-  assert.deepEqual([ed.antes.subtotal, ed.antes.pag, ed.antes.itens.length], [32, 'Pix', 1]);
-  assert.match(await painel.$eval('#pedCorpo', e => e.textContent), /Antes da alteração: 1x Bruto[\s\S]*Pix/);
-  assert.equal((await db.doc('lojas/lacarne/clientes/81988887777').get()).data().gasto, 35 + 34); // lançado a 35, +34 da alteração
+  assert.deepEqual([ed.antes.subtotal, ed.antes.pag, ed.antes.itens.length, ed.antes.fone, ed.cliente.fone], [32, 'Pix', 1, '(81) 9 8888-7777', '(81) 9 8888-6666']);
+  assert.match(await painel.$eval('#pedCorpo', e => e.textContent), /Antes da alteração: 1x Bruto[\s\S]*Pix[\s\S]*tel. \(81\) 9 8888-7777/);
+  // trocou o número: sai da ficha antiga (era o único pedido, some) e entra na nova com o valor novo
+  assert.equal((await db.doc('lojas/lacarne/clientes/81988887777').get()).exists, false);
+  const nova = (await db.doc('lojas/lacarne/clientes/81988886666').get()).data();
+  assert.deepEqual([nova.nome, nova.pedidos, nova.gasto, !!nova.primeiro], ['Bia', 1, 66, true]);
   assert.deepEqual((await db.doc(`lojas/lacarne/convites/${ent.id}`).get()).data().ids, ['bruto', 'matuto']);
   const avisos = [];
   for (const etapa of ['saiu', 'entregue']) {
@@ -252,9 +257,31 @@ try {
     }));
     assert.equal((await db.doc(`lojas/lacarne/pedidos/${ent.id}`).get()).data().status, etapa);
   }
-  assert.match(avisos[0], /phone=5581988887777.*saiu pra entrega/s);
+  assert.match(avisos[0], /phone=5581988886666.*saiu pra entrega/s);
   assert.ok(avisos[1].includes(`avaliar/#${ent.id}`), avisos[1]);
   assert.equal((await db.doc(`lojas/lacarne/convites/${ent.id}`).get()).data().nome, 'Bia');
+
+  // 7c. o pedido da Mesa 3 (balcão, sem telefone, já entregue) era da Bia: ganha o telefone e entra na ficha dela,
+  // que fica com o nome de antes e o primeiro pedido passa a ser o da mesa. No local: sem WhatsApp
+  await painel.evaluate(i => { location.hash = ''; location.hash = i; }, lancado[0].id);
+  await painel.waitForSelector('#pedidoDialog[open] #editar');
+  await painel.evaluate(() => document.querySelector('#editar').click());
+  await quadro.waitForFunction(() => document.querySelector('#cartDialog[open]') && document.querySelector('#cartItens')?.textContent.includes('Manso'),
+    { polling: 200, timeout: 8000 });
+  assert.equal(await quadro.evaluate(async () => {
+    window.open = u => { window.__url = u; };
+    const q = s => document.querySelector(s);
+    if (q('#fone').value) return 'mesa veio com telefone';
+    q('#fone').value = '(81) 9 8888-6666';
+    q('#enviar').click();
+    await new Promise(r => setTimeout(r, 1500));
+    return window.__url || '';
+  }), '', 'consumo no local não abre WhatsApp');
+  await painel.waitForFunction(() => document.querySelector('#balcao').hidden, { timeout: 8000 });
+  const mesa = (await db.doc(`lojas/lacarne/pedidos/${lancado[0].id}`).get()).data();
+  const junta = (await db.doc('lojas/lacarne/clientes/81988886666').get()).data();
+  assert.deepEqual([mesa.cliente.fone, mesa.antes.fone, junta.nome, junta.pedidos, junta.gasto], ['(81) 9 8888-6666', '', 'Bia', 2, 66 + 48]);
+  assert.equal(junta.primeiro.toMillis(), mesa.criadoEm.toMillis());
 
   // 8. histórico: pedido de ontem que ficou parado em "pronto"; marcar Retirado não abre WhatsApp nem cria convite
   const ontem = new Date(Date.now() - 864e5);
