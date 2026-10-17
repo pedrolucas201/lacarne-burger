@@ -56,6 +56,34 @@ test('admin lê pedido', () => assertSucceeds(getDoc(doc(logado('dono@x.com'), P
 test('admin muda status', () =>
   assertSucceeds(updateDoc(doc(logado('dono@x.com'), P, 'pedidos', 'p1'), { status: 'preparo', aceitoEm: serverTimestamp() })));
 test('admin não muda valor', () => assertFails(updateDoc(doc(logado('dono@x.com'), P, 'pedidos', 'p1'), { subtotal: 1 })));
+// ---------- alterar pedido (painel > Editar) ----------
+const alterar = (db, extra = {}, id = 'p1') => updateDoc(doc(db, P, 'pedidos', id), { itens: [...pedido().itens, { id: 'coca', nome: 'Coca-Cola', unit: 6, qtd: 1 }],
+  subtotal: 38, pag: 'Dinheiro', troco: 50, obs: 'sem gelo', alteradoEm: serverTimestamp(), antes: { itens: pedido().itens, subtotal: 32, pag: 'Pix' }, ...extra });
+test('admin altera itens e pagamento', () => assertSucceeds(alterar(logado('dono@x.com'))));
+test('estranho não altera pedido', () => assertFails(alterar(logado('outro@x.com'))));
+test('alteração com hora do aparelho, sacola vazia ou pagamento inventado é negada', async () => {
+  const adm = logado('dono@x.com');
+  await assertFails(alterar(adm, { alteradoEm: new Date(0) }));
+  await assertFails(alterar(adm, { itens: [] }));
+  await assertFails(alterar(adm, { pag: 'Fiado' }));
+});
+test('alteração não mexe no cliente nem na taxa', async () => {
+  const adm = logado('dono@x.com');
+  await assertFails(alterar(adm, { taxa: 0 }));
+  await assertFails(alterar(adm, { 'cliente.nome': 'Outro' }));
+});
+test('a primeira alteração grava o pedido como chegou; depois o antes não muda', async () => {
+  const adm = logado('dono@x.com');
+  await assertFails(alterar(adm, { antes: { itens: pedido().itens, subtotal: 1, pag: 'Pix' } }));
+  await assertFails(updateDoc(doc(adm, P, 'pedidos', 'p1'), { subtotal: 38, alteradoEm: serverTimestamp() }));
+  await assertSucceeds(alterar(adm));
+  await assertSucceeds(alterar(adm, { subtotal: 44, antes: { itens: pedido().itens, subtotal: 32, pag: 'Pix' } }));
+  await assertFails(alterar(adm, { antes: { itens: [], subtotal: 38, pag: 'Dinheiro' } }));
+});
+test('pedido cancelado não altera', async () => {
+  await env.withSecurityRulesDisabled(c => updateDoc(doc(c.firestore(), P, 'pedidos', 'p1'), { status: 'cancelado' }));
+  await assertFails(alterar(logado('dono@x.com')));
+});
 test('status inventado é negado', () => assertFails(updateDoc(doc(logado('dono@x.com'), P, 'pedidos', 'p1'), { status: 'pago' })));
 test('cada um só vê o próprio acesso', async () => {
   await assertSucceeds(getDoc(doc(logado('dono@x.com'), P, 'admins', 'dono@x.com')));
@@ -154,6 +182,16 @@ test('só admin cria convite e depoimento; admin só muda vista/publica', async 
   await assertSucceeds(getDoc(doc(anon(), P, 'depoimentos', 'p1_bruto')));
   await assertFails(deleteDoc(doc(anon(), P, 'depoimentos', 'p1_bruto')));
   await assertSucceeds(deleteDoc(doc(adm, P, 'depoimentos', 'p1_bruto')));
+});
+test('admin troca os burgers do convite só enquanto ninguém avaliou', async () => {
+  const c = doc(logado('dono@x.com'), P, 'convites', 'p1'), troca = { ids: ['bruto'], burgers: [{ id: 'bruto', nome: 'Bruto' }] };
+  await assertFails(updateDoc(c, { ...troca, nome: 'Outro' }));
+  await assertFails(updateDoc(c, { ids: [], burgers: [] }));
+  await assertFails(updateDoc(doc(anon(), P, 'convites', 'p1'), troca));
+  await assertSucceeds(updateDoc(c, troca));
+  await assertSucceeds(updateDoc(c, { ids: ['bruto', 'manso'], burgers: [{ id: 'bruto', nome: 'Bruto' }, { id: 'manso', nome: 'Manso' }] }));
+  await assertSucceeds(avaliar(anon(), 'p1', ok));
+  await assertFails(updateDoc(c, troca));
 });
 test('cliente marca a abertura do convite uma vez só, com a hora do servidor', async () => {
   const c = doc(anon(), P, 'convites', 'p1');

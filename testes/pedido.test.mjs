@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar, locBoa, metros, foneOk } from '../pedido.js';
+import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar, locBoa, metros, foneOk, avisoAlteracao } from '../pedido.js';
 
 test('telefone: celular com DDD e o 9', () => {
   assert.ok(foneOk('(81) 9 9325-9534'));
@@ -93,4 +93,27 @@ test('consumo no local: só o link da avaliação vai pro cliente', () => {
   const l = { endereco: 'Rua do Borges, 489', tempoEntrega: 30 };
   for (const e of ['preparo', 'saiu', 'cancelado']) assert.equal(avisoCliente(e, p({ entrega: false, local: true }), 'Loja fechando', l), undefined);
   assert.match(avisoCliente('entregue', p({ entrega: false, local: true }), null, l, 'https://x/avaliar/#a'), /avaliar\/#a/);
+});
+
+test('aviso de alteração: itens, total, pagamento e Pix', () => {
+  const l = { nome: 'La Carne', cidade: 'Vitória de Santo Antão - PE', pix: '+5581984793839', adicionais: [{ id: 'bacon', nome: 'Bacon' }] };
+  const ped = { cod: 'AB12C', subtotal: 41, taxa: 5, pag: 'Pix', troco: 0,
+    itens: [{ qtd: 1, nome: 'Bruto', extras: ['bacon'] }, { qtd: 1, nome: 'Coca-Cola', extras: [] }] };
+  const t = (antes, extra = {}) => avisoAlteracao({ ...ped, ...extra }, l, antes).replace(/ /g, ' ');
+  // era cartão, virou Pix: código no total
+  const virouPix = t({ subtotal: 35, pag: 'Cartão de crédito' });
+  for (const s of ['Pedido #AB12C alterado', '1x Bruto + Bacon', '1x Coca-Cola', 'Total: R$ 46,00 (antes R$ 40,00)', 'Pagamento: Pix', 'Pix copia e cola:', '540546.00'])
+    assert.ok(virouPix.includes(s), `faltou "${s}" em: ${virouPix}`);
+  // era Pix e aumentou: pode ter pago, código só da diferença
+  const falta = t({ subtotal: 35, pag: 'Pix' });
+  assert.ok(falta.includes('Se já pagou o Pix, falta R$ 6,00.') && falta.includes('54046.00') && !falta.includes('540546.00'), falta);
+  // era Pix e diminuiu: devolve, sem código
+  const devolve = t({ subtotal: 50, pag: 'Pix' });
+  assert.ok(devolve.includes('a loja devolve R$ 9,00') && !devolve.includes('Pix copia'), devolve);
+  // mesmo total: sem "antes", sem código
+  const igual = t({ subtotal: 41, pag: 'Pix' });
+  assert.ok(!igual.includes('antes') && !igual.includes('Pix copia'), igual);
+  const din = t({ subtotal: 41, pag: 'Pix' }, { pag: 'Dinheiro', troco: 50 });
+  assert.ok(din.includes('Pagamento: Dinheiro (troco para R$ 50,00)') && !din.includes('Pix'), din);
+  assert.ok(!t({ subtotal: 35, pag: 'Dinheiro' }, { taxa: null }).includes('Pix copia'), 'sem taxa definida, sem valor pro Pix');
 });

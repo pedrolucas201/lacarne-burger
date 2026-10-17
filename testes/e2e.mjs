@@ -207,6 +207,39 @@ try {
   await painel.evaluate(async () => { document.querySelector('#imprimir').click(); await new Promise(r => setTimeout(r, 1500)); });
   assert.equal((await db.doc(`lojas/lacarne/convites/${ent.id}`).get()).data().nome, 'Bia');
   assert.match(await painel.evaluate(() => window.__impresso), /ENTREGA[\s\S]*Rua B, 2 · Matriz/);
+
+  // 7b. Editar: + Matuto e Coca, paga em dinheiro. Avisa o cliente, a ficha soma a diferença e o convite ganha o Matuto.
+  // O Bruto foi pedido quando custava 32 (simula aumento depois): na alteração continua 32, o que entra vale o cardápio
+  await ent.ref.update({ 'itens': [{ ...ent.data().itens[0], unit: 32 }], subtotal: 32 });
+  await painel.evaluate(i => { location.hash = ''; location.hash = i; }, ent.id);
+  await painel.waitForSelector('#pedidoDialog[open] #editar');
+  await painel.evaluate(() => document.querySelector('#editar').click());
+  await quadro.waitForFunction(() => document.querySelector('#cartDialog[open]') && document.querySelector('#cartItens')?.textContent.includes('Bruto')
+    && document.querySelector('[data-ctrl="coca"] [data-beb]'), { polling: 200, timeout: 8000 });
+  const alterado = await quadro.evaluate(async () => {
+    window.open = u => { window.__url = u; };
+    const q = s => document.querySelector(s), espera = ms => new Promise(r => setTimeout(r, ms));
+    if (getComputedStyle(q('#nome')).display !== 'none') return 'nome aparecendo na edição';
+    if (!q('md-radio[name=pag][value=Pix]').checked) return 'pagamento antigo não veio marcado';
+    q('[data-ctrl="coca"] [data-beb]').click();
+    q('[data-card="matuto"] h3').click();
+    await espera(300);
+    q('#itemCorpo md-radio').checked = true;
+    q('#itemAdd').click();
+    q('md-radio[name=pag][value=Dinheiro]').checked = true;
+    q('#cartDialog').dispatchEvent(new Event('change'));
+    q('#enviar').click();
+    return decodeURIComponent(window.__url || '');
+  });
+  assert.match(alterado, /phone=5581988887777.*alterado.*1x Coca-Cola.*1x Matuto.*Total: R\$.71,00 \(antes R\$.37,00\).*Pagamento: Dinheiro/s);
+  await painel.waitForFunction(() => document.querySelector('#balcao').hidden
+    && document.querySelector('#pedidoDialog[open] #pedCorpo')?.textContent.includes('alterado às'), { timeout: 8000 });
+  const ed = (await ent.ref.get()).data();
+  assert.deepEqual([ed.subtotal, ed.pag, ed.itens.length, !!ed.alteradoEm, ed.status], [32 + 28 + 6, 'Dinheiro', 3, true, 'preparo']);
+  assert.deepEqual([ed.antes.subtotal, ed.antes.pag, ed.antes.itens.length], [32, 'Pix', 1]);
+  assert.match(await painel.$eval('#pedCorpo', e => e.textContent), /Antes da alteração: 1x Bruto[\s\S]*Pix/);
+  assert.equal((await db.doc('lojas/lacarne/clientes/81988887777').get()).data().gasto, 35 + 34); // lançado a 35, +34 da alteração
+  assert.deepEqual((await db.doc(`lojas/lacarne/convites/${ent.id}`).get()).data().ids, ['bruto', 'matuto']);
   const avisos = [];
   for (const etapa of ['saiu', 'entregue']) {
     await painel.evaluate(i => { location.hash = ''; location.hash = i; }, ent.id);

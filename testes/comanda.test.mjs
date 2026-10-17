@@ -30,3 +30,8 @@ test('retirada e taxa a confirmar', () => {
   assert.ok(texto(comanda(p({ entrega: false, taxa: 0 }), loja)).includes('RETIRADA'));
   assert.ok(texto(comanda(p({ taxa: null }), loja)).replace(/ /g, ' ').includes('TOTAL R$ 40,00 + entrega'));
 });
+
+test('pedido alterado sai marcado com a hora', () => {
+  assert.ok(texto(comanda(p({ alteradoEm: new Date('2026-10-02T22:05:00-03:00') }), loja)).includes('ALTERADO 22:05'));
+  assert.ok(!texto(comanda(p(), loja)).includes('ALTERADO'));
+});

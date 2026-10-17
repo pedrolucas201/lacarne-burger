@@ -26,6 +26,21 @@ service cloud.firestore {
         && (p.taxa == null || (p.taxa is number && p.taxa >= 0 && p.taxa <= 50));
     }
 
+    // mesmos limites do pedido novo, com a hora do servidor
+    function alteracaoValida(p) {
+      return p.alteradoEm == request.time && texto(p.obs, 300)
+        && p.pag in ['Pix', 'Cartão de crédito', 'Cartão de débito', 'Dinheiro']
+        && p.troco is number && p.troco >= 0 && p.troco <= 1000
+        && p.itens is list && p.itens.size() >= 1 && p.itens.size() <= 30
+        && p.subtotal is number && p.subtotal > 0 && p.subtotal <= 5000;
+    }
+
+    // histórico pro dono: a primeira alteração grava o pedido como chegou (igual ao banco); depois não muda mais
+    function antesIntacto(novo, velho) {
+      return ('antes' in velho && novo.antes == velho.antes)
+        || (!('antes' in velho) && novo.antes == { 'itens': velho.itens, 'subtotal': velho.subtotal, 'pag': velho.pag });
+    }
+
     // avaliação: o convite (criado pelo painel ao marcar entregue) autoriza UMA avaliação daquele pedido,
     // com nota 1–5 pra cada burger do convite e etiquetas da lista fixa (igual a avaliacao.js)
     function avaliacaoValida(loja, id) {
@@ -67,10 +82,12 @@ service cloud.firestore {
             && request.resource.data.aceitoEm == request.time && request.resource.data.local is bool
             && !(request.resource.data.local && request.resource.data.entrega));
         allow read: if admin(loja);
-        allow update: if admin(loja)
-          && request.resource.data.diff(resource.data).affectedKeys()
+        // status, ou alteração dos itens/pagamento (painel > Editar) em qualquer etapa menos cancelado
+        allow update: if admin(loja) && ((request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['status', 'aceitoEm', 'saiuEm', 'entregueEm', 'canceladoEm', 'motivo'])
-          && request.resource.data.status in ['novo', 'preparo', 'saiu', 'entregue', 'cancelado'];
+            && request.resource.data.status in ['novo', 'preparo', 'saiu', 'entregue', 'cancelado'])
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['itens', 'subtotal', 'pag', 'troco', 'obs', 'alteradoEm', 'antes'])
+            && resource.data.status != 'cancelado' && alteracaoValida(request.resource.data) && antesIntacto(request.resource.data, resource.data)));
       }
 
       // create em documento que já existe conta como update (negado): uma avaliação por pedido
@@ -78,9 +95,13 @@ service cloud.firestore {
       match /convites/{id} {
         allow read: if true;
         allow create: if admin(loja);
-        allow update: if !('abertoEm' in resource.data)
+        // pedido alterado: a loja troca os burgers do convite enquanto ninguém avaliou
+        allow update: if (!('abertoEm' in resource.data)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['abertoEm', 'abertoPor'])
-          && request.resource.data.abertoEm == request.time && request.resource.data.abertoPor in ['link', 'qr'];
+          && request.resource.data.abertoEm == request.time && request.resource.data.abertoPor in ['link', 'qr'])
+          || (admin(loja) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ids', 'burgers'])
+            && request.resource.data.ids is list && request.resource.data.ids.size() >= 1 && request.resource.data.ids.size() <= 8
+            && !exists(/databases/$(database)/documents/lojas/$(loja)/avaliacoes/$(id)));
       }
       match /avaliacoes/{id} {
         allow create: if exists(/databases/$(database)/documents/lojas/$(loja)/convites/$(id))

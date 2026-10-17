@@ -1,4 +1,7 @@
 // Regras de pedido compartilhadas entre site e painel (sem DOM, sem Firebase)
+import { pix } from './pix.js';
+import { brl } from './util.js';
+
 export const soDigitos = s => String(s ?? '').replace(/\D/g, '');
 // celular com DDD e o 9: 11 dígitos. Barra o número sem o 9 (viraria outro cliente) e o +55 digitado (a máscara corta e o DDD vira 55)
 export const foneOk = s => /^[1-9]{2}9\d{8}$/.test(soDigitos(s));
@@ -58,4 +61,21 @@ export function avisoCliente(etapa, p, motivo, loja = {}, avaliar = '') {
     cancelado: `Pedido #${p.cod} cancelado: ${motivo}. Qualquer dúvida, é só chamar.`,
     entregue: avaliar ? `Valeu pelo pedido! 🍔 Conta pra gente como foi: ${avaliar}` : undefined,
   }[etapa];
+}
+
+// pedido alterado pela loja: itens, total e pagamento de novo. antes = o pedido como estava (mesma taxa).
+// Era Pix e continua: o cliente pode já ter pago, então o código é só da diferença (ou a loja devolve)
+export function avisoAlteracao(p, loja, antes) {
+  const total = p.subtotal + (p.taxa ?? 0), dif = p.subtotal - antes.subtotal;
+  const jaPix = p.pag === 'Pix' && antes.pag === 'Pix', valorPix = jaPix ? dif : total;
+  const comPix = p.pag === 'Pix' && loja.pix && p.taxa !== null && valorPix > 0;
+  return [
+    `Pedido #${p.cod} alterado ✏️`, '',
+    ...p.itens.map(i => `${i.qtd}x ${i.nome}${i.extras?.length ? ` + ${agrupar(i.extras, loja.adicionais).join(', ')}` : ''}`), '',
+    `Total: ${brl(total)}${p.taxa === null ? ' + entrega' : ''}${dif ? ` (antes ${brl(total - dif)})` : ''}`,
+    `Pagamento: ${p.pag}${p.pag === 'Dinheiro' && p.troco ? ` (troco para ${brl(p.troco)})` : ''}`,
+    ...(jaPix && dif > 0 ? ['', `Se já pagou o Pix, falta ${brl(dif)}.`] : []),
+    ...(jaPix && dif < 0 ? ['', `Se já pagou o Pix, a loja devolve ${brl(-dif)}.`] : []),
+    ...(comPix ? ['', 'Pix copia e cola:', pix({ chave: loja.pix, nome: loja.nome, cidade: loja.cidade.split(' - ')[0], valor: valorPix, txid: p.cod })] : []),
+  ].join('\n');
 }
