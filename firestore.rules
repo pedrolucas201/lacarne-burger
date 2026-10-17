@@ -46,6 +46,13 @@ service cloud.firestore {
         && (novo.fone == velho.fone || (texto(novo.fone, 16) && novo.fone.size() >= 11));
     }
 
+    // lastro: a mudança aponta (`reg`) pra uma linha do registro nova, gravada na mesma operação e sobre o mesmo alvo.
+    // Quem e quando a regra do registro confere
+    function registrado(loja, novo, velho, alvo) {
+      let r = getAfter(/databases/$(database)/documents/lojas/$(loja)/registro/$(novo.reg)).data;
+      return novo.reg is string && novo.reg != velho.get('reg', '') && r.em == request.time && r.alvo == alvo;
+    }
+
     // avaliação: o convite (criado pelo painel ao marcar entregue) autoriza UMA avaliação daquele pedido,
     // com nota 1–5 pra cada burger do convite e etiquetas da lista fixa (igual a avaliacao.js)
     function avaliacaoValida(loja, id) {
@@ -73,7 +80,7 @@ service cloud.firestore {
 
     match /lojas/{loja} {
       allow read: if true;
-      allow write: if admin(loja);
+      allow update: if admin(loja) && registrado(loja, request.resource.data, resource.data, 'loja');
 
       match /admins/{email} {
         allow read: if request.auth != null && request.auth.token.email == email;
@@ -83,15 +90,17 @@ service cloud.firestore {
       }
       match /pedidos/{id} {
         allow create: if pedidoValido(request.resource.data, 'novo', [])
-          || (admin(loja) && pedidoValido(request.resource.data, 'preparo', ['local', 'aceitoEm'])
+          || (admin(loja) && pedidoValido(request.resource.data, 'preparo', ['local', 'aceitoEm', 'reg'])
+            && registrado(loja, request.resource.data, {}, id)
             && request.resource.data.aceitoEm == request.time && request.resource.data.local is bool
             && !(request.resource.data.local && request.resource.data.entrega));
         allow read: if admin(loja);
         // status, ou alteração dos itens/pagamento (painel > Editar) em qualquer etapa menos cancelado
-        allow update: if admin(loja) && ((request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['status', 'aceitoEm', 'saiuEm', 'entregueEm', 'canceladoEm', 'motivo'])
+        allow update: if admin(loja) && registrado(loja, request.resource.data, resource.data, id)
+          && ((request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'aceitoEm', 'saiuEm', 'entregueEm', 'canceladoEm', 'motivo', 'reg'])
             && request.resource.data.status in ['novo', 'preparo', 'saiu', 'entregue', 'cancelado'])
-          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['itens', 'subtotal', 'pag', 'troco', 'obs', 'alteradoEm', 'antes', 'cliente'])
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['itens', 'subtotal', 'pag', 'troco', 'obs', 'alteradoEm', 'antes', 'cliente', 'reg'])
             && resource.data.status != 'cancelado' && alteracaoValida(request.resource.data) && antesIntacto(request.resource.data, resource.data)
             && foneTrocado(request.resource.data.cliente, resource.data.cliente)));
       }
@@ -114,7 +123,10 @@ service cloud.firestore {
           && avaliacaoValida(loja, id)
           && existsAfter(/databases/$(database)/documents/lojas/$(loja)/notas/$(id));
         allow read: if admin(loja);
-        allow update: if admin(loja) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vista', 'publicas']);
+        // vista: o painel marca sozinho ao abrir. Mostrar/tirar do site fica no registro
+        allow update: if admin(loja) && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vista'])
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vista', 'publicas', 'reg'])
+            && registrado(loja, request.resource.data, resource.data, id)));
       }
       // só as notas, públicas (média do site); criadas no mesmo lote da avaliação e iguais a ela
       match /notas/{id} {
@@ -122,6 +134,15 @@ service cloud.firestore {
         allow create: if request.resource.data.keys().hasOnly(['notas', 'criadoEm'])
           && request.resource.data.criadoEm == request.time
           && request.resource.data.notas == getAfter(/databases/$(database)/documents/lojas/$(loja)/avaliacoes/$(id)).data.notas;
+      }
+      // lastro (registro.js): só acrescenta, ninguém edita nem apaga; quem é o e-mail logado, quando é a hora do servidor
+      match /registro/{id} {
+        allow read: if admin(loja);
+        allow create: if admin(loja) && request.resource.data.keys().hasOnly(['em', 'quem', 'acao', 'alvo', 'dados', 'aparelho'])
+          && request.resource.data.keys().hasAll(['em', 'quem', 'acao', 'alvo', 'dados', 'aparelho'])
+          && request.resource.data.em == request.time && request.resource.data.quem == request.auth.token.email
+          && texto(request.resource.data.acao, 30) && texto(request.resource.data.alvo, 60)
+          && request.resource.data.dados is map && texto(request.resource.data.aparelho, 150);
       }
       // comentários que a loja liberou pro site: um por burger, id = <pedido>_<burger>
       match /depoimentos/{id} {

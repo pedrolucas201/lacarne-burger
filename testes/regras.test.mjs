@@ -1,5 +1,6 @@
 import { test, before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { doc, setDoc, getDoc, addDoc, collection, updateDoc, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
@@ -34,10 +35,23 @@ beforeEach(async () => {
 const anon = () => env.unauthenticatedContext().firestore();
 const logado = (email, verificado = true) => env.authenticatedContext(email, { email, email_verified: verificado }).firestore();
 const pedidos = db => collection(db, P, 'pedidos');
+// a loja só muda com a linha do registro no mesmo lote, sobre o mesmo alvo (registro.js)
+const linha = (alvo, extra = {}) => ({ em: serverTimestamp(), quem: 'dono@x.com', acao: 'teste', alvo, dados: {}, aparelho: 'teste', ...extra });
+const comReg = (db, alvo, caminho, dados, { criar = false, reg } = {}) => {
+  const b = writeBatch(db), r = doc(collection(db, P, 'registro')), ref = doc(db, caminho);
+  b.set(r, linha(alvo));
+  criar ? b.set(ref, { ...dados, reg: reg ?? r.id }) : b.update(ref, { ...dados, reg: reg ?? r.id });
+  return b.commit();
+};
+const adm = () => logado('dono@x.com');
+const P1 = `${P}/pedidos/p1`;
 
 test('qualquer um lê a loja', () => assertSucceeds(getDoc(doc(anon(), P))));
 test('estranho não altera a loja', () => assertFails(setDoc(doc(anon(), P), { fechadaHoje: '2026-10-01' }, { merge: true })));
-test('admin altera a loja', () => assertSucceeds(updateDoc(doc(logado('dono@x.com'), P), { 'esgotados.bruto': '2026-10-01' })));
+test('admin altera a loja com registro; sem registro não', async () => {
+  await assertSucceeds(comReg(adm(), 'loja', P, { 'esgotados.bruto': '2026-10-01' }));
+  await assertFails(updateDoc(doc(adm(), P), { 'esgotados.bruto': '2026-10-02' }));
+});
 test('cliente cria pedido válido', () => assertSucceeds(addDoc(pedidos(anon()), pedido())));
 test('retirada com taxa 0 e bairro fora da tabela com taxa null', async () => {
   await assertSucceeds(addDoc(pedidos(anon()), pedido({ entrega: false, taxa: 0 })));
@@ -54,10 +68,11 @@ test('logado fora da lista não lê pedido', () => assertFails(getDoc(doc(logado
 test('e-mail não verificado não vale', () => assertFails(getDoc(doc(logado('dono@x.com', false), P, 'pedidos', 'p1'))));
 test('admin lê pedido', () => assertSucceeds(getDoc(doc(logado('dono@x.com'), P, 'pedidos', 'p1'))));
 test('admin muda status', () =>
-  assertSucceeds(updateDoc(doc(logado('dono@x.com'), P, 'pedidos', 'p1'), { status: 'preparo', aceitoEm: serverTimestamp() })));
-test('admin não muda valor', () => assertFails(updateDoc(doc(logado('dono@x.com'), P, 'pedidos', 'p1'), { subtotal: 1 })));
+  assertSucceeds(comReg(adm(), 'p1', P1, { status: 'preparo', aceitoEm: serverTimestamp() })));
+test('status sem registro é negado', () => assertFails(updateDoc(doc(adm(), P1), { status: 'preparo', aceitoEm: serverTimestamp() })));
+test('admin não muda valor', () => assertFails(comReg(adm(), 'p1', P1, { subtotal: 1 })));
 // ---------- alterar pedido (painel > Editar) ----------
-const alterar = (db, extra = {}, id = 'p1') => updateDoc(doc(db, P, 'pedidos', id), { itens: [...pedido().itens, { id: 'coca', nome: 'Coca-Cola', unit: 6, qtd: 1 }],
+const alterar = (db, extra = {}, id = 'p1') => comReg(db, id, `${P}/pedidos/${id}`, { itens: [...pedido().itens, { id: 'coca', nome: 'Coca-Cola', unit: 6, qtd: 1 }],
   subtotal: 38, pag: 'Dinheiro', troco: 50, obs: 'sem gelo', alteradoEm: serverTimestamp(), antes: { itens: pedido().itens, subtotal: 32, pag: 'Pix', fone: pedido().cliente.fone }, ...extra });
 test('admin altera itens e pagamento', () => assertSucceeds(alterar(logado('dono@x.com'))));
 test('estranho não altera pedido', () => assertFails(alterar(logado('outro@x.com'))));
@@ -91,7 +106,7 @@ test('pedido cancelado não altera', async () => {
   await env.withSecurityRulesDisabled(c => updateDoc(doc(c.firestore(), P, 'pedidos', 'p1'), { status: 'cancelado' }));
   await assertFails(alterar(logado('dono@x.com')));
 });
-test('status inventado é negado', () => assertFails(updateDoc(doc(logado('dono@x.com'), P, 'pedidos', 'p1'), { status: 'pago' })));
+test('status inventado é negado', () => assertFails(comReg(adm(), 'p1', P1, { status: 'pago' })));
 test('cada um só vê o próprio acesso', async () => {
   await assertSucceeds(getDoc(doc(logado('dono@x.com'), P, 'admins', 'dono@x.com')));
   await assertSucceeds(getDoc(doc(logado('outro@x.com'), P, 'admins', 'outro@x.com')));
@@ -110,16 +125,18 @@ test('localização gigante é negada', () =>
 // ---------- balcão: a loja lança o pedido já aceito ----------
 const balcao = (extra = {}) => pedido({ status: 'preparo', aceitoEm: serverTimestamp(), local: true, entrega: false, taxa: 0,
   cliente: { nome: 'Mesa 3', fone: '', rua: '', numero: '', bairro: '', compl: '', ref: '', loc: '' }, ...extra });
-test('admin lança pedido no local, sem telefone', () => assertSucceeds(addDoc(pedidos(logado('dono@x.com')), balcao())));
+const lancar = (db, p) => { const ref = doc(pedidos(db)); return comReg(db, ref.id, ref.path, p, { criar: true }); };
+test('admin lança pedido no local, sem telefone', () => assertSucceeds(lancar(adm(), balcao())));
+test('lançar sem registro é negado', () => assertFails(addDoc(pedidos(adm()), balcao())));
 test('admin lança entrega pelo balcão', () =>
-  assertSucceeds(addDoc(pedidos(logado('dono@x.com')), balcao({ local: false, entrega: true, taxa: 5, cliente: pedido().cliente }))));
+  assertSucceeds(lancar(adm(), balcao({ local: false, entrega: true, taxa: 5, cliente: pedido().cliente }))));
 test('cliente não lança pedido já aceito', () => assertFails(addDoc(pedidos(anon()), balcao())));
 test('cliente não marca consumo no local', () => assertFails(addDoc(pedidos(anon()), pedido({ local: true, entrega: false, taxa: 0 }))));
 test('logado fora da lista não lança', () => assertFails(addDoc(pedidos(logado('outro@x.com')), balcao())));
-test('no local com entrega é negado', () => assertFails(addDoc(pedidos(logado('dono@x.com')), balcao({ entrega: true }))));
-test('balcão com hora do aparelho é negado', () => assertFails(addDoc(pedidos(logado('dono@x.com')), balcao({ aceitoEm: new Date(0) }))));
+test('no local com entrega é negado', () => assertFails(lancar(adm(), balcao({ entrega: true }))));
+test('balcão com hora do aparelho é negado', () => assertFails(lancar(adm(), balcao({ aceitoEm: new Date(0) }))));
 test('balcão sem nome é negado', () =>
-  assertFails(addDoc(pedidos(logado('dono@x.com')), balcao({ cliente: { ...balcao().cliente, nome: '' } }))));
+  assertFails(lancar(adm(), balcao({ cliente: { ...balcao().cliente, nome: '' } }))));
 
 // ---------- avaliações ----------
 const avaliar = (db, id, notas, extra = {}) => {
@@ -183,7 +200,9 @@ test('só admin cria convite e depoimento; admin só muda vista/publica', async 
   await assertFails(setDoc(doc(anon(), P, 'depoimentos', 'p1_bruto'), { nome: 'Ana' }));
   const adm = logado('dono@x.com');
   await assertSucceeds(setDoc(doc(adm, P, 'convites', 'p2'), { nome: 'X', ids: ['bruto'], burgers: [], entregueEm: new Date() }));
-  await assertSucceeds(updateDoc(doc(adm, P, 'avaliacoes', 'p1'), { vista: true, publicas: ['bruto'] }));
+  await assertSucceeds(updateDoc(doc(adm, P, 'avaliacoes', 'p1'), { vista: true }));
+  await assertFails(updateDoc(doc(adm, P, 'avaliacoes', 'p1'), { publicas: ['bruto'] }));
+  await assertSucceeds(comReg(adm, 'p1', `${P}/avaliacoes/p1`, { publicas: ['bruto'] }));
   await assertFails(updateDoc(doc(adm, P, 'avaliacoes', 'p1'), { notas: { bruto: 1, manso: 1 } }));
   await assertSucceeds(setDoc(doc(adm, P, 'depoimentos', 'p1_bruto'), { nome: 'Ana', burger: 'bruto', nota: 5, comentario: 'Top', criadoEm: new Date() }));
   await assertSucceeds(getDoc(doc(anon(), P, 'depoimentos', 'p1_bruto')));
@@ -208,4 +227,35 @@ test('cliente marca a abertura do convite uma vez só, com a hora do servidor', 
   await assertSucceeds(updateDoc(c, { abertoEm: serverTimestamp(), abertoPor: 'qr' }));
   await assertFails(updateDoc(c, { abertoEm: serverTimestamp(), abertoPor: 'link' }));
   await assertFails(setDoc(doc(logado('dono@x.com'), P, 'convites', 'p1'), { nome: 'Ana', ids: ['bruto'], burgers: [], entregueEm: new Date() }));
+});
+
+// ---------- registro (lastro) ----------
+test('registro: quem é o e-mail logado e quando é a hora do servidor', async () => {
+  const r = () => doc(collection(adm(), P, 'registro'));
+  await assertSucceeds(setDoc(r(), linha('loja')));
+  await assertFails(setDoc(r(), linha('loja', { quem: 'outro@x.com' })));
+  await assertFails(setDoc(r(), linha('loja', { em: new Date() })));
+  await assertFails(setDoc(r(), linha('loja', { extra: 1 })));
+  await assertFails(setDoc(doc(collection(logado('outro@x.com'), P, 'registro')), linha('loja', { quem: 'outro@x.com' })));
+  await assertFails(setDoc(doc(collection(anon(), P, 'registro')), linha('loja', { quem: '' })));
+});
+test('registro: ninguém edita nem apaga; só admin lê', async () => {
+  const r = doc(collection(adm(), P, 'registro'));
+  await assertSucceeds(setDoc(r, linha('loja')));
+  await assertFails(updateDoc(r, { acao: 'outra' }));
+  await assertFails(deleteDoc(r));
+  await assertSucceeds(getDoc(r));
+  await assertFails(getDoc(doc(anon(), r.path)));
+  await assertFails(getDoc(doc(logado('outro@x.com'), r.path)));
+});
+test('registro de outro alvo, antigo ou repetido não vale', async () => {
+  await assertFails(comReg(adm(), 'p9', P1, { status: 'preparo', aceitoEm: serverTimestamp() }));
+  const velho = doc(collection(adm(), P, 'registro'));
+  await assertSucceeds(setDoc(velho, linha('p1')));
+  await assertFails(updateDoc(doc(adm(), P1), { status: 'preparo', aceitoEm: serverTimestamp(), reg: velho.id }));
+  await assertSucceeds(comReg(adm(), 'p1', P1, { status: 'preparo', aceitoEm: serverTimestamp() }));
+  let usado;
+  await env.withSecurityRulesDisabled(async c => { usado = (await getDoc(doc(c.firestore(), P1))).data().reg; });
+  assert.ok(usado);
+  await assertFails(comReg(adm(), 'p1', P1, { status: 'saiu', saiuEm: serverTimestamp() }, { reg: usado }));
 });
