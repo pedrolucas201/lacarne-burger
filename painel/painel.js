@@ -95,7 +95,7 @@ function iniciar() {
 const data = t => t?.toDate?.() ?? null;
 const lerPedido = d => {
   const p = d.data({ serverTimestamps: 'estimate' });
-  return { ...p, id: d.id, criadoEm: data(p.criadoEm), aceitoEm: data(p.aceitoEm), saiuEm: data(p.saiuEm), entregueEm: data(p.entregueEm) };
+  return { ...p, id: d.id, criadoEm: data(p.criadoEm), aceitoEm: data(p.aceitoEm), saiuEm: data(p.saiuEm), entregueEm: data(p.entregueEm), alteradoEm: data(p.alteradoEm) };
 };
 
 // ---------- pedidos ----------
@@ -187,7 +187,7 @@ function abrirPedido(id) {
     ${c.ok ? '' : `<p class="alerta">⚠ Valor não confere com o cardápio: deveria ser ${brl(c.subtotal)}${p.entrega
       ? ` + ${c.taxa === null ? 'entrega a confirmar' : `${brl(c.taxa)} de entrega`}` : ''}.</p>`}
     <p><strong>${esc(cl.nome)}</strong>${cl.fone ? ` · <a href="${whats(cl.fone, '')}" target="_blank" rel="noopener">${esc(cl.fone)}</a>` : ''}
-      <br><small>feito às ${hora(p.criadoEm)}</small></p>
+      <br><small>feito às ${hora(p.criadoEm)}${p.alteradoEm ? ` · alterado às ${hora(p.alteradoEm)}` : ''}</small></p>
     <p>${p.entrega ? `🛵 ${esc(cl.rua)}, ${esc(cl.numero)} · ${esc(cl.bairro)}${cl.compl ? ` · ${esc(cl.compl)}` : ''}
       ${cl.ref ? `<br><small>${esc(cl.ref)}</small>` : ''}<br><a href="${noMapa}" target="_blank" rel="noopener">Abrir no mapa</a>${cl.loc
         ? ` · <a href="${mapa(cl.loc)}" target="_blank" rel="noopener">📍 Localização exata (GPS)</a>` : ''}`
@@ -199,16 +199,20 @@ function abrirPedido(id) {
       ${i.obs ? `<br><small>Obs: ${esc(i.obs)}</small>` : ''}</li>`).join('')}</ul>
     <p>${p.entrega ? `Subtotal ${brl(p.subtotal)} · Entrega ${p.taxa === null ? 'a confirmar' : brl(p.taxa)}<br>` : ''}<strong>Total ${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}</strong> · ${esc(p.pag)}${p.pag === 'Dinheiro' && p.troco ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
     ${p.obs ? `<p>📝 ${esc(p.obs)}</p>` : ''}
+    ${p.antes ? `<p class="antes"><small>Antes da alteração: ${esc(p.antes.itens.map(i => `${i.qtd}x ${i.nome}`).join(', '))}
+      · ${brl(p.antes.subtotal + (p.taxa ?? 0))} · ${esc(p.antes.pag)}</small></p>` : ''}
     ${p.status === 'cancelado' ? `<p>Motivo: ${esc(p.motivo)}</p>` : ''}`;
   const prox = PROXIMA[p.status];
   const rotulo = prox === 'preparo' ? 'Aceitar' : etapa(prox, p);
   const fim = ['entregue', 'cancelado'].includes(p.status);
   $('#pedAcoes').innerHTML = `
     ${p.status === 'cancelado' ? '' : '<md-text-button id="imprimir"><md-icon slot="icon">print</md-icon>Imprimir</md-text-button>'}
+    ${p.status === 'cancelado' ? '' : '<md-text-button id="editar"><md-icon slot="icon">edit</md-icon>Editar</md-text-button>'}
     ${fim ? '' : `<md-text-button id="cancelar">${p.status === 'novo' ? 'Recusar' : 'Cancelar'}</md-text-button>`}
     ${prox ? `<md-filled-button id="avancar">${rotulo}</md-filled-button>` : ''}`;
   $('#imprimir')?.addEventListener('click', () => imprimir(p));
   $('#avancar')?.addEventListener('click', () => mudar(p, prox));
+  $('#editar')?.addEventListener('click', () => { $('#pedidoDialog').close(); abrirBalcao(`../?balcao&editar=${p.id}`, `Alterar pedido #${p.cod}`); });
   $('#cancelar')?.addEventListener('click', () => pedirMotivo(p));
   $('#pedidoDialog').show();
 }
@@ -304,14 +308,24 @@ async function abrirDoLink() {
 addEventListener('hashchange', () => { if (iniciado) abrirDoLink(); });
 
 // ---------- balcão: o site em modo balcão abre por cima; o painel segue vivo (som e pedidos chegando) ----------
+// Editar usa a mesma tela, com o pedido carregado; o Lançar seguinte recarrega o balcão (a sacola dele fica guardada)
 const balcao = $('#balcao'), quadro = balcao.querySelector('iframe');
-$('#lancar').onclick = () => {
-  if (!quadro.getAttribute('src')) quadro.src = '../?balcao'; // carrega na primeira vez e fica pronto pros próximos
+function abrirBalcao(src, titulo) {
+  if (src.includes('editar') || quadro.getAttribute('src') !== src) quadro.src = src; // balcão carrega uma vez e fica pronto pros próximos
+  balcao.querySelector('strong').textContent = titulo;
   balcao.hidden = false;
-};
+}
+$('#lancar').onclick = () => abrirBalcao('../?balcao', 'Lançar pedido');
 $('#fecharBalcao').onclick = () => { balcao.hidden = true; }; // fechar no meio guarda a sacola pra quando voltar
 addEventListener('message', e => {
-  if (e.origin !== location.origin || !e.data?.lancado) return;
+  if (e.origin !== location.origin) return;
+  if (e.data?.editado) {
+    balcao.hidden = true;
+    toast('Pedido alterado ✅');
+    location.hash = e.data.editado;
+    return;
+  }
+  if (!e.data?.lancado) return;
   balcao.hidden = true;
   quadro.contentWindow.location.reload(); // zera o formulário pro próximo, em segundo plano
   filtro = 'preparo';

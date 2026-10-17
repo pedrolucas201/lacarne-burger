@@ -1,6 +1,8 @@
 import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
 import { pix } from './pix.js';
-import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar, locBoa, metros, soDigitos, foneOk } from './pedido.js';
+import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar, locBoa, metros, soDigitos, foneOk, whats, avisoAlteracao } from './pedido.js';
+import { VALIDOS } from './numeros.js';
+import { burgersDoPedido } from './avaliacao.js';
 import { $, brl, esc, toast } from './util.js';
 import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
 
@@ -19,7 +21,10 @@ const TESTE = new URLSearchParams(location.search).has('teste');
 // ?balcao: a loja lança o pedido (o painel abre isto por cima dele). Usa o login do painel, ignora o horário,
 // grava já aceito e não abre WhatsApp nem Pix. Sacola separada da de cliente
 const BALCAO = new URLSearchParams(location.search).has('balcao');
-const SACOLA = BALCAO ? 'carrinhoBalcao' : 'carrinho';
+// ?balcao&editar=<id>: o painel abre o pedido pra alterar itens, pagamento, troco e observação (cliente e endereço ficam)
+const EDITAR = BALCAO && new URLSearchParams(location.search).get('editar');
+const SACOLA = EDITAR ? 'carrinhoEditar' : BALCAO ? 'carrinhoBalcao' : 'carrinho';
+let orig = null; // pedido como estava no banco, na edição
 const logado = BALCAO && Promise.all([import('./firebase.js'), import('./vendor/firebase/auth.js')]).then(async ([{ app, LOCAL }, a]) => {
   const auth = a.getAuth(app);
   if (LOCAL) a.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
@@ -53,14 +58,16 @@ const itemDe = id => loja.cardapio.find(x => x.id === id);
 const MAX_EXTRA = 5; // por adicional, por burger
 
 // preço sempre vem do cardápio: o que está salvo no navegador pode ter sido alterado
+// edição: linha que já estava no pedido (fixo) mantém o preço da época; o que entra agora vale o cardápio.
+// ponytail: mais unidades na mesma linha (ou burger igual somado a ela) saem pelo preço antigo
 const validar = lista => lista.flatMap(i => {
   const m = itemDe(i?.id);
   const qtd = Math.min(99, Math.max(1, parseInt(i.qtd) || 1));
   const extras = (Array.isArray(i.extras) ? i.extras : []).filter(x => loja.adicionais?.some(a => a.id === x));
   return m && Array.isArray(i.escolhas) && Array.isArray(i.sem)
-    ? [{ ...i, nome: m.nome, extras, unit: precoItem(loja, { id: i.id, extras }), qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
+    ? [{ ...i, nome: m.nome, extras, unit: EDITAR && i.fixo ? i.unit : precoItem(loja, { id: i.id, extras }), qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
 });
-let carrinho = validar(store.get(SACOLA, []));
+let carrinho = EDITAR ? [] : validar(store.get(SACOLA, []));
 let atual = null;
 
 // ---------- horário ----------
@@ -296,7 +303,7 @@ $('#itemAdd').onclick = () => {
 const dCart = $('#cartDialog');
 const subtotal = () => carrinho.reduce((s, i) => s + i.unit * i.qtd, 0);
 // 0 na retirada, null se o bairro não foi escolhido ou está fora da tabela
-const taxa = () => taxaDe(loja, radio('tipo') === 'Entrega', $('#bairro').value);
+const taxa = () => EDITAR ? orig?.taxa ?? null : taxaDe(loja, radio('tipo') === 'Entrega', $('#bairro').value); // edição: endereço não muda, taxa também não
 const detalhes = i => [
   ...i.escolhas.map(([t, v]) => `${t}: ${v}`),
   i.sem.length ? `Sem: ${i.sem.join(', ').toLowerCase()}` : null,
@@ -449,19 +456,20 @@ $('#enviar').onclick = () => {
   if (!carrinho.length) return toast('Sua sacola está vazia', true);
   if (!aoVivo && (BALCAO || !semBanco)) return toast('Ainda conectando com a loja, tenta de novo em instantes', true);
   if (!podePedir()) return toast(fechadoMsg(), true);
-  const acabou = carrinho.find(i => esgotado(i.id));
+  const acabou = carrinho.find(i => esgotado(i.id) && !orig?.itens.some(o => o.id === i.id)); // o que já estava no pedido pode ter esgotado depois
   if (acabou) return toast(`${acabou.nome} esgotou, tira da sacola 😕`, true);
   const f = id => $('#' + id).value.trim();
   const entrega = radio('tipo') === 'Entrega', local = radio('tipo') === 'Local';
   const pag = radio('pag');
-  const vazio = ['nome', ...(BALCAO ? [] : ['fone']), ...(entrega ? ['rua', 'numero', 'bairro'] : []),
+  const vazio = !EDITAR && ['nome', ...(BALCAO ? [] : ['fone']), ...(entrega ? ['rua', 'numero', 'bairro'] : []),
     ...(entrega && f('bairro') === 'outro' ? ['bairroOutro'] : [])].find(id => !f(id));
   if (vazio) { $('#' + vazio).reportValidity(); $('#' + vazio).focus(); return toast(`Preencha: ${$('#' + vazio).label || $('#' + vazio).ariaLabel}`, true); }
-  if ((!BALCAO || f('fone')) && !foneOk(f('fone'))) { $('#fone').focus(); return toast('Telefone inválido: DDD + celular com o 9 (ex.: 81 9 9999-9999)', true); }
+  if (!EDITAR && (!BALCAO || f('fone')) && !foneOk(f('fone'))) { $('#fone').focus(); return toast('Telefone inválido: DDD + celular com o 9 (ex.: 81 9 9999-9999)', true); }
   if (!pag) return toast('Escolha a forma de pagamento', true);
   const sub = subtotal(), tx = taxa(), total = sub + (tx ?? 0), troco = +f('troco') || 0;
   if (pag === 'Dinheiro' && troco && troco < total) return toast(`O troco precisa ser maior que ${brl(total)}`, true);
   if (troco > 1000) return toast('Troco até R$ 1.000', true);
+  if (EDITAR) return alterar({ itens: paraBanco(), subtotal: sub, pag, troco: pag === 'Dinheiro' ? troco : 0, obs: f('obsGeral') });
 
   const c = Object.fromEntries(CAMPOS.map(k => [k, f(k)]));
   if (!BALCAO) store.set('cliente', c);
@@ -479,9 +487,7 @@ $('#enviar').onclick = () => {
       troco: pag === 'Dinheiro' ? troco : 0, subtotal: sub, taxa: tx,
       cliente: { nome: c.nome, fone: c.fone, rua: entrega ? c.rua : '', numero: entrega ? c.numero : '',
         bairro: entrega ? bairro : '', compl: entrega ? c.compl : '', ref: entrega ? c.ref : '', loc: entrega ? loc : '' },
-      // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
-      itens: carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,
-        escolhas: Object.fromEntries(i.escolhas), sem: i.sem, extras: i.extras, obs: i.obs })),
+      itens: paraBanco(),
     };
     if (BALCAO) return lancar(ref, { ...pedido, status: 'preparo', aceitoEm: serverTimestamp(), local });
     setDoc(ref, pedido).catch(e => console.error('pedido não foi pro painel', e));
@@ -496,6 +502,41 @@ $('#enviar').onclick = () => {
   toast('Pedido pronto! É só enviar no WhatsApp ✅');
   if (comPix) abrirPix(tx === null ? null : total, cod);
 };
+
+// Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
+const paraBanco = () => carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,
+  escolhas: Object.fromEntries(i.escolhas), sem: i.sem, extras: i.extras, obs: i.obs }));
+
+// edição: o cliente recebe o pedido novo no WhatsApp (antes de qualquer await). Já entregue ou no local, não: é acerto da loja.
+// Pedido já contado na ficha: o gasto muda pela diferença (cancelar depois desconta o valor novo).
+// Convite sem avaliação troca os burgers. ponytail: entregue sem convite que ganhou burger fica sem avaliação
+async function alterar(m) {
+  const novo = { ...orig, ...m }, fone = soDigitos(orig.cliente.fone);
+  if (fone && !orig.local && orig.status !== 'entregue') window.open(whats(orig.cliente.fone, avisoAlteracao(novo, loja, orig)), '_blank', 'noopener');
+  const { db, doc, runTransaction, increment, serverTimestamp } = banco;
+  const loj = doc(db, 'lojas', LOJA_ID), ref = doc(loj, 'pedidos', EDITAR), convRef = doc(loj, 'convites', EDITAR);
+  const burgers = burgersDoPedido(m.itens, loja.cardapio);
+  $('#enviar').disabled = true;
+  try {
+    await runTransaction(db, async t => {
+      const atual = (await t.get(ref)).data(), conv = await t.get(convRef);
+      const avaliado = conv.exists() && (await t.get(doc(loj, 'avaliacoes', EDITAR))).exists();
+      // antes: o pedido como chegou, gravado na primeira alteração e nunca mais (a regra confere)
+      t.update(ref, { ...m, alteradoEm: serverTimestamp(), antes: atual.antes ?? { itens: atual.itens, subtotal: atual.subtotal, pag: atual.pag } });
+      const delta = m.subtotal - atual.subtotal;
+      if (fone && delta && VALIDOS.includes(atual.status)) t.set(doc(loj, 'clientes', fone), { gasto: increment(delta) }, { merge: true });
+      const ids = burgers.map(x => x.id);
+      if (conv.exists() && !avaliado && ids.length && ids.join() !== conv.data().ids.join()) t.update(convRef, { ids, burgers });
+    });
+  } catch (e) {
+    console.error(e);
+    return toast('Não salvou. Confere a internet e tenta de novo', true);
+  } finally { $('#enviar').disabled = false; }
+  carrinho = [];
+  salvar();
+  if (parent !== window) parent.postMessage({ editado: EDITAR }, location.origin);
+  else location.href = `painel/#${EDITAR}`;
+}
 
 // balcão: espera o banco responder (não tem WhatsApp pra abrir) e já conta o cliente, como o Aceitar do painel faz
 async function lancar(ref, p) {
@@ -604,6 +645,27 @@ if (BALCAO) {
   $('#fone').setAttribute('label', 'Telefone (opcional)');
   $('#fone').setAttribute('supporting-text', 'Com ele, o cliente recebe o link da avaliação');
   $('#enviar').innerHTML = '<md-icon slot="icon">check</md-icon>Lançar pedido';
+}
+// edição: carrega o pedido, esconde cliente/tipo/endereço e abre a sacola com o que foi pedido
+if (EDITAR) {
+  document.body.classList.add('editando');
+  $('#enviar').innerHTML = '<md-icon slot="icon">check</md-icon>Salvar alteração';
+  Promise.all([logado, fb]).then(async ([u, { db, doc, getDoc }]) => {
+    if (!u) return toast('Entre no painel antes de alterar pedido', true);
+    const d = await getDoc(doc(db, 'lojas', LOJA_ID, 'pedidos', EDITAR));
+    if (!d.exists()) return toast('Pedido não encontrado', true);
+    orig = d.data();
+    carrinho = validar(orig.itens.map(i => ({ ...i, escolhas: Object.entries(i.escolhas || {}), fixo: true })));
+    if (carrinho.length < orig.itens.length) toast('Algum item saiu do cardápio e ficou fora da sacola', true);
+    const tipo = orig.entrega ? 'Entrega' : orig.local ? 'Local' : 'Retirada';
+    document.querySelectorAll('md-radio[name="tipo"]').forEach(r => { r.checked = r.value === tipo; });
+    document.querySelectorAll('md-radio[name="pag"]').forEach(r => { r.checked = r.value === orig.pag; });
+    $('#troco').value = orig.troco || '';
+    $('#obsGeral').value = orig.obs;
+    $('#troco').hidden = orig.pag !== 'Dinheiro';
+    salvar();
+    dCart.show();
+  }).catch(e => { console.error(e); toast('Não deu pra abrir o pedido. Confere a internet', true); });
 }
 CAMPOS.forEach(k => { if (cliente[k]) $('#' + k).value = cliente[k]; });
 $('#bairroOutro').hidden = $('#bairro').value !== 'outro';

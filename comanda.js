@@ -4,12 +4,14 @@ import { agrupar } from './pedido.js';
 import { brl, esc } from './util.js';
 
 const quando = d => d.toLocaleString('pt-BR', { timeZone: 'America/Recife', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+const hora = d => d.toLocaleTimeString('pt-BR', { timeZone: 'America/Recife', hour: '2-digit', minute: '2-digit' });
 const linha = (a, b, cls = '') => `<p class="c-l ${cls}"><span>${a}</span><span>${b}</span></p>`;
 
 export function comanda(p, loja, qr = '') {
   const c = p.cliente, total = p.subtotal + (p.taxa ?? 0);
   return `<div class="c-topo"><img src="../logo.png" alt=""><h1>${esc(loja.nome.toUpperCase())}</h1>
-      <p>${p.criadoEm ? quando(p.criadoEm) : ''}</p><p class="c-cod">#${esc(p.cod)}</p></div>
+      <p>${p.criadoEm ? quando(p.criadoEm) : ''}</p><p class="c-cod">#${esc(p.cod)}</p>
+      ${p.alteradoEm ? `<p class="c-tipo">ALTERADO ${hora(p.alteradoEm)}</p>` : ''}</div>
     <p class="c-tipo">${p.entrega ? 'ENTREGA' : p.local ? 'CONSUMO NO LOCAL' : 'RETIRADA'}</p>
     <p><b>${esc(c.nome)}</b></p>${c.fone ? `<p>${esc(c.fone)}</p>` : ''}
     ${p.entrega ? `<p>${esc(c.rua)}, ${esc(c.numero)} · ${esc(c.bairro)}</p>${c.compl ? `<p>${esc(c.compl)}</p>` : ''}${c.ref ? `<p>${esc(c.ref)}</p>` : ''}` : ''}
