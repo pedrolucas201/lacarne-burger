@@ -243,8 +243,8 @@ footer a { color: var(--md-sys-color-primary); }
   .balcao .item-dir { grid-column: 1; }
 }
 .balcao main { padding-bottom: 96px; }
-/* alterar pedido: cliente, tipo e endereço não mudam */
-.editando :is(#dadosTit, #nome, #fone, #tipoTit, #tipos, #endereco) { display: none; }
+/* alterar pedido: só o telefone do cliente muda; nome, tipo e endereço não */
+.editando :is(#dadosTit, #nome, #tipoTit, #tipos, #endereco) { display: none; }
 
 /* barra flutuante da sacola */
 .cart-bar {

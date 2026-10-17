@@ -200,7 +200,8 @@ function abrirPedido(id) {
     <p>${p.entrega ? `Subtotal ${brl(p.subtotal)} · Entrega ${p.taxa === null ? 'a confirmar' : brl(p.taxa)}<br>` : ''}<strong>Total ${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}</strong> · ${esc(p.pag)}${p.pag === 'Dinheiro' && p.troco ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
     ${p.obs ? `<p>📝 ${esc(p.obs)}</p>` : ''}
     ${p.antes ? `<p class="antes"><small>Antes da alteração: ${esc(p.antes.itens.map(i => `${i.qtd}x ${i.nome}`).join(', '))}
-      · ${brl(p.antes.subtotal + (p.taxa ?? 0))} · ${esc(p.antes.pag)}</small></p>` : ''}
+      · ${brl(p.antes.subtotal + (p.taxa ?? 0))} · ${esc(p.antes.pag)}${'fone' in p.antes && p.antes.fone !== p.cliente.fone
+        ? ` · ${p.antes.fone ? `tel. ${esc(p.antes.fone)}` : 'sem telefone'}` : ''}</small></p>` : ''}
     ${p.status === 'cancelado' ? `<p>Motivo: ${esc(p.motivo)}</p>` : ''}`;
   const prox = PROXIMA[p.status];
   const rotulo = prox === 'preparo' ? 'Aceitar' : etapa(prox, p);

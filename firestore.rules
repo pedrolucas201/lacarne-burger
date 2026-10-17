@@ -38,7 +38,12 @@ service cloud.firestore {
     // histórico pro dono: a primeira alteração grava o pedido como chegou (igual ao banco); depois não muda mais
     function antesIntacto(novo, velho) {
       return ('antes' in velho && novo.antes == velho.antes)
-        || (!('antes' in velho) && novo.antes == { 'itens': velho.itens, 'subtotal': velho.subtotal, 'pag': velho.pag });
+        || (!('antes' in velho) && novo.antes == { 'itens': velho.itens, 'subtotal': velho.subtotal, 'pag': velho.pag, 'fone': velho.cliente.fone });
+    }
+    // do cliente, a alteração só troca o telefone (ou põe um no balcão sem telefone); apagar não pode
+    function foneTrocado(novo, velho) {
+      return novo.diff(velho).affectedKeys().hasOnly(['fone'])
+        && (novo.fone == velho.fone || (texto(novo.fone, 16) && novo.fone.size() >= 11));
     }
 
     // avaliação: o convite (criado pelo painel ao marcar entregue) autoriza UMA avaliação daquele pedido,
@@ -86,8 +91,9 @@ service cloud.firestore {
         allow update: if admin(loja) && ((request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['status', 'aceitoEm', 'saiuEm', 'entregueEm', 'canceladoEm', 'motivo'])
             && request.resource.data.status in ['novo', 'preparo', 'saiu', 'entregue', 'cancelado'])
-          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['itens', 'subtotal', 'pag', 'troco', 'obs', 'alteradoEm', 'antes'])
-            && resource.data.status != 'cancelado' && alteracaoValida(request.resource.data) && antesIntacto(request.resource.data, resource.data)));
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['itens', 'subtotal', 'pag', 'troco', 'obs', 'alteradoEm', 'antes', 'cliente'])
+            && resource.data.status != 'cancelado' && alteracaoValida(request.resource.data) && antesIntacto(request.resource.data, resource.data)
+            && foneTrocado(request.resource.data.cliente, resource.data.cliente)));
       }
 
       // create em documento que já existe conta como update (negado): uma avaliação por pedido

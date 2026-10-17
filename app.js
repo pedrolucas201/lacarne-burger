@@ -464,12 +464,14 @@ $('#enviar').onclick = () => {
   const vazio = !EDITAR && ['nome', ...(BALCAO ? [] : ['fone']), ...(entrega ? ['rua', 'numero', 'bairro'] : []),
     ...(entrega && f('bairro') === 'outro' ? ['bairroOutro'] : [])].find(id => !f(id));
   if (vazio) { $('#' + vazio).reportValidity(); $('#' + vazio).focus(); return toast(`Preencha: ${$('#' + vazio).label || $('#' + vazio).ariaLabel}`, true); }
-  if (!EDITAR && (!BALCAO || f('fone')) && !foneOk(f('fone'))) { $('#fone').focus(); return toast('Telefone inválido: DDD + celular com o 9 (ex.: 81 9 9999-9999)', true); }
+  // edição: pode trocar o telefone ou pôr um no pedido que não tinha, mas não apagar
+  const pedeFone = EDITAR ? f('fone') || soDigitos(orig?.cliente.fone) : !BALCAO || f('fone');
+  if (pedeFone && !foneOk(f('fone'))) { $('#fone').focus(); return toast('Telefone inválido: DDD + celular com o 9 (ex.: 81 9 9999-9999)', true); }
   if (!pag) return toast('Escolha a forma de pagamento', true);
   const sub = subtotal(), tx = taxa(), total = sub + (tx ?? 0), troco = +f('troco') || 0;
   if (pag === 'Dinheiro' && troco && troco < total) return toast(`O troco precisa ser maior que ${brl(total)}`, true);
   if (troco > 1000) return toast('Troco até R$ 1.000', true);
-  if (EDITAR) return alterar({ itens: paraBanco(), subtotal: sub, pag, troco: pag === 'Dinheiro' ? troco : 0, obs: f('obsGeral') });
+  if (EDITAR) return alterar({ itens: paraBanco(), subtotal: sub, pag, troco: pag === 'Dinheiro' ? troco : 0, obs: f('obsGeral') }, f('fone'));
 
   const c = Object.fromEntries(CAMPOS.map(k => [k, f(k)]));
   if (!BALCAO) store.set('cliente', c);
@@ -507,12 +509,14 @@ $('#enviar').onclick = () => {
 const paraBanco = () => carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,
   escolhas: Object.fromEntries(i.escolhas), sem: i.sem, extras: i.extras, obs: i.obs }));
 
-// edição: o cliente recebe o pedido novo no WhatsApp (antes de qualquer await). Já entregue ou no local, não: é acerto da loja.
-// Pedido já contado na ficha: o gasto muda pela diferença (cancelar depois desconta o valor novo).
+// edição: o cliente recebe o pedido novo no WhatsApp, no número novo se trocou (antes de qualquer await).
+// Já entregue ou no local, não: é acerto da loja.
+// Pedido já contado na ficha: o gasto muda pela diferença (cancelar depois desconta o valor novo). Trocou o telefone:
+// o pedido sai da ficha antiga (apagada se era o único) e entra na nova, sem mudar o nome de quem já tinha ficha.
 // Convite sem avaliação troca os burgers. ponytail: entregue sem convite que ganhou burger fica sem avaliação
-async function alterar(m) {
-  const novo = { ...orig, ...m }, fone = soDigitos(orig.cliente.fone);
-  if (fone && !orig.local && orig.status !== 'entregue') window.open(whats(orig.cliente.fone, avisoAlteracao(novo, loja, orig)), '_blank', 'noopener');
+async function alterar(m, fone) {
+  const para = soDigitos(fone), novo = { ...orig, ...m, cliente: { ...orig.cliente, fone } };
+  if (para && !orig.local && orig.status !== 'entregue') window.open(whats(fone, avisoAlteracao(novo, loja, orig)), '_blank', 'noopener');
   const { db, doc, runTransaction, increment, serverTimestamp } = banco;
   const loj = doc(db, 'lojas', LOJA_ID), ref = doc(loj, 'pedidos', EDITAR), convRef = doc(loj, 'convites', EDITAR);
   const burgers = burgersDoPedido(m.itens, loja.cardapio);
@@ -521,10 +525,21 @@ async function alterar(m) {
     await runTransaction(db, async t => {
       const atual = (await t.get(ref)).data(), conv = await t.get(convRef);
       const avaliado = conv.exists() && (await t.get(doc(loj, 'avaliacoes', EDITAR))).exists();
+      const de = soDigitos(atual.cliente.fone), contado = VALIDOS.includes(atual.status), trocou = contado && de !== para;
+      const fichaDe = de ? doc(loj, 'clientes', de) : null, fichaPara = para ? doc(loj, 'clientes', para) : null;
+      const [velha, nova] = trocou ? await Promise.all([fichaDe && t.get(fichaDe), fichaPara && t.get(fichaPara)]) : [];
       // antes: o pedido como chegou, gravado na primeira alteração e nunca mais (a regra confere)
-      t.update(ref, { ...m, alteradoEm: serverTimestamp(), antes: atual.antes ?? { itens: atual.itens, subtotal: atual.subtotal, pag: atual.pag } });
-      const delta = m.subtotal - atual.subtotal;
-      if (fone && delta && VALIDOS.includes(atual.status)) t.set(doc(loj, 'clientes', fone), { gasto: increment(delta) }, { merge: true });
+      t.update(ref, { ...m, ...(fone !== atual.cliente.fone ? { 'cliente.fone': fone } : {}), alteradoEm: serverTimestamp(),
+        antes: atual.antes ?? { itens: atual.itens, subtotal: atual.subtotal, pag: atual.pag, fone: atual.cliente.fone } });
+      if (contado && !trocou && de && m.subtotal !== atual.subtotal) t.set(fichaDe, { gasto: increment(m.subtotal - atual.subtotal) }, { merge: true });
+      if (trocou && velha?.exists()) velha.data().pedidos > 1
+        ? t.update(fichaDe, { pedidos: increment(-1), gasto: increment(-atual.subtotal) }) : t.delete(fichaDe);
+      if (trocou && fichaPara) {
+        const n = nova.data(), quando = atual.criadoEm;
+        t.set(fichaPara, { ...(n ? {} : { nome: atual.cliente.nome }), pedidos: increment(1), gasto: increment(m.subtotal),
+          ...(!n?.primeiro || n.primeiro.toMillis() > quando.toMillis() ? { primeiro: quando } : {}),
+          ...(!n?.ultimo || n.ultimo.toMillis() < quando.toMillis() ? { ultimo: quando } : {}) }, { merge: true });
+      }
       const ids = burgers.map(x => x.id);
       if (conv.exists() && !avaliado && ids.length && ids.join() !== conv.data().ids.join()) t.update(convRef, { ids, burgers });
     });
@@ -662,6 +677,8 @@ if (EDITAR) {
     document.querySelectorAll('md-radio[name="pag"]').forEach(r => { r.checked = r.value === orig.pag; });
     $('#troco').value = orig.troco || '';
     $('#obsGeral').value = orig.obs;
+    $('#fone').value = mascaraFone(orig.cliente.fone);
+    if (orig.cliente.fone) $('#fone').setAttribute('label', 'Telefone'); // trocar pode, apagar não
     $('#troco').hidden = orig.pag !== 'Dinheiro';
     salvar();
     dCart.show();
