@@ -1,5 +1,5 @@
 // Indicadores do painel. Puro: recebe pedidos com datas já em Date (sem Firebase, sem DOM).
-import { soDigitos } from './pedido.js';
+import { soDigitos, pagTexto } from './pedido.js';
 
 // ponytail: fuso fixo UTC-3 (Recife sem horário de verão desde 2019); loja em outro fuso precisa de Intl aqui
 const FUSO = -3 * 3600e3;
@@ -65,7 +65,8 @@ export function calcular(pedidos, { ini, fim }, clientes = {}) {
     ticket: ok.length ? faturamento / ok.length : 0,
     cancelados: dentro.filter(p => p.status === 'cancelado').length,
     maisVendidos: ranking(ok, p => p.itens.map(i => [i.nome, i.qtd])),
-    pagamentos: ranking(ok, p => [[p.pag, p.subtotal]]),
+    // dividido: cada parte na sua forma, sem a taxa (proporcional), pra somar o mesmo que o faturamento
+    pagamentos: ranking(ok, p => p.divisao ? p.divisao.map(d => [d.pag, d.valor * p.subtotal / (p.subtotal + (p.taxa || 0))]) : [[p.pag, p.subtotal]]),
     bairros: ranking(ok, p => p.entrega ? [[bairro(p), 1]] : []),
     diasSemana: ranking(ok, p => [[local(p.criadoEm).getUTCDay(), p.subtotal]]),
     pico: Object.entries(pico).sort(),
@@ -86,7 +87,7 @@ export function csv(pedidos) {
   const linhas = pedidos.map(p => [
     local(p.criadoEm).toISOString().slice(0, 16).replace('T', ' '), p.cod, p.cliente.nome, p.cliente.fone,
     p.entrega ? p.cliente.bairro : p.local ? 'No local' : 'Retirada', p.itens.map(i => `${i.qtd}x ${i.nome}`).join(' + '),
-    num(p.subtotal), num(p.taxa), p.pag, p.status,
+    num(p.subtotal), num(p.taxa), pagTexto(p), p.status,
   ].map(cel).join(';'));
   return '﻿' + ['Data;Pedido;Cliente;Telefone;Bairro;Itens;Subtotal;Taxa;Pagamento;Status', ...linhas].join('\r\n');
 }

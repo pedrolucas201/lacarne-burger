@@ -97,3 +97,11 @@ test('bairro digitado com maiúscula, acento ou espaço diferente conta junto', 
 });
 test('planilha marca consumo no local', () =>
   assert.match(csv([ped('2026-10-01T19:10', { entrega: false, local: true, cliente: { nome: 'Mesa 3', fone: '' } })]), /"Mesa 3";"";"No local"/));
+
+test('pagamento dividido: cada parte na sua forma, sem a taxa', () => {
+  // total 37 (32 + 5): 18,50 no Pix e 18,50 no cartão viram 16 + 16 do subtotal
+  const r = calcular([ped('2026-10-01T19:10', { pag: 'Pix + Cartão de crédito', divisao: [{ pag: 'Pix', valor: 18.5 }, { pag: 'Cartão de crédito', valor: 18.5 }] }),
+    ped('2026-10-01T19:20')], DIA);
+  assert.deepEqual(r.pagamentos, [['Pix', 48], ['Cartão de crédito', 16]]);
+  assert.ok(csv([ped('2026-10-01T19:10', { divisao: [{ pag: 'Pix', valor: 18.5 }, { pag: 'Dinheiro', valor: 18.5 }] })]).replace(/ /g, ' ').includes('Pix R$ 18,50 + Dinheiro R$ 18,50'));
+});

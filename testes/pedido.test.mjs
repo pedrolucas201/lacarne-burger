@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar, locBoa, metros, foneOk, avisoAlteracao } from '../pedido.js';
+import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar, locBoa, metros, foneOk, avisoAlteracao, pagTexto } from '../pedido.js';
 
 test('telefone: celular com DDD e o 9', () => {
   assert.ok(foneOk('(81) 9 9325-9534'));
@@ -116,4 +116,19 @@ test('aviso de alteração: itens, total, pagamento e Pix', () => {
   const din = t({ subtotal: 41, pag: 'Pix' }, { pag: 'Dinheiro', troco: 50 });
   assert.ok(din.includes('Pagamento: Dinheiro (troco para R$ 50,00)') && !din.includes('Pix'), din);
   assert.ok(!t({ subtotal: 35, pag: 'Dinheiro' }, { taxa: null }).includes('Pix copia'), 'sem taxa definida, sem valor pro Pix');
+});
+
+test('aviso de alteração com pagamento dividido: valores, troco e Pix só da parte em Pix', () => {
+  const l = { nome: 'La Carne', cidade: 'Vitória de Santo Antão - PE', pix: '+5581984793839', adicionais: [] };
+  const ped = { cod: 'AB12C', subtotal: 41, taxa: 5, troco: 50, itens: [{ qtd: 1, nome: 'Bruto', extras: [] }],
+    pag: 'Pix + Dinheiro', divisao: [{ pag: 'Pix', valor: 10 }, { pag: 'Dinheiro', valor: 36 }] };
+  const t = antes => avisoAlteracao(ped, l, antes).replace(/ /g, ' ');
+  // era cartão: código Pix de 10 (não do total de 46)
+  const deCartao = t({ subtotal: 41, pag: 'Cartão de crédito' });
+  assert.ok(deCartao.includes('Pagamento: Pix R$ 10,00 + Dinheiro R$ 36,00 (troco para R$ 50,00)') && deCartao.includes('540510.00')
+    && !deCartao.includes('540546.00'), deCartao);
+  // era Pix inteiro (46) e agora só 10 vai no Pix: se já pagou, a loja devolve 36
+  const dePix = t({ subtotal: 41, pag: 'Pix' });
+  assert.ok(dePix.includes('a loja devolve R$ 36,00') && !dePix.includes('Pix copia'), dePix);
+  assert.equal(pagTexto({ pag: 'Pix' }), 'Pix');
 });

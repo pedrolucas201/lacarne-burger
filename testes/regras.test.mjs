@@ -259,3 +259,26 @@ test('registro de outro alvo, antigo ou repetido não vale', async () => {
   assert.ok(usado);
   await assertFails(comReg(adm(), 'p1', P1, { status: 'saiu', saiuEm: serverTimestamp() }, { reg: usado }));
 });
+
+// ---------- pagamento dividido (só a loja) ----------
+const div = (a, b, va, vb) => ({ pag: `${a} + ${b}`, divisao: [{ pag: a, valor: va }, { pag: b, valor: vb }] });
+test('balcão divide o pagamento em 2 formas que somam o total', async () => {
+  await assertSucceeds(lancar(adm(), balcao(div('Pix', 'Dinheiro', 12.5, 19.5)))); // subtotal 32, taxa 0
+  await assertSucceeds(lancar(adm(), balcao({ local: false, entrega: true, taxa: 5, cliente: pedido().cliente, ...div('Pix', 'Cartão de crédito', 20, 17) })));
+});
+test('divisão errada é negada: soma, forma repetida ou inventada, valor zero, pag diferente, taxa a confirmar', async () => {
+  await assertFails(lancar(adm(), balcao(div('Pix', 'Dinheiro', 10, 10))));
+  await assertFails(lancar(adm(), balcao(div('Pix', 'Pix', 16, 16))));
+  await assertFails(lancar(adm(), balcao(div('Pix', 'Fiado', 16, 16))));
+  await assertFails(lancar(adm(), balcao(div('Pix', 'Dinheiro', 0, 32))));
+  await assertFails(lancar(adm(), balcao({ ...div('Pix', 'Dinheiro', 16, 16), pag: 'Pix' })));
+  await assertFails(lancar(adm(), balcao({ ...div('Pix', 'Dinheiro', 16, 16), divisao: [{ pag: 'Pix', valor: 16 }, { pag: 'Dinheiro', valor: 16 }, { pag: 'Pix', valor: 0 }] })));
+  await assertFails(lancar(adm(), balcao({ local: false, entrega: true, taxa: null, cliente: pedido().cliente, ...div('Pix', 'Dinheiro', 16, 16) })));
+});
+test('cliente no site não divide', () => assertFails(addDoc(pedidos(anon()), pedido(div('Pix', 'Dinheiro', 20, 17)))));
+test('alteração divide e depois volta pra uma forma (divisao null)', async () => {
+  await assertSucceeds(alterar(adm(), div('Pix', 'Dinheiro', 20, 23))); // 38 + 5
+  await assertFails(alterar(adm(), div('Pix', 'Dinheiro', 20, 20)));
+  await assertSucceeds(alterar(adm(), { pag: 'Cartão de débito', divisao: null, antes: { itens: pedido().itens, subtotal: 32, pag: 'Pix', fone: pedido().cliente.fone } }));
+  await assertFails(alterar(adm(), { pag: 'Pix + Dinheiro', divisao: null, antes: { itens: pedido().itens, subtotal: 32, pag: 'Pix', fone: pedido().cliente.fone } }));
+});

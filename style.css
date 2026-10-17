@@ -295,6 +295,11 @@ legend { font-weight: 600; margin-bottom: 6px; }
 .opt:hover { background: var(--md-sys-color-surface-container); }
 .opt:has(md-radio:focus-within), .opt:active { border-color: var(--md-sys-color-primary); }
 .radios { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 8px; }
+#pagChips { gap: 8px; margin-bottom: 4px; }
+#pagDica { margin: -6px 0 12px; }
+.dividir { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; cursor: pointer; }
+#divisao { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; margin-bottom: 12px; }
+#resto { grid-column: 1 / -1; margin-top: 6px; }
 md-outlined-text-field { width: 100%; }
 #bairro {
   width: 100%; min-width: 0; height: 56px; padding: 0 12px; font: inherit; font-size: 1rem;
