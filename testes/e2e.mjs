@@ -301,6 +301,16 @@ try {
   assert.equal((await db.doc(`lojas/lacarne/convites/${velho.id}`).get()).exists, false);
   await painel.evaluate(() => document.querySelector('#diaHoje').click());
   await painel.waitForFunction(() => document.querySelector('#listaPedidos').textContent.includes('Mesa 3'));
+  // 9. lastro: cada ação do painel e do balcão deixou linha no registro, com quem e o aparelho; nenhum erro anotado
+  const reg = (await db.collection('lojas/lacarne/registro').orderBy('em').get()).docs.map(d => d.data());
+  const acoes = new Set(reg.map(r => r.acao));
+  for (const a of ['loja', 'site', 'status', 'imprimiu', 'lancou', 'alterou']) assert.ok(acoes.has(a), `registro sem "${a}"`);
+  assert.ok(!acoes.has('erro'), JSON.stringify(reg.filter(r => r.acao === 'erro')));
+  assert.ok(reg.every(r => r.quem === 'dono@teste.com' && r.aparelho && r.em));
+  const daBia = reg.filter(r => r.alvo === ent.id).map(r => r.acao === 'status' ? r.dados.para : r.acao);
+  assert.deepEqual(daBia, ['lancou', 'imprimiu', 'alterou', 'saiu', 'entregue']);
+  const alt = reg.find(r => r.alvo === ent.id && r.acao === 'alterou').dados;
+  assert.deepEqual([alt.antes.subtotal, alt.antes.fone, alt.depois.subtotal, alt.depois.fone, alt.depois.pag], [32, '(81) 9 8888-7777', 66, '(81) 9 8888-6666', 'Dinheiro']);
   assert.deepEqual(erros, []);
   console.log('e2e ok');
 } finally {

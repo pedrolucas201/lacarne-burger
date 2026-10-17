@@ -1,7 +1,7 @@
 import '../vendor/material.js';
 import { app, appCheck, db, LOJA_ID, LOCAL } from '../firebase.js';
 import {
-  doc, collection, query, where, orderBy, onSnapshot, getDoc, getDocs, setDoc, updateDoc, runTransaction, serverTimestamp, increment, Timestamp,
+  doc, collection, query, where, orderBy, onSnapshot, getDoc, getDocs, setDoc, runTransaction, serverTimestamp, increment, Timestamp,
   writeBatch, getToken,
 } from '../vendor/firebase/base.js';
 import qrcode from '../vendor/qrcode.js';
@@ -14,6 +14,7 @@ import { periodo, intervalo, calcular, variacao, csv, VALIDOS } from '../numeros
 import { hoje } from '../horario.js';
 import { burgersDoPedido, resumo, quando, TAGS_BOAS } from '../avaliacao.js';
 import { $, brl, esc, toast } from '../util.js';
+import { registrar, anotar, erro } from '../registro.js';
 
 const auth = getAuth(app);
 if (LOCAL) {
@@ -58,6 +59,12 @@ async function diagnostico(e) {
   console.error('painel: falha ao conferir acesso', e, ac);
   return `Erro: ${e.code ?? e.message}${ac ? ` | App Check: ${ac}` : ''} | Hora do aparelho: ${new Date().toLocaleString('pt-BR')}`;
 }
+
+// erro de código no painel vai pro lastro (até 20 por abertura, pra um erro em laço não encher o banco)
+let errosAnotados = 0;
+const anotarErro = e => { if (iniciado && errosAnotados++ < 20) erro('painel', e); };
+addEventListener('error', e => anotarErro(e.error ?? e.message));
+addEventListener('unhandledrejection', e => anotarErro(e.reason));
 
 // ---------- abas e conexão ----------
 $('#abas').addEventListener('click', e => {
@@ -242,34 +249,37 @@ async function mudar(p, status, motivo = null) {
   if (texto && fone && doDia) window.open(whats(p.cliente.fone, texto), '_blank', 'noopener'); // antes de qualquer await, senão o navegador bloqueia
   const ref = doc(pedidosRef, p.id);
   const mudanca = { status, [CAMPO[status]]: serverTimestamp(), ...(motivo ? { motivo } : {}) };
+  const comReg = t => ({ ...mudanca, reg: registrar(t, 'status', p.id, { cod: p.cod, de: p.status, para: status, ...(motivo ? { motivo } : {}) }) });
+  const soStatus = () => { const b = writeBatch(db); b.update(ref, comReg(b)); return b.commit(); };
   const conta = !fone ? 0 : status === 'preparo' ? 1 : status === 'cancelado' && VALIDOS.includes(p.status) ? -1 : 0;
   $('#pedidoDialog').close();
   toast(`#${p.cod}: ${etapa(status, p)}`);
   try {
-    if (!conta && !avaliar) return await updateDoc(ref, mudanca);
+    if (!conta && !avaliar) return await soStatus();
     if (!conta) {
       const convRef = doc(lojaRef, 'convites', p.id);
-      if (await getDoc(convRef).then(d => d.exists(), () => false)) return await updateDoc(ref, mudanca);
+      if (await getDoc(convRef).then(d => d.exists(), () => false)) return await soStatus();
       const b = writeBatch(db);
-      b.update(ref, mudanca);
+      b.update(ref, comReg(b));
       b.set(convRef, { nome: nomeConvite(p), ids: burgers.map(x => x.id), burgers, entregueEm: serverTimestamp() });
       return await b.commit();
     }
     await runTransaction(db, async t => {
       const cRef = doc(lojaRef, 'clientes', soDigitos(p.cliente.fone));
       const cli = await t.get(cRef);
-      t.update(ref, mudanca);
+      t.update(ref, comReg(t));
       t.set(cRef, {
         nome: p.cliente.nome, pedidos: increment(conta), gasto: increment(conta * p.subtotal),
         ...(conta > 0 ? { ultimo: p.criadoEm } : {}), ...(cli.exists() ? {} : { primeiro: p.criadoEm }),
       }, { merge: true });
     });
-  } catch (e) { console.error(e); toast(`#${p.cod} não salvou, tenta de novo`, true); }
+  } catch (e) { console.error(e); erro(`status ${p.id}`, e); toast(`#${p.cod} não salvou, tenta de novo`, true); }
 }
 
 // comanda: o QR leva pra avaliação (?qr = rastreio "pelo QR"). O convite nasce aqui, porque o papel vai junto com o
 // lanche: quem tem a comanda na mão já recebeu, e avalia sem depender de a loja marcar Entregue
 async function imprimir(p) {
+  anotar('imprimiu', p.id, { cod: p.cod });
   const burgers = burgersDoPedido(p.itens, loja.cardapio);
   let qr = '';
   if (burgers.length) {
@@ -399,8 +409,9 @@ function renderLoja() {
 }
 $('#controles').addEventListener('change', e => {
   const s = e.target, valor = s.selected ? hoje() : null;
-  const mudanca = s.dataset.campo ? { [s.dataset.campo]: valor } : { [`esgotados.${s.dataset.esgotado}`]: valor };
-  updateDoc(lojaRef, mudanca).catch(() => toast('Não salvou, tenta de novo', true));
+  const campo = s.dataset.campo ?? `esgotados.${s.dataset.esgotado}`, b = writeBatch(db);
+  b.update(lojaRef, { [campo]: valor, reg: registrar(b, 'loja', 'loja', { campo, valor }) });
+  b.commit().catch(e => { erro('loja', e); toast('Não salvou, tenta de novo', true); });
 });
 
 // ---------- números ----------
@@ -620,7 +631,7 @@ $('#listaAv').addEventListener('change', async e => {
   const a = avLista.find(x => x.id === sw.dataset.pub), bid = sw.dataset.b, liga = sw.selected, b = writeBatch(db);
   const publicas = [...(a.publicas || []).filter(x => x !== bid), ...(liga ? [bid] : [])];
   const dep = doc(lojaRef, 'depoimentos', `${a.id}_${bid}`);
-  b.update(doc(avRef, a.id), { publicas });
+  b.update(doc(avRef, a.id), { publicas, reg: registrar(b, 'site', a.id, { burger: bid, mostrar: liga }) });
   if (liga) b.set(dep, { nome: a.nome, burger: bid, nota: a.notas[bid], comentario: a.comentarios[bid], criadoEm: Timestamp.fromDate(a.criadoEm) });
   else b.delete(dep);
   try {
@@ -628,7 +639,7 @@ $('#listaAv').addEventListener('change', async e => {
     a.publicas = publicas;
     toast(liga ? 'Vai aparecer no site ✅' : 'Saiu do site');
     renderAv();
-  } catch (err) { console.error(err); sw.selected = !liga; toast('Não salvou, tenta de novo', true); }
+  } catch (err) { console.error(err); erro(`site ${a.id}`, err); sw.selected = !liga; toast('Não salvou, tenta de novo', true); }
 });
 $('#listaAv').addEventListener('click', e => {
   const v = e.target.closest('[data-ver]');

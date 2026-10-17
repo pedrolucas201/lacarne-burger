@@ -517,7 +517,7 @@ const paraBanco = () => carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.uni
 async function alterar(m, fone) {
   const para = soDigitos(fone), novo = { ...orig, ...m, cliente: { ...orig.cliente, fone } };
   if (para && !orig.local && orig.status !== 'entregue') window.open(whats(fone, avisoAlteracao(novo, loja, orig)), '_blank', 'noopener');
-  const { db, doc, runTransaction, increment, serverTimestamp } = banco;
+  const { db, doc, runTransaction, increment, serverTimestamp } = banco, { registrar, erro } = await import('./registro.js');
   const loj = doc(db, 'lojas', LOJA_ID), ref = doc(loj, 'pedidos', EDITAR), convRef = doc(loj, 'convites', EDITAR);
   const burgers = burgersDoPedido(m.itens, loja.cardapio);
   $('#enviar').disabled = true;
@@ -529,7 +529,9 @@ async function alterar(m, fone) {
       const fichaDe = de ? doc(loj, 'clientes', de) : null, fichaPara = para ? doc(loj, 'clientes', para) : null;
       const [velha, nova] = trocou ? await Promise.all([fichaDe && t.get(fichaDe), fichaPara && t.get(fichaPara)]) : [];
       // antes: o pedido como chegou, gravado na primeira alteração e nunca mais (a regra confere)
-      t.update(ref, { ...m, ...(fone !== atual.cliente.fone ? { 'cliente.fone': fone } : {}), alteradoEm: serverTimestamp(),
+      const como = x => ({ itens: x.itens, subtotal: x.subtotal, pag: x.pag, troco: x.troco, obs: x.obs, fone: x.cliente.fone });
+      const reg = registrar(t, 'alterou', EDITAR, { cod: atual.cod, antes: como(atual), depois: como(novo) });
+      t.update(ref, { ...m, ...(fone !== atual.cliente.fone ? { 'cliente.fone': fone } : {}), alteradoEm: serverTimestamp(), reg,
         antes: atual.antes ?? { itens: atual.itens, subtotal: atual.subtotal, pag: atual.pag, fone: atual.cliente.fone } });
       if (contado && !trocou && de && m.subtotal !== atual.subtotal) t.set(fichaDe, { gasto: increment(m.subtotal - atual.subtotal) }, { merge: true });
       if (trocou && velha?.exists()) velha.data().pedidos > 1
@@ -545,6 +547,7 @@ async function alterar(m, fone) {
     });
   } catch (e) {
     console.error(e);
+    erro(`alterar ${EDITAR}`, e);
     return toast('Não salvou. Confere a internet e tenta de novo', true);
   } finally { $('#enviar').disabled = false; }
   carrinho = [];
@@ -556,19 +559,20 @@ async function alterar(m, fone) {
 // balcão: espera o banco responder (não tem WhatsApp pra abrir) e já conta o cliente, como o Aceitar do painel faz
 async function lancar(ref, p) {
   if (!await logado) return toast('Entre no painel antes de lançar pedido', true);
-  const { db, doc, runTransaction, increment, serverTimestamp } = banco;
+  const { db, doc, runTransaction, increment, serverTimestamp } = banco, { registrar, erro } = await import('./registro.js');
   const fone = soDigitos(p.cliente.fone);
   $('#enviar').disabled = true;
   try {
     await runTransaction(db, async t => {
       const cRef = fone && doc(db, 'lojas', LOJA_ID, 'clientes', fone);
       const cli = cRef && await t.get(cRef);
-      t.set(ref, p);
+      t.set(ref, { ...p, reg: registrar(t, 'lancou', ref.id, { cod: p.cod, subtotal: p.subtotal }) });
       if (cRef) t.set(cRef, { nome: p.cliente.nome, pedidos: increment(1), gasto: increment(p.subtotal), ultimo: serverTimestamp(),
         ...(cli.exists() ? {} : { primeiro: serverTimestamp() }) }, { merge: true });
     });
   } catch (e) {
     console.error(e);
+    erro('lancar', e);
     return toast('Não salvou. Confere a internet e tenta de novo', true);
   } finally { $('#enviar').disabled = false; }
   carrinho = [];
