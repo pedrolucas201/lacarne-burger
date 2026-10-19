@@ -86,9 +86,13 @@ setInterval(status, 30000);
 
 // ---------- cardápio, bairros e horário (roda de novo a cada mudança no banco) ----------
 function renderLoja() {
-  document.querySelectorAll('.horario').forEach(el => el.textContent = loja.horario.texto);
+  // "Quarta a sábado · 18h às 23h": dia normal, hora em destaque
+  const [dias, horas = ''] = loja.horario.texto.split(' · ');
+  document.querySelectorAll('.horario').forEach(el => el.innerHTML = `${esc(dias)}<strong>${esc(horas)}</strong>`);
   $('#onde').hidden = !loja.endereco;
-  if (loja.endereco) $('#onde').innerHTML = `📍 <a href="${mapa(loja.endereco, loja.cidade)}" target="_blank" rel="noopener">${esc(loja.endereco)}</a>`;
+  // "Rua do Borges, 489 - Bela Vista": rua numa linha, bairro na outra
+  if (loja.endereco) $('#onde').innerHTML = `<h3>Onde fica</h3><address>${loja.endereco.split(' - ').map(esc).join('<br>')}</address>
+    <a href="${mapa(loja.endereco, loja.cidade)}" target="_blank" rel="noopener">Ver no mapa →</a>`;
   status();
   const ehBebida = i => i.tipo === 'bebida';
   $('#bebidas').innerHTML = loja.cardapio.filter(ehBebida).map(i => `
