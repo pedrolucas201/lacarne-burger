@@ -10,17 +10,18 @@ export const LOJA = {
   endereco: 'Rua do Borges, 489 - Bela Vista', // onde retira; vazio = não mostra
   tempoEntrega: 30, // minutos, média informada pelo Nicolas; 0 = não mostra
   horario: { dias: [3, 4, 5, 6], abre: 18, fecha: 23, texto: 'Quarta a sábado · 18h às 23h' },
-  // taxa de entrega por bairro (tabela da MotoJá); bairro fora da lista = "a confirmar no WhatsApp"
+  // taxa de entrega por bairro: anéis de 1/2/3/4,5 km da loja a R$ 5/6/7/8 (Nicolas, 23/10); Caiçara e Campinas a R$ 10 por serem mais pra dentro.
+  // bairro fora da lista = "a confirmar no WhatsApp"
   taxas: {
-    'Água Branca': 7, 'Alto do Cigano': 7, 'Alto José Leal (até o Mercado do Lar)': 7, 'Amparo': 7, 'Atacarejo': 9,
-    'Bairro Nobre': 8, 'Bairro Novo': 7, 'Bairro Treze': 7, 'Balança': 7, 'Bela Vista': 7, 'Bela Vista 2': 8,
-    'Belo Horizonte': 7, 'Borges': 7, 'Privê Borges': 7, 'Caic': 7, 'Caiçara 1': 7, 'Caiçara 2 e 3': 8, 'Cajá': 7,
-    'Cajueiro': 9, 'Campinas': 8, 'Colorado': 8, 'Cond. Águas Claras': 8, 'Cond. Bela Vista 2': 8, 'Doutor Alvinho': 7,
-    'Irã': 7, 'Iraque 1': 7, 'Iraque 2': 8, 'Jardim Ipiranga': 7, 'Jardim São Pedro': 7, 'José de Lemos': 7,
-    'Lagoa Redonda': 7, 'Lídia Queiroz': 7, 'Livramento': 7, 'Lot. de Baú': 8, 'Lot. Paraíso': 7, 'Lot. Real': 7,
-    'Lot. Tropical': 7, 'Lot. Veneza': 8, 'Mangueira': 7, 'Maranhão': 7, 'Mário Bezerra': 7, 'Matadouro': 7,
-    'Matriz': 7, 'Maués': 8, 'Militina': 8, 'Natuba': 10, 'Petrobras': 7, 'Pinga Fogo': 7, 'Privê Shopping': 10,
-    'Redenção': 7, 'Santana': 9, 'Shopping (fora)': 8, 'Shopping (dentro)': 10, 'Sítio do Meio': 7, 'Trajanos': 7,
+    'Água Branca': 7, 'Alto do Cigano': 7, 'Alto José Leal (até o Mercado do Lar)': 5, 'Amparo': 6, 'Atacarejo': 8,
+    'Bairro Nobre': 7, 'Bairro Novo': 5, 'Bairro Treze': 5, 'Balança': 6, 'Bela Vista': 5, 'Bela Vista 2': 5,
+    'Belo Horizonte': 7, 'Borges': 5, 'Privê Borges': 5, 'Caic': 7, 'Caiçara 1': 10, 'Caiçara 2 e 3': 10, 'Cajá': 7,
+    'Cajueiro': 8, 'Campinas': 10, 'Colorado': 8, 'Cond. Águas Claras': 8, 'Cond. Bela Vista 2': 6, 'Doutor Alvinho': 6,
+    'Irã': 7, 'Iraque 1': 7, 'Iraque 2': 7, 'Jardim Ipiranga': 6, 'Jardim São Pedro': 6, 'José de Lemos': 6,
+    'Lagoa Redonda': 6, 'Lídia Queiroz': 7, 'Livramento': 5, 'Lot. de Baú': 7, 'Lot. Paraíso': 7, 'Lot. Real': 6,
+    'Lot. Tropical': 7, 'Lot. Veneza': 7, 'Mangueira': 5, 'Maranhão': 6, 'Mário Bezerra': 6, 'Matadouro': 7,
+    'Matriz': 5, 'Maués': 6, 'Militina': 7, 'Natuba': 7, 'Petrobras': 7, 'Pinga Fogo': 5, 'Privê Shopping': 7,
+    'Redenção': 6, 'Santana': 8, 'Shopping (fora)': 7, 'Shopping (dentro)': 7, 'Sítio do Meio': 6, 'Trajanos': 6,
   },
   // adicionais (Brenda, 01/10): valem pra qualquer burger, até 5 de cada (app.js MAX_EXTRA); preço por unidade do burger
   adicionais: [
