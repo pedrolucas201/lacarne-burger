@@ -40,13 +40,13 @@ try {
     q('#enviar').click();
     return decodeURIComponent(window.__url.split('text=')[1]);
   });
-  assert.match(msg, /VALOR FINAL: R\$\s40,00/);
+  assert.match(msg, /VALOR FINAL: R\$\s42,00/);
   const id = msg.match(/painel\/#(\w+)/)[1];
   await espera(1500);
   const salvo = (await db.doc(`lojas/lacarne/pedidos/${id}`).get()).data();
   assert.equal(salvo.status, 'novo');
   assert.equal(salvo.subtotal, 35);
-  assert.equal(salvo.taxa, 5);
+  assert.equal(salvo.taxa, 7);
   assert.deepEqual(salvo.itens[0].escolhas, { 'Ponto da carne': 'Ao ponto' });
 
   // 2. loja abre pelo link do WhatsApp, entra e aceita
@@ -200,7 +200,7 @@ try {
   });
   await painel.waitForFunction(() => document.querySelector('#balcao').hidden && document.querySelector('#pedidoDialog[open] #avancar'), { timeout: 8000 });
   const [ent] = (await db.collection('lojas/lacarne/pedidos').where('cliente.fone', '==', '(81) 9 8888-7777').get()).docs;
-  assert.deepEqual([ent.data().status, ent.data().entrega, ent.data().local, ent.data().taxa, ent.data().subtotal], ['preparo', true, false, 5, 35]);
+  assert.deepEqual([ent.data().status, ent.data().entrega, ent.data().local, ent.data().taxa, ent.data().subtotal], ['preparo', true, false, 7, 35]);
   const ficha = (await db.doc('lojas/lacarne/clientes/81988887777').get()).data();
   assert.deepEqual([ficha.nome, ficha.pedidos, ficha.gasto, !!ficha.primeiro], ['Bia', 1, 35, true]);
   // comanda impressa antes de entregar: o convite já existe e o Entregue tem que salvar mesmo assim (e mandar o link)
@@ -233,7 +233,7 @@ try {
     q('#enviar').click();
     return decodeURIComponent(window.__url || '');
   });
-  assert.match(alterado, /phone=5581988886666.*alterado.*1x Coca-Cola.*1x Matuto.*Total: R\$.71,00 \(antes R\$.37,00\).*Pagamento: Dinheiro/s);
+  assert.match(alterado, /phone=5581988886666.*alterado.*1x Coca-Cola.*1x Matuto.*Total: R\$.73,00 \(antes R\$.39,00\).*Pagamento: Dinheiro/s);
   await painel.waitForFunction(() => document.querySelector('#balcao').hidden
     && document.querySelector('#pedidoDialog[open] #pedCorpo')?.textContent.includes('alterado às'), { timeout: 8000 });
   const ed = (await ent.ref.get()).data();
