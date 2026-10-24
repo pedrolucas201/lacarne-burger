@@ -10,7 +10,7 @@ export const LOJA = {
   endereco: 'Rua do Borges, 489 - Bela Vista', // onde retira; vazio = não mostra
   tempoEntrega: 30, // minutos, média informada pelo Nicolas; 0 = não mostra
   horario: { dias: [3, 4, 5, 6], abre: 18, fecha: 23, texto: 'Quarta a sábado · 18h às 23h' },
-  // taxa de entrega por bairro: anéis de 1/2/3/4,5 km da loja a R$ 5/6/7/8 (Nicolas, 23/10); Caiçara e Campinas a R$ 10 por serem mais pra dentro.
+  // taxa de entrega por bairro: anéis de 1/2/3/4,5 km da loja a R$ 5/6/7/8 (Nicolas, 23/10); Caiçara e Campinas a R$ 10 por serem mais pra dentro; Natuba, Shopping (dentro) e Privê Shopping a R$ 10.
   // bairro fora da lista = "a confirmar no WhatsApp"
   taxas: {
     'Água Branca': 7, 'Alto do Cigano': 7, 'Alto José Leal (até o Mercado do Lar)': 5, 'Amparo': 6, 'Atacarejo': 8,
@@ -20,8 +20,8 @@ export const LOJA = {
     'Irã': 7, 'Iraque 1': 7, 'Iraque 2': 7, 'Jardim Ipiranga': 6, 'Jardim São Pedro': 6, 'José de Lemos': 6,
     'Lagoa Redonda': 6, 'Lídia Queiroz': 7, 'Livramento': 5, 'Lot. de Baú': 7, 'Lot. Paraíso': 7, 'Lot. Real': 6,
     'Lot. Tropical': 7, 'Lot. Veneza': 7, 'Mangueira': 5, 'Maranhão': 6, 'Mário Bezerra': 6, 'Matadouro': 7,
-    'Matriz': 5, 'Maués': 6, 'Militina': 7, 'Natuba': 7, 'Petrobras': 7, 'Pinga Fogo': 5, 'Privê Shopping': 7,
-    'Redenção': 6, 'Santana': 8, 'Shopping (fora)': 7, 'Shopping (dentro)': 7, 'Sítio do Meio': 6, 'Trajanos': 6,
+    'Matriz': 5, 'Maués': 6, 'Militina': 7, 'Natuba': 10, 'Petrobras': 7, 'Pinga Fogo': 5, 'Privê Shopping': 10,
+    'Redenção': 6, 'Santana': 8, 'Shopping (fora)': 7, 'Shopping (dentro)': 10, 'Sítio do Meio': 6, 'Trajanos': 6,
   },
   // adicionais (Brenda, 01/10): valem pra qualquer burger, até 5 de cada (app.js MAX_EXTRA); preço por unidade do burger
   adicionais: [
