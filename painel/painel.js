@@ -223,10 +223,19 @@ function abrirPedido(id) {
     ${fim ? '' : `<md-text-button id="cancelar">${p.status === 'novo' ? 'Recusar' : 'Cancelar'}</md-text-button>`}
     ${prox ? `<md-filled-button id="avancar">${rotulo}</md-filled-button>` : ''}`;
   $('#imprimir')?.addEventListener('click', () => imprimir(p));
-  $('#avancar')?.addEventListener('click', () => mudar(p, prox));
+  $('#avancar')?.addEventListener('click', () => prox === 'preparo' && !c.ok ? confirmarValor(p) : mudar(p, prox));
   $('#editar')?.addEventListener('click', () => { $('#pedidoDialog').close(); abrirBalcao(`../?balcao&editar=${p.id}`, `Alterar pedido #${p.cod}`); });
   $('#cancelar')?.addEventListener('click', () => pedirMotivo(p));
   $('#pedidoDialog').show();
+}
+
+// valor diferente do cardápio: aceitar pede confirmação (o cliente pode ter mexido no preço)
+function confirmarValor(p) {
+  $('#pedAcoes').innerHTML = `<p class="alerta confirma">⚠ O valor não confere com o cardápio. Confira quanto o cliente pagou antes de aceitar.</p>
+    <md-text-button id="voltar">Voltar</md-text-button>
+    <md-filled-button id="mesmoAssim">Aceitar mesmo assim</md-filled-button>`;
+  $('#voltar').onclick = () => abrirPedido(p.id);
+  $('#mesmoAssim').onclick = () => mudar(p, 'preparo');
 }
 
 function pedirMotivo(p) {
