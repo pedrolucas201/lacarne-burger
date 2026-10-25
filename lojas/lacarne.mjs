@@ -9,7 +9,7 @@ export const LOJA = {
   cidade: 'Vitória de Santo Antão - PE',
   endereco: 'Rua do Borges, 489 - Bela Vista', // onde retira; vazio = não mostra
   tempoEntrega: 30, // minutos, média informada pelo Nicolas; 0 = não mostra
-  horario: { dias: [3, 4, 5, 6], abre: 18, fecha: 23, texto: 'Quarta a sábado · 18h às 23h' },
+  horario: { dias: [0, 3, 4, 5, 6], abre: 18, fecha: 23, texto: 'Quarta a domingo · 18h às 23h' },
   // taxa de entrega por bairro: anéis de 1/2/3/4,5 km da loja a R$ 5/6/7/8 (Nicolas, 23/10); Caiçara e Campinas a R$ 10 por serem mais pra dentro; Natuba, Shopping (dentro) e Privê Shopping a R$ 10.
   // bairro fora da lista = "a confirmar no WhatsApp"
   taxas: {
