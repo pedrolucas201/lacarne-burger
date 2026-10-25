@@ -345,31 +345,50 @@ function salvar() {
   atualizarPag();
 }
 // balcão e edição: uma forma (tocar em outra troca). Com "Dividir forma de pagamento" ligado, marca 2 ou 3.
-// 2: digita o valor de uma e a outra completa o total. 3: digita as 2 primeiras e a última completa
+// digita os valores em qualquer campo; o que foi mexido há mais tempo (ou nunca) completa o total
 const chips = () => [...document.querySelectorAll('#pagChips md-filter-chip')];
 const formas = () => BALCAO ? chips().filter(c => c.selected).map(c => c.dataset.pag) : [radio('pag')].filter(Boolean);
 const totalAgora = () => subtotal() + (taxa() ?? 0);
 const valores = () => formas().map((_, i) => $('#valor' + (i + 1)));
-function completar(de) {
-  const cs = valores(), alvo = cs.length === 2 && de === cs[1] ? cs[0] : cs.at(-1);
-  const outros = cs.filter(c => c !== alvo).map(c => +c.value);
-  alvo.value = outros.every(v => v > 0) ? String(centavos(totalAgora() - outros.reduce((s, v) => s + v, 0))) : '';
+const somar = l => centavos(l.reduce((s, v) => s + v, 0));
+let mexidos = [], formasAntes = ''; // mexidos: campos na ordem em que foram digitados (o último é o mais recente)
+function completar() {
+  const cs = valores(), recentes = mexidos.filter(c => cs.includes(c)).slice(-(cs.length - 1));
+  const alvo = cs.findLast(c => !recentes.includes(c)), outros = cs.filter(c => c !== alvo).map(c => +c.value);
+  alvo.value = outros.every(v => v > 0) ? String(centavos(totalAgora() - somar(outros))) : '';
+  cs.forEach(c => c.closest('.parte').classList.toggle('auto', c === alvo && !!alvo.value));
+  mostrarResto();
+}
+function mostrarResto() {
+  const vs = valores().map(c => +c.value || 0), falta = centavos(totalAgora() - somar(vs)), r = $('#resto');
+  r.className = taxa() === null || falta ? 'erro' : 'ok';
+  r.innerHTML = taxa() === null ? '<span>Com a entrega a confirmar não dá pra dividir</span>'
+    : falta > 0 ? `<span>Falta</span><b>${brl(falta)}</b>`
+    : falta < 0 ? `<span>Passou do total</span><b>${brl(-falta)}</b>`
+    : `<span>Fechou ✓</span><b>${brl(totalAgora())}</b>`;
 }
 function atualizarPag() {
-  const fs = formas();
+  const fs = formas(), dividindo = BALCAO && $('#dividir').selected;
   $('#divisao').hidden = fs.length < 2;
-  $('#valor3').hidden = fs.length < 3;
-  if (fs.length > 1) {
-    valores().forEach((c, i) => c.setAttribute('label', fs[i]));
-    if (+$('#valor1').value > 0) completar($('#valor1')); // a sacola mudou: a última acompanha
-    $('#resto').textContent = taxa() === null ? 'Com a entrega a confirmar não dá pra dividir'
-      : fs.length === 2 ? `Digite um valor, o outro completa ${brl(totalAgora())}`
-      : `Digite 2 valores, o último completa ${brl(totalAgora())}`;
+  $('#pagChips').classList.toggle('grandes', dividindo);
+  $('#passo1').hidden = !dividindo;
+  $('#pagConta').textContent = fs.length < 2 ? 'marque 2 ou 3' : `${fs.length} de 3`;
+  [1, 2, 3].forEach(i => { $('#valor' + i).closest('.parte').hidden = i > fs.length; });
+  if (fs.join() !== formasAntes) { // trocou as formas: começa a divisão do zero
+    if (formasAntes) [1, 2, 3].forEach(i => { $('#valor' + i).value = ''; });
+    formasAntes = fs.join(); mexidos = [];
   }
-  $('#pagDica').hidden = !(BALCAO && $('#dividir').selected && fs.length < 2);
+  if (fs.length > 1) {
+    valores().forEach((c, i) => { c.closest('.parte').querySelector('span').textContent = chips().find(x => x.dataset.pag === fs[i]).label; });
+    completar(); // a sacola mudou: o que completa acompanha
+  }
   $('#troco').hidden = !fs.includes('Dinheiro');
 }
-['#valor1', '#valor2'].forEach(id => $(id).addEventListener('input', () => completar($(id))));
+[1, 2, 3].forEach(i => $('#valor' + i).addEventListener('input', () => {
+  const c = $('#valor' + i);
+  mexidos = [...mexidos.filter(x => x !== c), c];
+  completar();
+}));
 $('#pagChips').addEventListener('click', e => {
   const c = e.target.closest('md-filter-chip');
   if (c) setTimeout(() => { // o chip troca o selected depois do clique
@@ -515,12 +534,11 @@ $('#enviar').onclick = () => {
   if (!pag) return toast('Escolha a forma de pagamento', true);
   if (BALCAO && $('#dividir').selected && !dividido) return toast('Marque a 2ª forma ou desligue Dividir forma de pagamento', true);
   const sub = subtotal(), tx = taxa(), total = sub + (tx ?? 0), troco = +f('troco') || 0;
-  // a última parte é o que falta pro total
-  const partes = valores().slice(0, -1).map(c => centavos(+c.value || 0));
-  partes.push(centavos(total - partes.reduce((s, v) => s + v, 0)));
+  const partes = valores().map(c => centavos(+c.value || 0));
   if (dividido) {
     if (tx === null) return toast('Com a entrega a confirmar não dá pra dividir', true);
-    if (!partes.every(v => v > 0)) return toast(`${fs.join(', ')} precisam somar ${brl(total)}, cada um mais que zero`, true);
+    if (!partes.every(v => v > 0) || somar(partes) !== centavos(total))
+      return toast(`${fs.join(', ')} precisam somar ${brl(total)}, cada um mais que zero`, true);
   }
   const divisao = dividido ? fs.map((pag, i) => ({ pag, valor: partes[i] })) : null;
   const emDinheiro = divisao ? divisao.find(d => d.pag === 'Dinheiro')?.valor : pag === 'Dinheiro' ? total : 0;

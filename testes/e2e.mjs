@@ -281,13 +281,15 @@ try {
     q('#valor2').value = '28'; // digitou o do dinheiro: o Pix completa
     q('#valor2').dispatchEvent(new Event('input'));
     if (q('#valor1').value !== '20') return 'Pix não completou: ' + q('#valor1').value;
-    // marcou o crédito também: digita Pix e crédito, o dinheiro completa
+    // marcou o crédito também: a divisão recomeça; digita dinheiro e Pix, o crédito (vazio) completa
     q('#pagChips md-filter-chip[data-pag="Cartão de crédito"]').selected = true;
     q('#cartDialog').dispatchEvent(new Event('change'));
-    if (q('#valor3').hidden) return '3º valor não apareceu';
-    q('#valor2').value = '10';
-    q('#valor2').dispatchEvent(new Event('input'));
-    if (q('#valor3').value !== '18') return 'dinheiro não completou: ' + q('#valor3').value;
+    if (q('#valor3').hidden || q('#valor1').value) return '3º valor não apareceu ou a divisão não recomeçou';
+    const digitar = (s, v) => { q(s).value = v; q(s).dispatchEvent(new Event('input')); };
+    digitar('#valor3', '18');
+    digitar('#valor1', '20');
+    if (q('#valor2').value !== '10') return 'crédito não completou: ' + q('#valor2').value;
+    if (!q('#resto').textContent.includes('Fechou')) return 'resto: ' + q('#resto').textContent;
     q('#troco').value = '50';
     q('#enviar').click();
     await new Promise(r => setTimeout(r, 1500));
