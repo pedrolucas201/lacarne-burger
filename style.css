@@ -334,10 +334,27 @@ legend { font-weight: 600; margin-bottom: 6px; }
 .opt:has(md-radio:focus-within), .opt:active { border-color: var(--md-sys-color-primary); }
 .radios { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 8px; }
 #pagChips { gap: 8px; margin-bottom: 4px; }
-#pagDica { margin: -6px 0 12px; }
+.passo { display: flex; justify-content: space-between; align-items: baseline; margin: 4px 0 10px; font-weight: 600; }
+.passo small { font-weight: 400; color: var(--md-sys-color-on-surface-variant); }
+/* dividindo: botões grandes 2x2, marcado em vermelho cheio */
+#pagChips.grandes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+#pagChips.grandes md-filter-chip { width: 100%;
+  --md-filter-chip-container-height: 56px; --md-filter-chip-container-shape: 14px; --md-filter-chip-icon-size: 22px;
+  --md-filter-chip-label-text-size: 1rem; --md-filter-chip-label-text-weight: 600;
+  --md-filter-chip-outline-width: 2px; --md-filter-chip-outline-color: var(--md-sys-color-primary);
+  --md-filter-chip-selected-container-color: var(--md-sys-color-primary);
+  --md-filter-chip-selected-label-text-color: #fff; --md-filter-chip-selected-hover-label-text-color: #fff;
+  --md-filter-chip-selected-focus-label-text-color: #fff; --md-filter-chip-selected-pressed-label-text-color: #fff;
+  --md-filter-chip-selected-leading-icon-color: #fff; --md-filter-chip-selected-hover-leading-icon-color: #fff;
+  --md-filter-chip-selected-focus-leading-icon-color: #fff; --md-filter-chip-selected-pressed-leading-icon-color: #fff; }
+.parte { display: grid; grid-template-columns: 88px 1fr; align-items: center; gap: 12px; }
+.parte span { font-weight: 600; }
+.parte.auto span::after { content: 'completou'; display: block; font-size: .75rem; font-weight: 400; color: #2e7d32; }
+#resto { display: flex; justify-content: space-between; margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; font-weight: 600; }
+#resto.erro { background: var(--rosa); color: var(--md-sys-color-primary); }
+#resto.ok { background: #e3f1e4; color: #2e7d32; }
 .dividir { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; cursor: pointer; }
-#divisao { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; margin-bottom: 12px; }
-#resto { grid-column: 1 / -1; margin-top: 6px; }
+#divisao { display: grid; gap: 8px; margin-bottom: 12px; }
 md-outlined-text-field { width: 100%; }
 #bairro {
   width: 100%; min-width: 0; height: 56px; padding: 0 12px; font: inherit; font-size: 1rem;

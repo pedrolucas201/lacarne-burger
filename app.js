@@ -344,36 +344,57 @@ function salvar() {
     <div class="total"><span>Total</span><span>${brl(subtotal() + (tx ?? 0))}${tx === null ? ' + entrega' : ''}</span></div>`;
   atualizarPag();
 }
-// balcão e edição: uma forma (tocar em outra troca). Com "Pagar com 2 formas" ligado, marca 2,
-// digita o valor de uma e a outra completa o total
+// balcão e edição: uma forma (tocar em outra troca). Com "Dividir forma de pagamento" ligado, marca 2 ou 3.
+// digita os valores em qualquer campo; o que foi mexido há mais tempo (ou nunca) completa o total
 const chips = () => [...document.querySelectorAll('#pagChips md-filter-chip')];
 const formas = () => BALCAO ? chips().filter(c => c.selected).map(c => c.dataset.pag) : [radio('pag')].filter(Boolean);
 const totalAgora = () => subtotal() + (taxa() ?? 0);
-function atualizarPag() {
-  const [pag, pag2] = formas(), v1 = +$('#valor1').value;
-  $('#divisao').hidden = !pag2;
-  if (pag2) {
-    $('#valor1').setAttribute('label', pag);
-    $('#valor2').setAttribute('label', pag2);
-    if (v1 > 0) $('#valor2').value = String(centavos(totalAgora() - v1)); // a sacola mudou: a 2ª acompanha
-    $('#resto').textContent = taxa() === null ? 'Com a entrega a confirmar não dá pra dividir'
-      : `Digite um valor, o outro completa ${brl(totalAgora())}`;
-  }
-  $('#pagDica').hidden = !(BALCAO && $('#dividir').selected && !pag2);
-  $('#troco').hidden = !formas().includes('Dinheiro');
+const valores = () => formas().map((_, i) => $('#valor' + (i + 1)));
+const somar = l => centavos(l.reduce((s, v) => s + v, 0));
+let mexidos = [], formasAntes = ''; // mexidos: campos na ordem em que foram digitados (o último é o mais recente)
+function completar() {
+  const cs = valores(), recentes = mexidos.filter(c => cs.includes(c)).slice(-(cs.length - 1));
+  const alvo = cs.findLast(c => !recentes.includes(c)), outros = cs.filter(c => c !== alvo).map(c => +c.value);
+  alvo.value = outros.every(v => v > 0) ? String(centavos(totalAgora() - somar(outros))) : '';
+  cs.forEach(c => c.closest('.parte').classList.toggle('auto', c === alvo && !!alvo.value));
+  mostrarResto();
 }
-const completar = (de, para) => $(de).addEventListener('input', () => {
-  const v = +$(de).value;
-  $(para).value = v > 0 ? String(centavos(totalAgora() - v)) : '';
-});
-completar('#valor1', '#valor2');
-completar('#valor2', '#valor1');
+function mostrarResto() {
+  const vs = valores().map(c => +c.value || 0), falta = centavos(totalAgora() - somar(vs)), r = $('#resto');
+  r.className = taxa() === null || falta ? 'erro' : 'ok';
+  r.innerHTML = taxa() === null ? '<span>Com a entrega a confirmar não dá pra dividir</span>'
+    : falta > 0 ? `<span>Falta</span><b>${brl(falta)}</b>`
+    : falta < 0 ? `<span>Passou do total</span><b>${brl(-falta)}</b>`
+    : `<span>Fechou ✓</span><b>${brl(totalAgora())}</b>`;
+}
+function atualizarPag() {
+  const fs = formas(), dividindo = BALCAO && $('#dividir').selected;
+  $('#divisao').hidden = fs.length < 2;
+  $('#pagChips').classList.toggle('grandes', dividindo);
+  $('#passo1').hidden = !dividindo;
+  $('#pagConta').textContent = fs.length < 2 ? 'marque 2 ou 3' : `${fs.length} de 3`;
+  [1, 2, 3].forEach(i => { $('#valor' + i).closest('.parte').hidden = i > fs.length; });
+  if (fs.join() !== formasAntes) { // trocou as formas: começa a divisão do zero
+    if (formasAntes) [1, 2, 3].forEach(i => { $('#valor' + i).value = ''; });
+    formasAntes = fs.join(); mexidos = [];
+  }
+  if (fs.length > 1) {
+    valores().forEach((c, i) => { c.closest('.parte').querySelector('span').textContent = chips().find(x => x.dataset.pag === fs[i]).label; });
+    completar(); // a sacola mudou: o que completa acompanha
+  }
+  $('#troco').hidden = !fs.includes('Dinheiro');
+}
+[1, 2, 3].forEach(i => $('#valor' + i).addEventListener('input', () => {
+  const c = $('#valor' + i);
+  mexidos = [...mexidos.filter(x => x !== c), c];
+  completar();
+}));
 $('#pagChips').addEventListener('click', e => {
   const c = e.target.closest('md-filter-chip');
   if (c) setTimeout(() => { // o chip troca o selected depois do clique
     const outros = chips().filter(x => x.selected && x !== c);
     if (c.selected && !$('#dividir').selected) outros.forEach(x => { x.selected = false; });
-    else if (c.selected && outros.length > 1) { c.selected = false; toast('No máximo 2 formas', true); }
+    else if (c.selected && outros.length > 2) { c.selected = false; toast('No máximo 3 formas', true); }
     atualizarPag();
   });
 });
@@ -503,7 +524,7 @@ $('#enviar').onclick = () => {
   if (acabou) return toast(`${acabou.nome} esgotou, tira da sacola 😕`, true);
   const f = id => $('#' + id).value.trim();
   const entrega = radio('tipo') === 'Entrega', local = radio('tipo') === 'Local';
-  const [pag, pag2 = null] = formas();
+  const fs = formas(), [pag] = fs, dividido = fs.length > 1;
   const vazio = !EDITAR && ['nome', ...(BALCAO ? [] : ['fone']), ...(entrega ? ['rua', 'numero', 'bairro'] : []),
     ...(entrega && f('bairro') === 'outro' ? ['bairroOutro'] : [])].find(id => !f(id));
   if (vazio) { $('#' + vazio).reportValidity(); $('#' + vazio).focus(); return toast(`Preencha: ${$('#' + vazio).label || $('#' + vazio).ariaLabel}`, true); }
@@ -511,18 +532,19 @@ $('#enviar').onclick = () => {
   const pedeFone = EDITAR ? f('fone') || soDigitos(orig?.cliente.fone) : !BALCAO || f('fone');
   if (pedeFone && !foneOk(f('fone'))) { $('#fone').focus(); return toast('Telefone inválido: DDD + celular com o 9 (ex.: 81 9 9999-9999)', true); }
   if (!pag) return toast('Escolha a forma de pagamento', true);
-  if (BALCAO && $('#dividir').selected && !pag2) return toast('Marque a 2ª forma ou desligue Pagar com 2 formas', true);
+  if (BALCAO && $('#dividir').selected && !dividido) return toast('Marque a 2ª forma ou desligue Dividir forma de pagamento', true);
   const sub = subtotal(), tx = taxa(), total = sub + (tx ?? 0), troco = +f('troco') || 0;
-  const v1 = centavos(+$('#valor1').value || 0);
-  if (pag2) {
+  const partes = valores().map(c => centavos(+c.value || 0));
+  if (dividido) {
     if (tx === null) return toast('Com a entrega a confirmar não dá pra dividir', true);
-    if (!(v1 > 0 && v1 < total)) return toast(`${pag} e ${pag2} precisam somar ${brl(total)}, cada um mais que zero`, true);
+    if (!partes.every(v => v > 0) || somar(partes) !== centavos(total))
+      return toast(`${fs.join(', ')} precisam somar ${brl(total)}, cada um mais que zero`, true);
   }
-  const divisao = pag2 ? [{ pag, valor: v1 }, { pag: pag2, valor: centavos(total - v1) }] : null;
+  const divisao = dividido ? fs.map((pag, i) => ({ pag, valor: partes[i] })) : null;
   const emDinheiro = divisao ? divisao.find(d => d.pag === 'Dinheiro')?.valor : pag === 'Dinheiro' ? total : 0;
   if (emDinheiro && troco && troco < emDinheiro) return toast(`O troco precisa ser maior que ${brl(emDinheiro)}`, true);
   if (troco > 1000) return toast('Troco até R$ 1.000', true);
-  const forma = divisao ? `${pag} + ${pag2}` : pag, comTroco = emDinheiro ? troco : 0;
+  const forma = fs.join(' + '), comTroco = emDinheiro ? troco : 0;
   // voltou pra uma forma só: divisao null apaga a antiga
   if (EDITAR) return alterar({ itens: paraBanco(), subtotal: sub, pag: forma, ...(divisao || orig.divisao ? { divisao } : {}),
     troco: comTroco, obs: f('obsGeral') }, f('fone'));
@@ -735,12 +757,11 @@ if (EDITAR) {
     if (carrinho.length < orig.itens.length) toast('Algum item saiu do cardápio e ficou fora da sacola', true);
     const tipo = orig.entrega ? 'Entrega' : orig.local ? 'Local' : 'Retirada';
     document.querySelectorAll('md-radio[name="tipo"]').forEach(r => { r.checked = r.value === tipo; });
-    const [p1, p2] = orig.divisao ?? [{ pag: orig.pag }];
-    document.querySelectorAll('md-radio[name="pag"]').forEach(r => { r.checked = r.value === p1.pag; });
-    chips().forEach(c => { c.selected = [p1.pag, p2?.pag].includes(c.dataset.pag); });
-    $('#dividir').selected = !!p2;
-    $('#valor1').value = String(p1.valor ?? '');
-    $('#valor2').value = String(p2?.valor ?? '');
+    const ps = orig.divisao ?? [{ pag: orig.pag }];
+    document.querySelectorAll('md-radio[name="pag"]').forEach(r => { r.checked = r.value === ps[0].pag; });
+    chips().forEach(c => { c.selected = ps.some(d => d.pag === c.dataset.pag); });
+    $('#dividir').selected = ps.length > 1;
+    [1, 2, 3].forEach(i => { $('#valor' + i).value = String(ps[i - 1]?.valor ?? ''); });
     $('#troco').value = orig.troco || '';
     $('#obsGeral').value = orig.obs;
     $('#fone').value = mascaraFone(orig.cliente.fone);

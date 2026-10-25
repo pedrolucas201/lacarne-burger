@@ -25,16 +25,22 @@ service cloud.firestore {
         && (p.taxa == null || (p.taxa is number && p.taxa >= 0 && p.taxa <= 50));
     }
 
-    // uma forma, ou dividido em 2 (só a loja): formas diferentes, partes somando o total (taxa já definida), pag = 'A + B'
+    function parteOk(x) {
+      return x.keys().hasOnly(['pag', 'valor']) && x.pag in ['Pix', 'Cartão de crédito', 'Cartão de débito', 'Dinheiro']
+        && x.valor is number && x.valor > 0;
+    }
+
+    // uma forma, ou dividido em 2 ou 3 (só a loja): formas diferentes, partes somando o total (taxa já definida), pag = 'A + B' ou 'A + B + C'
     function pagOk(p) {
-      let formas = ['Pix', 'Cartão de crédito', 'Cartão de débito', 'Dinheiro'];
       let d = p.get('divisao', null);
       return p.troco is number && p.troco >= 0 && p.troco <= 1000
-        && ((d == null && p.pag in formas)
-          || (d is list && d.size() == 2 && d[0].keys().hasOnly(['pag', 'valor']) && d[1].keys().hasOnly(['pag', 'valor'])
-            && d[0].pag in formas && d[1].pag in formas && d[0].pag != d[1].pag && p.pag == d[0].pag + ' + ' + d[1].pag
-            && d[0].valor is number && d[1].valor is number && d[0].valor > 0 && d[1].valor > 0
-            && p.taxa is number && math.abs(d[0].valor + d[1].valor - p.subtotal - p.taxa) < 0.01));
+        && ((d == null && p.pag in ['Pix', 'Cartão de crédito', 'Cartão de débito', 'Dinheiro'])
+          || (d is list && p.taxa is number && parteOk(d[0]) && parteOk(d[1]) && d[0].pag != d[1].pag
+            && ((d.size() == 2 && p.pag == d[0].pag + ' + ' + d[1].pag
+                && math.abs(d[0].valor + d[1].valor - p.subtotal - p.taxa) < 0.01)
+              || (d.size() == 3 && parteOk(d[2]) && d[2].pag != d[0].pag && d[2].pag != d[1].pag
+                && p.pag == d[0].pag + ' + ' + d[1].pag + ' + ' + d[2].pag
+                && math.abs(d[0].valor + d[1].valor + d[2].valor - p.subtotal - p.taxa) < 0.01))));
     }
 
     // mesmos limites do pedido novo, com a hora do servidor

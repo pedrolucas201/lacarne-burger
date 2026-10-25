@@ -266,6 +266,17 @@ test('balcão divide o pagamento em 2 formas que somam o total', async () => {
   await assertSucceeds(lancar(adm(), balcao(div('Pix', 'Dinheiro', 12.5, 19.5)))); // subtotal 32, taxa 0
   await assertSucceeds(lancar(adm(), balcao({ local: false, entrega: true, taxa: 5, cliente: pedido().cliente, ...div('Pix', 'Cartão de crédito', 20, 17) })));
 });
+const div3 = (va, vb, vc, c = 'Dinheiro') => ({ pag: `Pix + Cartão de crédito + ${c}`,
+  divisao: [{ pag: 'Pix', valor: va }, { pag: 'Cartão de crédito', valor: vb }, { pag: c, valor: vc }] });
+test('balcão divide em 3 formas; soma errada, repetida, zero ou pag errado é negado', async () => {
+  await assertSucceeds(lancar(adm(), balcao(div3(10, 12, 10)))); // subtotal 32
+  await assertFails(lancar(adm(), balcao(div3(10, 12, 9))));
+  await assertFails(lancar(adm(), balcao(div3(10, 12, 10, 'Pix'))));
+  await assertFails(lancar(adm(), balcao(div3(10, 22, 0))));
+  await assertFails(lancar(adm(), balcao({ ...div3(10, 12, 10), pag: 'Pix + Cartão de crédito' })));
+  await assertFails(lancar(adm(), balcao({ ...div3(8, 8, 8), divisao: [...div3(8, 8, 8).divisao, { pag: 'Cartão de débito', valor: 8 }],
+    pag: 'Pix + Cartão de crédito + Dinheiro + Cartão de débito' })));
+});
 test('divisão errada é negada: soma, forma repetida ou inventada, valor zero, pag diferente, taxa a confirmar', async () => {
   await assertFails(lancar(adm(), balcao(div('Pix', 'Dinheiro', 10, 10))));
   await assertFails(lancar(adm(), balcao(div('Pix', 'Pix', 16, 16))));

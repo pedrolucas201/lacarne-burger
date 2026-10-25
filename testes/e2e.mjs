@@ -281,6 +281,15 @@ try {
     q('#valor2').value = '28'; // digitou o do dinheiro: o Pix completa
     q('#valor2').dispatchEvent(new Event('input'));
     if (q('#valor1').value !== '20') return 'Pix não completou: ' + q('#valor1').value;
+    // marcou o crédito também: a divisão recomeça; digita dinheiro e Pix, o crédito (vazio) completa
+    q('#pagChips md-filter-chip[data-pag="Cartão de crédito"]').selected = true;
+    q('#cartDialog').dispatchEvent(new Event('change'));
+    if (q('#valor3').hidden || q('#valor1').value) return '3º valor não apareceu ou a divisão não recomeçou';
+    const digitar = (s, v) => { q(s).value = v; q(s).dispatchEvent(new Event('input')); };
+    digitar('#valor3', '18');
+    digitar('#valor1', '20');
+    if (q('#valor2').value !== '10') return 'crédito não completou: ' + q('#valor2').value;
+    if (!q('#resto').textContent.includes('Fechou')) return 'resto: ' + q('#resto').textContent;
     q('#troco').value = '50';
     q('#enviar').click();
     await new Promise(r => setTimeout(r, 1500));
@@ -290,7 +299,8 @@ try {
   const mesa = (await db.doc(`lojas/lacarne/pedidos/${lancado[0].id}`).get()).data();
   const junta = (await db.doc('lojas/lacarne/clientes/81988886666').get()).data();
   assert.deepEqual([mesa.cliente.fone, mesa.antes.fone, junta.nome, junta.pedidos, junta.gasto], ['(81) 9 8888-6666', '', 'Bia', 2, 66 + 48]);
-  assert.deepEqual([mesa.pag, mesa.divisao, mesa.troco], ['Pix + Dinheiro', [{ pag: 'Pix', valor: 20 }, { pag: 'Dinheiro', valor: 28 }], 50]);
+  assert.deepEqual([mesa.pag, mesa.divisao, mesa.troco], ['Pix + Cartão de crédito + Dinheiro',
+    [{ pag: 'Pix', valor: 20 }, { pag: 'Cartão de crédito', valor: 10 }, { pag: 'Dinheiro', valor: 18 }], 50]);
   assert.equal(junta.primeiro.toMillis(), mesa.criadoEm.toMillis());
 
   // 8. histórico: pedido de ontem que ficou parado em "pronto"; marcar Retirado não abre WhatsApp nem cria convite
