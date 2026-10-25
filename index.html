@@ -142,11 +142,12 @@
         <md-filter-chip label="Débito" data-pag="Cartão de débito"></md-filter-chip>
         <md-filter-chip label="Dinheiro" data-pag="Dinheiro"></md-filter-chip>
       </md-chip-set>
-      <label id="dividirLinha" class="dividir" hidden><md-switch id="dividir"></md-switch>Pagar com 2 formas</label>
+      <label id="dividirLinha" class="dividir" hidden><md-switch id="dividir"></md-switch>Dividir forma de pagamento</label>
       <p id="pagDica" class="nota-loc" hidden>Marque a 2ª forma</p>
       <div id="divisao" hidden>
         <md-outlined-text-field id="valor1" prefix-text="R$ " type="number" min="0" step="0.01"></md-outlined-text-field>
         <md-outlined-text-field id="valor2" prefix-text="R$ " type="number" min="0" step="0.01"></md-outlined-text-field>
+        <md-outlined-text-field id="valor3" prefix-text="R$ " type="number" readonly hidden></md-outlined-text-field>
         <p id="resto" class="nota-loc"></p>
       </div>
       <md-outlined-text-field id="troco" max="1000" label="Troco para quanto?" prefix-text="R$ " type="number" min="0" hidden

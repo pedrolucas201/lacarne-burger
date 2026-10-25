@@ -46,7 +46,7 @@ export const metros = m => m < 1000 ? `${Math.round(m)} m`
 const chave = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 export const bairroDaTabela = (taxas, nome) => chave(nome) && Object.keys(taxas).find(b => chave(b) === chave(nome)) || null;
 
-// pagamento dividido (só a loja): divisao = [{ pag, valor }, { pag, valor }] somando o total, e pag = 'Pix + Dinheiro'
+// pagamento dividido (só a loja): divisao = 2 ou 3 [{ pag, valor }] somando o total, e pag = 'Pix + Dinheiro'
 export const pagTexto = p => p.divisao ? p.divisao.map(d => `${d.pag} ${brl(d.valor)}`).join(' + ') : p.pag;
 // quanto do total é Pix (taxa à parte: na alteração ela não muda)
 const noPix = (p, taxa) => p.divisao ? p.divisao.find(d => d.pag === 'Pix')?.valor ?? 0 : p.pag === 'Pix' ? p.subtotal + (taxa ?? 0) : 0;
