@@ -34,6 +34,10 @@ body { padding-bottom: 72px; }
 .grupo.novo .pedido { background: var(--rosa); border: 2px solid var(--md-sys-color-primary); }
 .pedido small { display: block; color: var(--md-sys-color-on-surface-variant); }
 .pedido .valor { font-weight: 600; white-space: nowrap; }
+/* valor diferente do cardápio (pedido mexido, preço que mudou ou item que saiu): âmbar, destoa do rosa de novo */
+.pedido.nao-confere, .grupo.novo .pedido.nao-confere { background: #ffecb3; border: 3px solid #e0a000; }
+.pedido.nao-confere .valor s { margin-right: 4px; font-weight: 400; color: #8a6d00; }
+.pedido.nao-confere small.confere { color: #6b4f00; font-weight: 600; }
 .alerta { padding: 8px 12px; border-radius: 12px; font-weight: 600; background: var(--rosa); color: var(--md-sys-color-primary); }
 .itens { padding-left: 18px; }
 .motivos { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
