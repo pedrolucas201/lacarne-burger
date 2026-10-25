@@ -137,11 +137,15 @@ function renderPedidos() {
   $('#listaPedidos').innerHTML = lista.length ? grupos.map(([st, nome, l]) => `
     <section class="grupo ${st}${st === filtro ? ' ativa' : ''}">
       <h3>${nome} · ${l.length}</h3>
-      ${l.map(p => `<button class="pedido" data-id="${esc(p.id)}">
+      ${l.map(p => {
+        const c = conferir(p, loja), certo = c.subtotal + (c.taxa ?? 0);
+        return `<button class="pedido${c.ok ? '' : ' nao-confere'}" data-id="${esc(p.id)}">
         <span><strong>#${esc(p.cod)} · ${esc(p.cliente.nome)}</strong>
-          <small>${hora(p.criadoEm)} · ${tipo(p)} · ${esc(p.pag)}${st === 'fim' ? ` · ${etapa(p.status, p)}` : ''}</small></span>
-        <span class="valor">${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}${conferir(p, loja).ok ? '' : ' ⚠'}</span>
-      </button>`).join('') || '<p class="vazio">Nenhum</p>'}
+          <small>${hora(p.criadoEm)} · ${tipo(p)} · ${esc(p.pag)}${st === 'fim' ? ` · ${etapa(p.status, p)}` : ''}</small>
+          ${c.ok ? '' : `<small class="confere">⚠ Não confere: ${Number.isNaN(certo) ? 'item fora do cardápio' : `cardápio dá ${brl(certo)}`}</small>`}</span>
+        <span class="valor">${c.ok ? brl(total(p)) : `<s>${brl(total(p))}</s>${Number.isNaN(certo) ? '' : ` ${brl(certo)}`} ⚠`}${p.taxa === null ? ' + entrega' : ''}</span>
+      </button>`;
+      }).join('') || '<p class="vazio">Nenhum</p>'}
     </section>`).join('') : `<p class="vazio">${ehHoje() ? 'Nenhum pedido hoje ainda.' : 'Nenhum pedido neste dia.'}</p>`;
   if (atualId && $('#pedidoDialog').open) abrirPedido(atualId); // detalhe aberto acompanha a mudança
 }
