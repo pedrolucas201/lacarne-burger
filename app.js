@@ -101,7 +101,7 @@ function renderLoja() {
       <h3>${esc(i.nome)}</h3><small>${esc(i.desc)}</small>
       <div class="pe"><strong>${brl(i.preco)}</strong><div class="ctrl" data-ctrl="${esc(i.id)}"></div></div>
     </article>`).join('');
-  $('#menu').innerHTML = loja.cardapio.filter(i => !ehBebida(i)).map((i, n) => `
+  $('#menu').innerHTML = loja.cardapio.filter(i => !ehBebida(i) && (BALCAO || !i.soBalcao)).map((i, n) => `
     <article class="card${esgotado(i.id) ? ' esgotado' : ''}" data-card="${esc(i.id)}" style="--d:${n * 80}ms">
       <div class="emoji ${i.foto ? 'com-foto' : i.boi ? 'com-boi' : 'sem-foto'}">${i.foto || i.boi
         ? `<img src="${esc(i.foto || i.boi)}" alt="" loading="lazy">` : ''}<span>${i.boi
@@ -142,14 +142,14 @@ $('#menu').addEventListener('click', e => {
 
 // ---------- personalizar item ----------
 const dItem = $('#itemDialog');
-// bebida não tem ponto, nem tirar, nem adicional: um toque e já vai pra sacola
+// bebida (e carne crua) não tem ponto, nem tirar, nem adicional: um toque e já vai pra sacola
 function pegarBebida(item) {
   const igual = carrinho.find(i => i.id === item.id && !i.obs);
   igual ? igual.qtd = Math.min(99, igual.qtd + 1)
     : carrinho.push({ id: item.id, nome: item.nome, unit: item.preco, qtd: 1, escolhas: [], sem: [], extras: [], obs: '' });
   salvar();
   $('#badge').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400 });
-  if (!igual) toast(`${item.nome} na sacola 🥤`); // depois da primeira, o contador no card já mostra
+  if (!igual) toast(`${item.nome} na sacola ${item.emoji || '🥤'}`); // depois da primeira, o contador no card já mostra
 }
 const qtdBebida = id => carrinho.filter(i => i.id === id && !i.obs).reduce((s, i) => s + i.qtd, 0);
 // card mostra + (zerado) ou − n + (já na sacola); sacola sugere bebida quando não tem nenhuma
@@ -180,7 +180,7 @@ const selo = id => medias[id] ? `<span class="selo-nota"><b>★ ${virgula(medias
 // selo e comentários carregam separados: um não espera o outro
 fb.then(async ({ db, collection, query, where, getAggregateFromServer, count, average }) => {
   const notas = collection(db, 'lojas', LOJA_ID, 'notas');
-  const burgers = LOJA.cardapio.filter(i => i.tipo !== 'bebida');
+  const burgers = LOJA.cardapio.filter(i => !i.tipo);
   const ag = await Promise.all(burgers.map(b => getAggregateFromServer(query(notas, where(`notas.${b.id}`, '>=', 1)),
     { n: count(), media: average(`notas.${b.id}`) }).catch(() => null)));
   burgers.forEach((b, k) => { const d = ag[k]?.data(); if (d?.n >= MIN_NOTAS) medias[b.id] = d; });
@@ -224,7 +224,7 @@ async function opinioes(item) {
 function abrirItem(item) {
   if (!podePedir()) return toast(fechadoMsg(), true);
   if (esgotado(item.id)) return toast(`${item.nome} esgotou 😕`, true);
-  if (item.tipo === 'bebida') return pegarBebida(item);
+  if (item.tipo) return pegarBebida(item); // bebida e carne crua: sem diálogo
   // um burger por vez: com quantidade aqui, "2 bacons" era lido como o total (Nicolas, 25/10); repetir é no + da sacola
   atual = { item, qtd: 1, extras: {} }; // extras: { cheddar: 2 }
   $('#itemTitulo').textContent = item.nome;

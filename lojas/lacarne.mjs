@@ -56,6 +56,8 @@ export const LOJA = {
     { id: 'bruto', nome: 'Bruto', preco: 35, emoji: '🥓', foto: 'img/bruto.webp', fotoAlta: 'img/bruto-alta.webp', boi: 'img/boi-bruto.webp', escolhas: [PONTO],
       desc: 'Pão brioche, dois blends de fraldinha (150g cada), queijo cheddar, bacon, cebola caramelizada e maionese da casa.',
       tira: ['Queijo cheddar', 'Bacon', 'Cebola caramelizada', 'Maionese da casa'] },
+    // carne crua pra fazer em casa: só no balcão, pra contar a saída de carne nos Números (Nicolas, 25/10)
+    { id: 'carne-crua', tipo: 'carne', soBalcao: true, nome: 'Carne crua (blend 150g)', preco: 7.5, emoji: '🥩', desc: 'Blend de fraldinha cru, pra fazer em casa.', escolhas: [], tira: [] },
     // bebidas (cardápio da Brenda, 01/10): vão direto pra sacola, sem diálogo
     { id: 'guarana', tipo: 'bebida', nome: 'Guaraná Antarctica', preco: 6, foto: 'img/bebida-guarana.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
     { id: 'coca', tipo: 'bebida', nome: 'Coca-Cola', preco: 6, foto: 'img/bebida-coca.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },

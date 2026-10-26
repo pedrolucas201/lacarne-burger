@@ -476,7 +476,7 @@ function seta(atual, anterior) {
 }
 // computador: todas as seções abertas; celular: só a primeira (as outras abrem com um toque)
 const aberto = titulo => matchMedia('(min-width: 1000px)').matches || titulo === 'Burgers mais vendidos' ? 'open' : '';
-const ehBebida = nome => loja.cardapio.some(i => i.nome === nome && i.tipo === 'bebida');
+const tipoDe = nome => loja.cardapio.find(i => i.nome === nome)?.tipo;
 // listas longas (clientes, bairros): 5 na tela + "Ver todos" numa janela com busca e rolagem só lá dentro
 let listas = {};
 const TITULOS = { bairros: 'Todos os bairros', clientes: 'Todos os clientes' };
@@ -521,8 +521,9 @@ function renderNumeros(a, b) {
     <p class="nota">Setas comparam com ${periodoAtual !== 'livre' ? `${ANTERIOR[periodoAtual]}, até o mesmo horário`
       : `${diasLivre() > 1 ? `os ${diasLivre()} dias` : 'o dia'} logo antes${$('#ate').value === hoje() ? ', até o mesmo horário' : ''}`}.${a.cancelados ? ` ${a.cancelados} cancelado(s) fora da conta.` : ''}</p>
     <div class="blocos">
-      <details class="bloco" ${aberto('Burgers mais vendidos')}><summary>Burgers mais vendidos</summary>${barras(a.maisVendidos.filter(([n]) => !ehBebida(n)))}</details>
-      <details class="bloco" ${aberto('Bebidas mais vendidas')}><summary>Bebidas mais vendidas</summary>${barras(a.maisVendidos.filter(([n]) => ehBebida(n)))}</details>
+      <details class="bloco" ${aberto('Burgers mais vendidos')}><summary>Burgers mais vendidos</summary>${barras(a.maisVendidos.filter(([n]) => !tipoDe(n)))}</details>
+      <details class="bloco" ${aberto('Bebidas mais vendidas')}><summary>Bebidas mais vendidas</summary>${barras(a.maisVendidos.filter(([n]) => tipoDe(n) === 'bebida'))}</details>
+      ${loja.cardapio.some(i => i.tipo === 'carne') ? `<details class="bloco" ${aberto('Carne crua vendida')}><summary>Carne crua vendida</summary>${barras(a.maisVendidos.filter(([n]) => tipoDe(n) === 'carne'))}</details>` : ''}
       <details class="bloco" ${aberto('Bairros que mais pedem')}><summary>Bairros que mais pedem</summary>${barras(a.bairros.slice(0, 5))}${verTodos('bairros', a.bairros)}</details>
       <details class="bloco" ${aberto('Clientes')}><summary>Clientes</summary><p class="nota">${a.clientes} cliente(s) · ${a.clientesNovos} novo(s) · ${a.clientesVoltaram} voltaram</p>
         ${barras(a.topClientes.slice(0, 5))}${verTodos('clientes', a.topClientes)}</details>

@@ -129,7 +129,8 @@ try {
   // 6. balcão: loja lança pedido no local, sem telefone, por dentro do painel; nasce aceito, sem WhatsApp e sem convite
   await painel.bringToFront();
   await painel.evaluate(() => {
-    localStorage.setItem('carrinhoBalcao', JSON.stringify([{ id: 'manso', qtd: 2, escolhas: [['Ponto da carne', 'Ao ponto']], sem: [], extras: ['bacon'], obs: '' }]));
+    localStorage.setItem('carrinhoBalcao', JSON.stringify([{ id: 'manso', qtd: 2, escolhas: [['Ponto da carne', 'Ao ponto']], sem: [], extras: ['bacon'], obs: '' },
+      { id: 'carne-crua', qtd: 2, escolhas: [], sem: [], extras: [], obs: '' }]));
     window.__url = '';
     document.querySelector('[data-aba="pedidos"]').click();
     document.querySelector('#lancar').click();
@@ -156,7 +157,7 @@ try {
   assert.equal(lancado.length, 1);
   const pl = lancado[0].data();
   assert.equal(pl.status, 'preparo');
-  assert.equal(pl.subtotal, 2 * (20 + 4)); // 2 Manso + bacon; o painel confere contra o cardápio (sem ⚠)
+  assert.equal(pl.subtotal, 2 * (20 + 4) + 2 * 7.5); // 2 Manso + bacon e 2 carnes cruas; o painel confere contra o cardápio (sem ⚠)
   assert.equal(pl.cliente.fone, '');
   assert.ok(pl.aceitoEm);
   assert.match(await painel.$eval('#pedTitulo', e => e.textContent), /Em preparo/);
@@ -168,8 +169,9 @@ try {
     await new Promise(r => setTimeout(r, 1500));
     return window.__impresso || '';
   });
-  for (const s of ['CONSUMO NO LOCAL', 'Mesa 3', '2x Manso', 'Avalie seu lanche', '<svg']) assert.ok(impresso.includes(s), `comanda sem "${s}"`);
-  assert.equal((await db.doc(`lojas/lacarne/convites/${lancado[0].id}`).get()).data().nome, 'Mesa 3');
+  for (const s of ['CONSUMO NO LOCAL', 'Mesa 3', '2x Manso', '2x Carne crua', 'Avalie seu lanche', '<svg']) assert.ok(impresso.includes(s), `comanda sem "${s}"`);
+  const convBalcao = (await db.doc(`lojas/lacarne/convites/${lancado[0].id}`).get()).data();
+  assert.deepEqual([convBalcao.nome, convBalcao.ids], ['Mesa 3', ['manso']]); // carne crua não se avalia
   for (const [etapa, rotulo] of [['saiu', 'Pronto'], ['entregue', 'Entregue']]) {
     await painel.evaluate(i => { location.hash = ''; location.hash = i; }, lancado[0].id);
     await painel.waitForSelector('#pedidoDialog[open] #avancar');
@@ -278,7 +280,7 @@ try {
     document.querySelectorAll('#pagChips md-filter-chip').forEach(c => { c.selected = ['Pix', 'Dinheiro'].includes(c.dataset.pag); });
     q('#cartDialog').dispatchEvent(new Event('change'));
     if (q('#divisao').hidden || q('#troco').hidden) return 'valores ou troco não apareceram';
-    q('#valor2').value = '28'; // digitou o do dinheiro: o Pix completa
+    q('#valor2').value = '43'; // digitou o do dinheiro: o Pix completa (total 63)
     q('#valor2').dispatchEvent(new Event('input'));
     if (q('#valor1').value !== '20') return 'Pix não completou: ' + q('#valor1').value;
     // marcou o crédito também: a divisão recomeça; digita dinheiro e Pix, o crédito (vazio) completa
@@ -288,7 +290,7 @@ try {
     const digitar = (s, v) => { q(s).value = v; q(s).dispatchEvent(new Event('input')); };
     digitar('#valor3', '18');
     digitar('#valor1', '20');
-    if (q('#valor2').value !== '10') return 'crédito não completou: ' + q('#valor2').value;
+    if (q('#valor2').value !== '25') return 'crédito não completou: ' + q('#valor2').value;
     if (!q('#resto').textContent.includes('Fechou')) return 'resto: ' + q('#resto').textContent;
     q('#troco').value = '50';
     q('#enviar').click();
@@ -298,9 +300,9 @@ try {
   await painel.waitForFunction(() => document.querySelector('#balcao').hidden, { timeout: 8000 });
   const mesa = (await db.doc(`lojas/lacarne/pedidos/${lancado[0].id}`).get()).data();
   const junta = (await db.doc('lojas/lacarne/clientes/81988886666').get()).data();
-  assert.deepEqual([mesa.cliente.fone, mesa.antes.fone, junta.nome, junta.pedidos, junta.gasto], ['(81) 9 8888-6666', '', 'Bia', 2, 66 + 48]);
+  assert.deepEqual([mesa.cliente.fone, mesa.antes.fone, junta.nome, junta.pedidos, junta.gasto], ['(81) 9 8888-6666', '', 'Bia', 2, 66 + 63]);
   assert.deepEqual([mesa.pag, mesa.divisao, mesa.troco], ['Pix + Cartão de crédito + Dinheiro',
-    [{ pag: 'Pix', valor: 20 }, { pag: 'Cartão de crédito', valor: 10 }, { pag: 'Dinheiro', valor: 18 }], 50]);
+    [{ pag: 'Pix', valor: 20 }, { pag: 'Cartão de crédito', valor: 25 }, { pag: 'Dinheiro', valor: 18 }], 50]);
   assert.equal(junta.primeiro.toMillis(), mesa.criadoEm.toMillis());
 
   // 8. histórico: pedido de ontem que ficou parado em "pronto"; marcar Retirado não abre WhatsApp nem cria convite
@@ -321,6 +323,10 @@ try {
   assert.equal((await db.doc(`lojas/lacarne/convites/${velho.id}`).get()).exists, false);
   await painel.evaluate(() => document.querySelector('#diaHoje').click());
   await painel.waitForFunction(() => document.querySelector('#listaPedidos').textContent.includes('Mesa 3'));
+  // carne crua conta à parte nos Números (controle de estoque do Nicolas), fora dos burgers
+  await painel.evaluate(() => document.querySelector('[data-aba="numeros"]').click());
+  await painel.waitForFunction(() => [...document.querySelectorAll('#numeros details')].some(d => d.querySelector('summary').textContent === 'Carne crua vendida' && d.textContent.includes('Carne crua (blend 150g)')), { timeout: 5000 });
+  assert.ok(!(await painel.$$eval('#numeros details', ds => ds.find(d => d.querySelector('summary').textContent === 'Burgers mais vendidos').textContent)).includes('Carne crua'));
   // 9. lastro: cada ação do painel e do balcão deixou linha no registro, com quem e o aparelho; nenhum erro anotado
   const reg = (await db.collection('lojas/lacarne/registro').orderBy('em').get()).docs.map(d => d.data());
   const acoes = new Set(reg.map(r => r.acao));
