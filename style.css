@@ -303,9 +303,7 @@ body:has(.cart-bar.on) footer { padding-bottom: 96px; }
 md-dialog { width: min(560px, calc(100% - 32px)); max-width: 560px; max-height: calc(100% - 32px); }
 .headline { display: flex; align-items: center; justify-content: space-between; }
 .acoes { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; flex-wrap: wrap; }
-/* quantidade colada no Adicionar (não perdida no canto oposto) */
 #itemDialog .acoes { justify-content: flex-end; gap: 16px; }
-#itemDialog .acoes .stepper { padding: 2px 6px; border: 1px solid var(--md-sys-color-outline-variant); border-radius: 999px; }
 .stepper { display: flex; align-items: center; gap: 4px; }
 .stepper span { min-width: 20px; text-align: center; font-weight: 600; }
 .extra { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0; }
@@ -320,7 +318,6 @@ md-dialog { width: min(560px, calc(100% - 32px)); max-width: 560px; max-height: 
 #itemCorpo .opt { background: transparent; }
 #extras .extra > span { min-width: 0; display: grid; line-height: 1.2; }
 #extras .extra.on [data-n] { color: var(--md-sys-color-primary); }
-#extrasConta { grid-column: 1 / -1; margin: 0; padding: 8px 12px; border-radius: 12px; font-size: .85rem; background: var(--rosa); color: var(--md-sys-color-primary); }
 .desc { margin-top: 0; color: var(--md-sys-color-on-surface-variant); }
 fieldset { border: 0; margin: 0 0 16px; padding: 0; }
 legend { font-weight: 600; margin-bottom: 6px; }

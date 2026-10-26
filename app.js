@@ -225,6 +225,7 @@ function abrirItem(item) {
   if (!podePedir()) return toast(fechadoMsg(), true);
   if (esgotado(item.id)) return toast(`${item.nome} esgotou 😕`, true);
   if (item.tipo === 'bebida') return pegarBebida(item);
+  // um burger por vez: com quantidade aqui, "2 bacons" era lido como o total (Nicolas, 25/10); repetir é no + da sacola
   atual = { item, qtd: 1, extras: {} }; // extras: { cheddar: 2 }
   $('#itemTitulo').textContent = item.nome;
   const imagem = item.foto || item.boi;
@@ -241,14 +242,13 @@ function abrirItem(item) {
     <fieldset><legend>Quer tirar algo?</legend>
       <md-chip-set>${item.tira.map(t => `<md-filter-chip label="Sem ${esc(t.toLowerCase())}" data-v="${esc(t)}"></md-filter-chip>`).join('')}</md-chip-set>
     </fieldset>
-    ${loja.adicionais?.length ? `<fieldset id="extras"><legend>Adicionais <span class="obrig">cada burger</span></legend>
+    ${loja.adicionais?.length ? `<fieldset id="extras"><legend>Adicionais</legend>
       ${loja.adicionais.map(a => `<div class="extra"><span>${esc(a.nome)} <small>+ ${brl(a.preco)}</small></span>
         <div class="stepper">
           <md-icon-button data-x="${esc(a.id)}" data-d="-1" aria-label="Menos ${esc(a.nome)}"><md-icon>remove</md-icon></md-icon-button>
           <span data-n="${esc(a.id)}">0</span>
           <md-icon-button data-x="${esc(a.id)}" data-d="1" aria-label="Mais ${esc(a.nome)}"><md-icon>add</md-icon></md-icon-button>
         </div></div>`).join('')}
-      <p id="extrasConta" hidden></p>
     </fieldset>` : ''}
     <md-outlined-text-field id="itemObs" maxlength="200" label="Observação (opcional)" type="textarea" rows="${matchMedia('(min-width: 800px)').matches ? 1 : 2}"
       placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>
@@ -283,17 +283,8 @@ function lerItem() {
   };
 }
 function atualizarItem() {
-  $('#itemQtd').textContent = atual.qtd;
   $('#itemTotal').textContent = brl(precoItem(loja, { id: atual.item.id, extras: extrasDe() }) * atual.qtd);
-  // 2 Manso × 2x Bacon = 4x Bacon: deixa claro que o adicional vai em cada burger
-  const conta = $('#extrasConta'), com = loja.adicionais?.filter(a => atual.extras[a.id] > 0) ?? [];
-  if (!conta) return;
-  conta.hidden = atual.qtd < 2 || !com.length;
-  conta.innerHTML = com.map(a => `<b>${atual.qtd} ${esc(atual.item.nome)} × ${atual.extras[a.id]}x ${esc(a.nome)} = ${atual.qtd * atual.extras[a.id]}x ${esc(a.nome)}</b>`)
-    .join('<br>') + '<br>Adicional só em um? Coloque esse separado.';
 }
-$('#menos').onclick = () => { atual.qtd = Math.max(1, atual.qtd - 1); atualizarItem(); };
-$('#mais').onclick = () => { atual.qtd = Math.min(99, atual.qtd + 1); atualizarItem(); };
 $('#itemAdd').onclick = () => {
   const novo = lerItem();
   const falta = novo.escolhas.find(([, v]) => !v);
@@ -308,7 +299,7 @@ $('#itemAdd').onclick = () => {
   salvar();
   dItem.close();
   $('#badge').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400 });
-  toast(`${novo.qtd}x ${novo.nome} na sacola 🍔`);
+  toast(`${novo.nome} na sacola 🍔 Outro igual? Toque no + da sacola`);
 };
 
 // ---------- sacola ----------
