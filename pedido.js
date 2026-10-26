@@ -19,6 +19,8 @@ export function agrupar(extras = [], adicionais = []) {
   for (const x of extras) n.set(x, (n.get(x) || 0) + 1);
   return [...n].map(([x, q]) => `${q > 1 ? `${q}x ` : ''}${adicionais.find(a => a.id === x)?.nome ?? x}`);
 }
+// "+ 2x Bacon em cada": o adicional é por burger, e com 2 ou mais a loja lia "2 bacons" como o total (Nicolas, 25/10)
+export const extrasTxt = (i, adicionais) => `+ ${agrupar(i.extras, adicionais).join(', ')}${i.qtd > 1 ? ' em cada' : ''}`;
 
 // recalcula pelo cardápio atual: pega preço adulterado no navegador
 export function conferir(p, loja) {
@@ -77,7 +79,7 @@ export function avisoAlteracao(p, loja, antes) {
   const comPix = pixNovo > 0 && loja.pix && p.taxa !== null && valorPix > 0;
   return [
     `Pedido #${p.cod} alterado ✏️`, '',
-    ...p.itens.map(i => `${i.qtd}x ${i.nome}${i.extras?.length ? ` + ${agrupar(i.extras, loja.adicionais).join(', ')}` : ''}`), '',
+    ...p.itens.map(i => `${i.qtd}x ${i.nome}${i.extras?.length ? ` ${extrasTxt(i, loja.adicionais)}` : ''}`), '',
     `Total: ${brl(total)}${p.taxa === null ? ' + entrega' : ''}${dif ? ` (antes ${brl(total - dif)})` : ''}`,
     `Pagamento: ${pagTexto(p)}${p.troco && p.pag.includes('Dinheiro') ? ` (troco para ${brl(p.troco)})` : ''}`,
     ...(difPix > 0 ? ['', `Se já pagou o Pix, falta ${brl(difPix)}.`] : []),
