@@ -14,7 +14,7 @@ export function burgersDoPedido(itens, cardapio) {
   const vistos = new Set();
   return itens.flatMap(i => {
     const m = cardapio.find(c => c.id === i.id);
-    if (!m || m.tipo === 'bebida' || vistos.has(m.id)) return [];
+    if (!m || m.tipo || vistos.has(m.id)) return []; // bebida e carne crua não se avaliam
     vistos.add(m.id);
     return [{ id: m.id, nome: m.nome }];
   });
