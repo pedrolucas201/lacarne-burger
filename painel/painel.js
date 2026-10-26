@@ -9,7 +9,7 @@ import { comanda } from '../comanda.js';
 import {
   getAuth, connectAuthEmulator, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged,
 } from '../vendor/firebase/auth.js';
-import { conferir, whats, avisoCliente, MOTIVOS, soDigitos, mapa, agrupar, pagTexto } from '../pedido.js';
+import { conferir, whats, avisoCliente, MOTIVOS, soDigitos, mapa, extrasTxt, pagTexto } from '../pedido.js';
 import { periodo, intervalo, calcular, variacao, csv, VALIDOS } from '../numeros.js';
 import { hoje } from '../horario.js';
 import { burgersDoPedido, resumo, quando, TAGS_BOAS } from '../avaliacao.js';
@@ -206,7 +206,7 @@ function abrirPedido(id) {
     <ul class="itens">${p.itens.map(i => `<li><strong>${esc(i.qtd)}x ${esc(i.nome)}</strong>
       ${Object.entries(i.escolhas || {}).map(([t, v]) => `<br><small>${esc(t)}: ${esc(v)}</small>`).join('')}
       ${i.sem?.length ? `<br><small>Sem: ${esc(i.sem.join(', '))}</small>` : ''}
-      ${i.extras?.length ? `<br><small>+ ${esc(agrupar(i.extras, loja.adicionais).join(', '))}</small>` : ''}
+      ${i.extras?.length ? `<br><small>${esc(extrasTxt(i, loja.adicionais))}</small>` : ''}
       ${i.obs ? `<br><small>Obs: ${esc(i.obs)}</small>` : ''}</li>`).join('')}</ul>
     <p>${p.entrega ? `Subtotal ${brl(p.subtotal)} · Entrega ${p.taxa === null ? 'a confirmar' : brl(p.taxa)}<br>` : ''}<strong>Total ${brl(total(p))}${p.taxa === null ? ' + entrega' : ''}</strong> · ${esc(pagTexto(p))}${p.troco && p.pag.includes('Dinheiro') ? ` · troco p/ ${brl(p.troco)}` : ''}</p>
     ${p.obs ? `<p>📝 ${esc(p.obs)}</p>` : ''}

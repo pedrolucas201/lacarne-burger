@@ -1,6 +1,6 @@
 // Comanda do pedido (papel de 58/80 mm ou PDF). Sem DOM: o painel põe o HTML em #comanda e chama print().
 // qr: SVG do link da avaliação (vazio = pedido sem burger, sem QR)
-import { agrupar } from './pedido.js';
+import { extrasTxt } from './pedido.js';
 import { brl, esc } from './util.js';
 
 const quando = d => d.toLocaleString('pt-BR', { timeZone: 'America/Recife', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '');
@@ -19,7 +19,7 @@ export function comanda(p, loja, qr = '') {
     ${p.itens.map(i => `<div class="c-item"><b>${esc(i.qtd)}x ${esc(i.nome)}</b>
       ${Object.entries(i.escolhas || {}).map(([t, v]) => `<small>${esc(t)}: ${esc(v)}</small>`).join('')}
       ${i.sem?.length ? `<small>Sem: ${esc(i.sem.join(', '))}</small>` : ''}
-      ${i.extras?.length ? `<small>+ ${esc(agrupar(i.extras, loja.adicionais).join(', '))}</small>` : ''}
+      ${i.extras?.length ? `<small>${esc(extrasTxt(i, loja.adicionais))}</small>` : ''}
       ${i.obs ? `<small>Obs: ${esc(i.obs)}</small>` : ''}</div>`).join('')}
     <hr>
     ${p.entrega ? linha('Subtotal', brl(p.subtotal)) + linha('Entrega', p.taxa === null ? 'a confirmar' : brl(p.taxa)) : ''}

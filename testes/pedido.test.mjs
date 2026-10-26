@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar, locBoa, metros, foneOk, avisoAlteracao, pagTexto } from '../pedido.js';
+import { taxaDe, conferir, whats, avisoCliente, soDigitos, mapa, bairroDaTabela, ponto, precoItem, agrupar, extrasTxt, locBoa, metros, foneOk, avisoAlteracao, pagTexto } from '../pedido.js';
 
 test('telefone: celular com DDD e o 9', () => {
   assert.ok(foneOk('(81) 9 9325-9534'));
@@ -79,6 +79,8 @@ test('adicional repetido conta cada unidade e aparece agrupado', () => {
   assert.deepEqual(agrupar(['cheddar', 'bacon', 'cheddar'], ad), ['2x Cheddar (1 fatia)', 'Bacon']);
   assert.deepEqual(agrupar(['sumiu'], ad), ['sumiu']); // adicional que saiu do cardápio: mostra o id
   assert.deepEqual(agrupar(undefined, ad), []);
+  assert.equal(extrasTxt({ qtd: 1, extras: ['bacon', 'bacon'] }, ad), '+ 2x Bacon');
+  assert.equal(extrasTxt({ qtd: 2, extras: ['bacon', 'bacon'] }, ad), '+ 2x Bacon em cada'); // adicional é por burger
 });
 test('localização só vale com precisão de até 100 m', () => {
   assert.equal(locBoa(12), true);

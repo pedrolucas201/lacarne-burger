@@ -1,6 +1,6 @@
 import { noHorario, lojaAberta, proximaAbertura, hoje } from './horario.js';
 import { pix } from './pix.js';
-import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar, locBoa, metros, soDigitos, foneOk, whats, avisoAlteracao } from './pedido.js';
+import { taxaDe, mapa, ponto, bairroDaTabela, precoItem, agrupar, extrasTxt, locBoa, metros, soDigitos, foneOk, whats, avisoAlteracao } from './pedido.js';
 import { VALIDOS } from './numeros.js';
 import { burgersDoPedido } from './avaliacao.js';
 import { $, brl, esc, toast } from './util.js';
@@ -241,13 +241,14 @@ function abrirItem(item) {
     <fieldset><legend>Quer tirar algo?</legend>
       <md-chip-set>${item.tira.map(t => `<md-filter-chip label="Sem ${esc(t.toLowerCase())}" data-v="${esc(t)}"></md-filter-chip>`).join('')}</md-chip-set>
     </fieldset>
-    ${loja.adicionais?.length ? `<fieldset id="extras"><legend>Adicionais</legend>
+    ${loja.adicionais?.length ? `<fieldset id="extras"><legend>Adicionais <span class="obrig">cada burger</span></legend>
       ${loja.adicionais.map(a => `<div class="extra"><span>${esc(a.nome)} <small>+ ${brl(a.preco)}</small></span>
         <div class="stepper">
           <md-icon-button data-x="${esc(a.id)}" data-d="-1" aria-label="Menos ${esc(a.nome)}"><md-icon>remove</md-icon></md-icon-button>
           <span data-n="${esc(a.id)}">0</span>
           <md-icon-button data-x="${esc(a.id)}" data-d="1" aria-label="Mais ${esc(a.nome)}"><md-icon>add</md-icon></md-icon-button>
         </div></div>`).join('')}
+      <p id="extrasConta" hidden></p>
     </fieldset>` : ''}
     <md-outlined-text-field id="itemObs" maxlength="200" label="Observação (opcional)" type="textarea" rows="${matchMedia('(min-width: 800px)').matches ? 1 : 2}"
       placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>
@@ -284,6 +285,12 @@ function lerItem() {
 function atualizarItem() {
   $('#itemQtd').textContent = atual.qtd;
   $('#itemTotal').textContent = brl(precoItem(loja, { id: atual.item.id, extras: extrasDe() }) * atual.qtd);
+  // 2 Manso × 2x Bacon = 4x Bacon: deixa claro que o adicional vai em cada burger
+  const conta = $('#extrasConta'), com = loja.adicionais?.filter(a => atual.extras[a.id] > 0) ?? [];
+  if (!conta) return;
+  conta.hidden = atual.qtd < 2 || !com.length;
+  conta.innerHTML = com.map(a => `<b>${atual.qtd} ${esc(atual.item.nome)} × ${atual.extras[a.id]}x ${esc(a.nome)} = ${atual.qtd * atual.extras[a.id]}x ${esc(a.nome)}</b>`)
+    .join('<br>') + '<br>Adicional só em um? Coloque esse separado.';
 }
 $('#menos').onclick = () => { atual.qtd = Math.max(1, atual.qtd - 1); atualizarItem(); };
 $('#mais').onclick = () => { atual.qtd = Math.min(99, atual.qtd + 1); atualizarItem(); };
@@ -312,7 +319,7 @@ const taxa = () => EDITAR ? orig?.taxa ?? null : taxaDe(loja, radio('tipo') === 
 const detalhes = i => [
   ...i.escolhas.map(([t, v]) => `${t}: ${v}`),
   i.sem.length ? `Sem: ${i.sem.join(', ').toLowerCase()}` : null,
-  i.extras.length ? `+ ${agrupar(i.extras, loja.adicionais).join(', ')}` : null,
+  i.extras.length ? extrasTxt(i, loja.adicionais) : null,
   i.obs ? `Obs: ${i.obs}` : null,
 ].filter(Boolean);
 
@@ -701,7 +708,7 @@ function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, pai
       `*${i.qtd} x ${i.nome.toUpperCase()}*`,
       ...i.escolhas.flatMap(([t, v]) => [`  ${t.toUpperCase()}`, `    - ${v}`]),
       ...(i.sem.length ? ['  RETIRAR', ...i.sem.map(x => `    - ${x.toLowerCase()}`)] : []),
-      ...(i.extras.length ? ['  ADICIONAIS', ...agrupar(i.extras, loja.adicionais).map(t => `    + ${t}`)] : []),
+      ...(i.extras.length ? [`  ADICIONAIS${i.qtd > 1 ? ' EM CADA' : ''}`, ...agrupar(i.extras, loja.adicionais).map(t => `    + ${t}`)] : []),
       i.obs ? `  OBS: ${i.obs}` : null,
       `💵 ${i.qtd} x ${brl(i.unit)} = ${brl(i.unit * i.qtd)}`,
     ]),

@@ -320,6 +320,7 @@ md-dialog { width: min(560px, calc(100% - 32px)); max-width: 560px; max-height: 
 #itemCorpo .opt { background: transparent; }
 #extras .extra > span { min-width: 0; display: grid; line-height: 1.2; }
 #extras .extra.on [data-n] { color: var(--md-sys-color-primary); }
+#extrasConta { grid-column: 1 / -1; margin: 0; padding: 8px 12px; border-radius: 12px; font-size: .85rem; background: var(--rosa); color: var(--md-sys-color-primary); }
 .desc { margin-top: 0; color: var(--md-sys-color-on-surface-variant); }
 fieldset { border: 0; margin: 0 0 16px; padding: 0; }
 legend { font-weight: 600; margin-bottom: 6px; }
