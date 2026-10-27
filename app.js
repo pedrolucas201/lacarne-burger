@@ -602,8 +602,8 @@ $('#enviar').onclick = () => {
   const bairro = c.bairro === 'outro' ? c.bairroOutro : c.bairro;
   const cod = Date.now().toString(36).slice(-5).toUpperCase();
   const comPix = pag === 'Pix' && loja.pix;
-  // grava sem esperar: o WhatsApp abre de qualquer jeito (o pedido nunca se perde) e o pop-up não é bloqueado.
-  // sem banco (plano B) não grava: a mensagem avisa a loja que o pedido não está no painel
+  // grava sem esperar: o pedido já está feito ao tocar aqui, o WhatsApp vira um aviso a mais na comanda.
+  // sem banco (plano B) não grava: aí o pedido só chega pela mensagem, e a comanda diz que precisa enviar
   let painel = null;
   if (aoVivo) {
     const { db, doc, collection, setDoc, serverTimestamp } = banco;
@@ -616,18 +616,52 @@ $('#enviar').onclick = () => {
       itens: paraBanco(),
     };
     if (BALCAO) return lancar(ref, { ...pedido, status: 'preparo', aceitoEm: serverTimestamp(), local });
-    setDoc(ref, pedido).catch(e => console.error('pedido não foi pro painel', e));
+    // não gravou: a loja só fica sabendo pela mensagem, então a comanda passa a pedir o envio
+    setDoc(ref, pedido).catch(e => { console.error('pedido não foi pro painel', e); precisaWhats(true); });
     painel = `${new URL('painel/', location.href).href}#${ref.id}`;
   }
   const url = `https://api.whatsapp.com/send?phone=${loja.whatsapp}&text=${encodeURIComponent(
     mensagem(c, entrega, bairro, pag, troco, sub, tx, f('obsGeral'), cod, comPix, painel))}`;
-  window.open(url, '_blank', 'noopener');
+  comanda({ cod, total, tx, forma, entrega, url, feito: !!painel }); // desenha com a sacola antes de esvaziar
   carrinho = [];
   salvar();
   dCart.close();
-  toast('Pedido pronto! É só enviar no WhatsApp ✅');
-  if (comPix) abrirPix(tx === null ? null : total, cod);
+  pixDepois = comPix ? () => abrirPix(tx === null ? null : total, cod) : null;
 };
+
+// comanda "na brasa": confirma o pedido feito; a comanda sai da impressora, o 1º burger pousa na grelha, a barra enche
+// e aparece o botão do WhatsApp (opcional quando o pedido já está no painel; o iPhone só abre o WhatsApp direto num toque)
+const dComanda = $('#comanda');
+let urlComanda = null, pixDepois = null;
+const precisaWhats = sim => {
+  $('.comanda-passo').textContent = sim ? 'Pra loja receber, envie no WhatsApp 👇' : 'Pedido feito! A loja já recebeu ✅';
+  $('#comandaEnviar').textContent = sim ? 'Enviar no WhatsApp 🔥' : 'Mandar também no WhatsApp';
+};
+function comanda({ cod, total, tx, forma, entrega, url, feito }) {
+  urlComanda = url;
+  precisaWhats(!feito);
+  $('.comanda-loja').textContent = loja.nome;
+  $('.comanda-num').textContent = `Pedido #${cod}`;
+  const linha = (a, b = '', cls = '') => `<div class="cl ${cls}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
+  $('.comanda-itens').innerHTML = carrinho.map(i => linha(`${i.qtd}x ${i.nome}`, brl(i.unit * i.qtd))
+    + (i.extras.length ? linha(extrasTxt(i, loja.adicionais), '', 'sub') : '')
+    + (i.sem.length ? linha(`sem ${i.sem.join(', ').toLowerCase()}`, '', 'sub') : '')).join('')
+    + linha(entrega ? 'Entrega' : 'Retirada', entrega ? (tx === null ? 'a confirmar' : brl(tx)) : '', 'tracejado')
+    + linha(`Total · ${forma}`, brl(total), 'total');
+  // o burger da grelha é a pilha do 1º lanche, com as escolhas do cliente (receita e calibragem vêm do arquivo)
+  const par = carrinho.map(i => [i, LOJA.cardapio.find(x => x.id === i.id)]).find(([, r]) => r?.camadas);
+  const lugar = $('.comanda-burger');
+  lugar.innerHTML = '';
+  $('.comanda-grelha').hidden = !par;
+  dComanda.classList.remove('rodando');
+  dComanda.showModal();
+  if (par) montar(lugar, par[1], LOJA).atualizar(par[0].sem, par[0].extras, null);
+  void dComanda.offsetWidth; // recomeça as animações a cada pedido
+  dComanda.classList.add('rodando');
+}
+$('#comandaEnviar').onclick = () => { window.open(urlComanda, '_blank', 'noopener'); dComanda.close(); };
+$('.comanda-fechar').onclick = () => dComanda.close();
+dComanda.addEventListener('close', () => { pixDepois?.(); pixDepois = null; }); // Pix depois da comanda, como antes do WhatsApp
 
 // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
 const paraBanco = () => carrinho.map(i => ({ id: i.id, nome: i.nome, unit: i.unit, qtd: i.qtd,

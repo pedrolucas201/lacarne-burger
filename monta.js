@@ -57,7 +57,8 @@ export function montar(foto, item, loja) {
   const cabe = () => palco.style.scale = Math.min(foto.clientWidth / W, foto.clientHeight / H);
 
   function abrir() {
-    foto.className = 'item-foto com-pilha';
+    foto.classList.remove('com-foto', 'com-boi'); // .com-boi mexe no img da foto
+    foto.classList.add('com-pilha');
     foto.innerHTML = '<div class="monta-palco"><div class="monta-pilha"></div></div>';
     palco = foto.firstChild; monte = palco.firstChild;
     const base = camada(`${pao}-base`); topo = camada(`${pao}-topo`);

@@ -529,3 +529,52 @@ md-outlined-text-field { width: 100%; }
 .opiniao small { color: var(--md-sys-color-on-surface-variant); }
 .opiniao p { margin: 2px 0 0; font-size: .85rem; }
 .mais-op { justify-self: start; padding: 4px 0; border: 0; background: none; font: 600 .85rem 'Poppins', sans-serif; color: var(--md-sys-color-primary); cursor: pointer; }
+
+/* comanda "na brasa" (antes do WhatsApp): papel de comanda, burger pousando na grelha, barra enchendo, botão no fim */
+.comanda { border: 0; padding: 0; background: none; width: min(380px, 100% - 32px); max-width: none; overflow: visible; }
+.comanda::backdrop { background: rgb(44 26 21 / .6); }
+.comanda .papel {
+  position: relative; background: #fffdf8; border-radius: 6px; padding: 18px 16px 22px; box-shadow: 0 10px 30px rgb(0 0 0 / .35);
+  font-family: 'Courier New', monospace; color: var(--md-sys-color-on-surface);
+}
+.comanda .papel::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px;
+  background: linear-gradient(135deg, #fffdf8 4px, transparent 0) 0 0 / 12px 8px, linear-gradient(-135deg, #fffdf8 4px, transparent 0) 0 0 / 12px 8px;
+}
+.comanda-fechar { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 16px; cursor: pointer; color: var(--md-sys-color-on-surface-variant); }
+.comanda-loja { text-align: center; font: 28px 'Bebas Neue', sans-serif; letter-spacing: 1px; color: var(--md-sys-color-primary); }
+.comanda-num { text-align: center; font-weight: 700; font-size: 18px; margin: 2px 0 6px; }
+.comanda-grelha { position: relative; aspect-ratio: 2 / 1; margin: 4px 0 12px; }
+.comanda-grelha .ferro { position: absolute; left: 5%; bottom: 0; width: 90%; }
+.comanda-burger { position: absolute; left: 50%; bottom: 22%; width: 52%; height: 76%; translate: -50% 0; transform-origin: 50% 100%; }
+.comanda-grelha .fumaca { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: rgb(136 136 136 / .27); filter: blur(4px); bottom: 70%; left: 42%; opacity: 0; }
+.comanda-grelha .fumaca + .fumaca { left: 56%; }
+.comanda-barra { height: 10px; border-radius: 99px; background: rgb(0 0 0 / .07); overflow: hidden; }
+.comanda-barra i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #ffb347, #ff6a00, #c0261b); }
+.comanda-itens { margin-top: 10px; border-top: 1px dashed #999; padding-top: 8px; font-size: 13px; }
+.comanda-itens .cl { display: flex; justify-content: space-between; gap: 12px; margin: 3px 0; }
+.comanda-itens .sub { padding-left: 2ch; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+.comanda-itens .tracejado { border-top: 1px dashed #999; padding-top: 6px; margin-top: 8px; }
+.comanda-itens .total { font-weight: 700; }
+.comanda-passo { font: 12.5px var(--md-ref-typeface-brand); text-align: center; color: var(--md-sys-color-on-surface-variant); margin: 12px 0 0; }
+.comanda-enviar {
+  display: block; margin: 10px auto 0; border: 0; border-radius: 999px; padding: 9px 18px; cursor: pointer;
+  font: 600 13px var(--md-ref-typeface-brand); color: #fff; background: #1f9d55;
+}
+.comanda.rodando .papel { animation: imprimir .6s ease-out both; }
+.comanda.rodando .comanda-burger { animation: pousar .7s .3s cubic-bezier(.5, 0, .75, 0) both; }
+.comanda.rodando .ferro { animation: brasa 1.1s ease-in-out infinite alternate; }
+.comanda.rodando .fumaca { animation: fumacar 2.2s 1s linear infinite; }
+.comanda.rodando .fumaca + .fumaca { animation-delay: 1.8s; }
+.comanda.rodando .comanda-barra i { animation: encher 2.2s .3s cubic-bezier(.3, .6, .4, 1) forwards; }
+.comanda.rodando .comanda-enviar { animation: aparecer .35s 2.4s both; }
+@keyframes imprimir { from { clip-path: inset(0 0 100% 0); transform: translateY(-20px); } }
+@keyframes pousar { 0% { transform: translateY(-60%); opacity: 0; } 70% { transform: none; opacity: 1; } 82% { transform: scale(1.04, .94); } }
+@keyframes brasa { to { filter: brightness(1.18) saturate(1.15); } }
+@keyframes fumacar { from { transform: translateY(0) scale(.6); opacity: .8; } to { transform: translateY(-70px) scale(1.6); opacity: 0; } }
+@keyframes encher { to { width: 100%; } }
+@keyframes aparecer { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) {
+  .comanda.rodando * { animation: none !important; }
+  .comanda-barra i { width: 100%; }
+}

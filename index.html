@@ -154,7 +154,7 @@
     </div>
     <div slot="actions" class="acoes">
       <md-text-button data-fechar>Continuar comprando</md-text-button>
-      <md-filled-button id="enviar"><md-icon slot="icon">send</md-icon>Pedir no WhatsApp</md-filled-button>
+      <md-filled-button id="enviar"><md-icon slot="icon">check</md-icon>Fazer pedido</md-filled-button>
     </div>
   </md-dialog>
 
@@ -172,5 +172,20 @@
       <md-filled-button id="pixCopiar"><md-icon slot="icon">content_copy</md-icon>Copiar código</md-filled-button>
     </div>
   </md-dialog>
+
+  <!-- comanda "na brasa": aparece antes do WhatsApp; o envio é o toque no botão (o iPhone só abre o WhatsApp direto num toque) -->
+  <dialog id="comanda" class="comanda">
+    <div class="papel">
+      <button type="button" class="comanda-fechar" aria-label="Fechar">✕</button>
+      <div class="comanda-loja"></div>
+      <div class="comanda-num"></div>
+      <div class="comanda-grelha"><img class="ferro" src="img/monta/grelha.webp" alt=""><div class="comanda-burger"></div>
+        <span class="fumaca"></span><span class="fumaca"></span></div>
+      <div class="comanda-barra"><i></i></div>
+      <div class="comanda-itens"></div>
+      <p class="comanda-passo"></p>
+      <button type="button" id="comandaEnviar" class="comanda-enviar"></button>
+    </div>
+  </dialog>
 </body>
 </html>
