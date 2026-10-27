@@ -268,19 +268,31 @@ function abrirItem(item) {
   const receita = LOJA.cardapio.find(x => x.id === item.id);
   const foto = $('#itemCorpo .item-foto');
   const monta = receita?.camadas && foto ? montar(foto, receita, LOJA) : null;
-  // o cliente escolhe ver o lanche se montando; a escolha vale pros próximos burgers
-  let montando = false;
-  const mexeu = origem => montando && monta.atualizar(marcados('v'), extrasDe(), origem);
+  // abas Foto | Monte o seu: o cliente escolhe ver o lanche se montando; a escolha vale pros próximos burgers
+  let montando = false, convite = null;
+  const abas = monta && Object.assign(document.createElement('div'), { className: 'monta-abas', role: 'tablist',
+    innerHTML: '<button type="button" role="tab" data-m="0">📷 Foto</button><button type="button" role="tab" data-m="1">🍔 Monte o seu</button>' });
+  const alterna = liga => {
+    montando = liga;
+    store.set('montar', liga);
+    liga ? monta.atualizar(marcados('v'), extrasDe(), null) : monta.desligar(); // ligar mostra o que já foi escolhido, sem voo
+    abas.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(+b.dataset.m === +liga)));
+    foto.prepend(abas);
+  };
+  // 1ª vez que mexe com a foto na tela: convida a ver montando (uma vez por navegador)
+  const convidar = () => {
+    if (convite || store.get('montarConvite', false)) return;
+    store.set('montarConvite', true);
+    convite = Object.assign(document.createElement('button'), { type: 'button', className: 'monta-convite',
+      innerHTML: 'Quer ver seu lanche sendo montado? <b>Ver ▶</b>' });
+    convite.onclick = () => { convite.remove(); alterna(true); };
+    // celular: a foto já rolou pra fora da tela, então o convite flutua acima do "Adicionar"
+    matchMedia('(min-width: 800px)').matches ? foto.append(convite) : foto.closest('[slot]').append(convite);
+    setTimeout(() => convite?.remove(), 7000);
+  };
+  const mexeu = origem => monta && (montando ? monta.atualizar(marcados('v'), extrasDe(), origem) : convidar());
   if (monta) {
-    const botao = Object.assign(document.createElement('button'), { type: 'button', className: 'monta-botao' });
-    const alterna = liga => {
-      montando = liga;
-      store.set('montar', liga);
-      liga ? monta.atualizar(marcados('v'), extrasDe(), null) : monta.desligar(); // ligar mostra o que já foi escolhido, sem voo
-      botao.textContent = liga ? '📷 Ver foto' : '🍔 Montar na tela';
-      foto.append(botao);
-    };
-    botao.onclick = () => alterna(!montando);
+    abas.onclick = e => { const b = e.target.closest('[data-m]'); if (b && +b.dataset.m !== +montando) alterna(!!+b.dataset.m); };
     alterna(store.get('montar', false));
   }
   $('#itemCorpo md-chip-set')?.addEventListener('click', e => {

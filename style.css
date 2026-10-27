@@ -136,14 +136,27 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 #itemCorpo > .item-foto.com-pilha img, .item-foto.com-pilha img { position: static; display: block; object-fit: fill; }
 .monta-voo { position: fixed; left: 0; top: 0; z-index: 10; pointer-events: none; }
 .monta-voo img { position: absolute; display: block; }
-.item-foto:has(.monta-botao) { position: relative; }
-.monta-botao {
-  position: absolute; right: 10px; bottom: 10px; z-index: 5; border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer;
-  font: 600 13px/1 inherit; color: var(--md-sys-color-on-surface, #222); background: rgb(255 255 255 / .9); box-shadow: 0 2px 8px rgb(0 0 0 / .2);
+.item-foto:has(.monta-abas) { position: relative; }
+/* abas Foto | Monte o seu, no topo da foto (no celular sobem junto com a pilha presa) */
+.monta-abas {
+  position: absolute; top: 10px; left: 50%; translate: -50% 0; z-index: 5; display: flex; padding: 3px; border-radius: 999px;
+  background: rgb(255 255 255 / .85); backdrop-filter: blur(6px); box-shadow: 0 2px 10px rgb(0 0 0 / .18);
 }
+.monta-abas button {
+  border: 0; background: none; border-radius: 999px; padding: 7px 14px; cursor: pointer; white-space: nowrap;
+  font: 600 13px/1 var(--md-ref-typeface-brand); color: var(--md-sys-color-on-surface-variant);
+}
+.monta-abas [aria-selected="true"] { background: #fff; color: var(--md-sys-color-primary); box-shadow: 0 1px 4px rgb(0 0 0 / .15); }
+.monta-convite {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 5; display: flex; gap: 8px; align-items: center; border: 0; cursor: pointer;
+  border-radius: 14px; padding: 10px 12px; text-align: left; font: 500 13px/1.3 var(--md-ref-typeface-brand);
+  color: #fff; background: var(--md-sys-color-on-surface); animation: surgir .4s both;
+}
+.monta-convite b { margin-left: auto; padding: 6px 12px; border-radius: 999px; background: var(--md-sys-color-primary); white-space: nowrap; }
 /* celular: a pilha fica presa no topo enquanto o cliente rola até os adicionais (senão ele nem vê o lanche mudar) */
 @media (max-width: 799px) {
   .item-foto.com-pilha { position: sticky; top: 0; z-index: 3; aspect-ratio: auto; height: 220px; box-shadow: 0 8px 16px -12px rgb(0 0 0 / .35); }
+  .monta-convite { position: fixed; left: 16px; right: 16px; bottom: 96px; z-index: 10; box-shadow: 0 6px 20px rgb(0 0 0 / .3); }
 }
 /* computador: burger aberto em tela larga e sem rolagem; foto à esquerda na altura do conteúdo, opções compactas à direita */
 @media (min-width: 800px) {
