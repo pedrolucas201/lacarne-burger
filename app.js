@@ -275,14 +275,16 @@ function abrirItem(item) {
   const alterna = liga => {
     montando = liga;
     store.set('montar', liga);
+    if (liga) store.set('montarUsou', true); // experimentou: o convite não volta
     liga ? monta.atualizar(marcados('v'), extrasDe(), null) : monta.desligar(); // ligar mostra o que já foi escolhido, sem voo
     abas.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(+b.dataset.m === +liga)));
     foto.prepend(abas);
   };
-  // 1ª vez que mexe com a foto na tela: convida a ver montando (uma vez por navegador)
+  // mexeu com a foto na tela: convida a ver montando, até ele experimentar (no máximo 3 vezes, uma por burger aberto)
   const convidar = () => {
-    if (convite || store.get('montarConvite', false)) return;
-    store.set('montarConvite', true);
+    const vezes = store.get('montarConvites', 0);
+    if (convite || store.get('montarUsou', false) || vezes >= 3) return;
+    store.set('montarConvites', vezes + 1);
     convite = Object.assign(document.createElement('button'), { type: 'button', className: 'monta-convite',
       innerHTML: 'Quer ver seu lanche sendo montado? <b>Ver ▶</b>' });
     convite.onclick = () => { convite.remove(); alterna(true); };
