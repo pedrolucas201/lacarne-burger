@@ -2,7 +2,7 @@
 // Medidas em px do desenho (pão com 302 px num palco de 360×340); o palco inteiro escala pra caber no .item-foto.
 import { pilha } from './camadas.js';
 
-const ESCALA = 0.58, W = 360, H = 340; // imagens recortadas com 520 px de largura → pão de 302 px
+const ESCALA = 0.58, W = 360; // imagens recortadas com 520 px de largura → pão de 302 px
 const calmo = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const curva = (a, b, c, t) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * b + t * t * c;
 const suave = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -16,7 +16,8 @@ const FERR = {
 const ferrImg = {};
 const ferramenta = f => ferrImg[f] ??= Object.assign(new Image(), { src: `img/monta/ferr-${f}.webp` });
 
-export function montar(foto, item, loja) {
+// H = altura do palco: no diálogo 340 (pilha alta encolhe); na comanda mais alto, pra todo burger sair com o pão do mesmo tamanho
+export function montar(foto, item, loja, H = 340) {
   const m = loja.monta, pao = item.pao ? `pao-${item.pao}` : 'pao';
   const original = { cls: foto.className, html: foto.innerHTML }; // pra voltar pra foto real
   let palco, monte, topo, olho, estado = [], fila = Promise.resolve();
@@ -59,7 +60,7 @@ export function montar(foto, item, loja) {
   function abrir() {
     foto.classList.remove('com-foto', 'com-boi'); // .com-boi mexe no img da foto
     foto.classList.add('com-pilha');
-    foto.innerHTML = '<div class="monta-palco"><div class="monta-pilha"></div></div>';
+    foto.innerHTML = `<div class="monta-palco" style="height:${H}px"><div class="monta-pilha"></div></div>`;
     palco = foto.firstChild; monte = palco.firstChild;
     const base = camada(`${pao}-base`); topo = camada(`${pao}-topo`);
     base.style.bottom = '10px';

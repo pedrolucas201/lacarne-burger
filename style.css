@@ -544,10 +544,13 @@ md-outlined-text-field { width: 100%; }
 .comanda-fechar { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 16px; cursor: pointer; color: var(--md-sys-color-on-surface-variant); }
 .comanda-loja { text-align: center; font: 28px 'Bebas Neue', sans-serif; letter-spacing: 1px; color: var(--md-sys-color-primary); }
 .comanda-num { text-align: center; font-weight: 700; font-size: 18px; margin: 2px 0 6px; }
-.comanda-grelha { position: relative; aspect-ratio: 2 / 1; margin: 4px 0 12px; }
+.comanda-grelha { position: relative; aspect-ratio: 5 / 4; margin: 4px 0 12px; }
 .comanda-grelha .ferro { position: absolute; left: 5%; bottom: 0; width: 90%; }
-.comanda-burger { position: absolute; left: 50%; bottom: 22%; width: 52%; height: 76%; translate: -50% 0; transform-origin: 50% 100%; }
-.comanda-grelha .fumaca { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: rgb(136 136 136 / .27); filter: blur(4px); bottom: 70%; left: 42%; opacity: 0; }
+.comanda-burger { position: absolute; left: 50%; bottom: 14%; width: 46%; aspect-ratio: 360 / 520; translate: -50% 0; transform-origin: 50% 100%; }
+/* pilha apoiada na grade: o palco escala a partir da base (no diálogo ele fica centralizado) */
+.comanda-burger .monta-palco { top: auto; bottom: 0; transform-origin: 50% 100%; translate: -50% 0; }
+.comanda-mais { position: absolute; right: 7%; top: 6%; padding: 3px 9px; border-radius: 999px; font: 700 13px var(--md-ref-typeface-brand); color: #fff; background: var(--md-sys-color-primary); }
+.comanda-grelha .fumaca { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: rgb(136 136 136 / .27); filter: blur(4px); bottom: 40%; left: 42%; opacity: 0; }
 .comanda-grelha .fumaca + .fumaca { left: 56%; }
 .comanda-barra { height: 10px; border-radius: 99px; background: rgb(0 0 0 / .07); overflow: hidden; }
 .comanda-barra i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #ffb347, #ff6a00, #c0261b); }
@@ -556,6 +559,9 @@ md-outlined-text-field { width: 100%; }
 .comanda-itens .sub { padding-left: 2ch; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
 .comanda-itens .tracejado { border-top: 1px dashed #999; padding-top: 6px; margin-top: 8px; }
 .comanda-itens .total { font-weight: 700; }
+.comanda-pix { margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--md-sys-color-primary); border-radius: 10px; text-align: center; }
+.comanda-pix p { margin: 0 0 8px; font: 12px/1.4 var(--md-ref-typeface-brand); color: var(--md-sys-color-on-surface-variant); }
+#comandaPix { border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; font: 600 13px var(--md-ref-typeface-brand); color: #fff; background: var(--md-sys-color-primary); }
 .comanda-passo { font: 12.5px var(--md-ref-typeface-brand); text-align: center; color: var(--md-sys-color-on-surface-variant); margin: 12px 0 0; }
 .comanda-enviar {
   display: block; margin: 10px auto 0; border: 0; border-radius: 999px; padding: 9px 18px; cursor: pointer;
