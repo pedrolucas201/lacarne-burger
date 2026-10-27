@@ -38,12 +38,12 @@ export const LOJA = {
   monta: {
     ordem: ['maionese', 'nutella', 'geleia', 'proteina', 'bacon', 'cebola', 'abacaxi'],
     queijos: ['cheddar', 'mucarela', 'coalho'],
-    pao: { pao: { base: 80, topo: -18 }, 'pao-amanteigado': { base: 108, topo: -18 } }, // por arte de pão
+    pao: { pao: { base: 80, topo: -18 }, 'pao-amanteigado': { base: 108, topo: -6 } }, // por arte de pão
     camadas: {
       carne: { ferramenta: 'espatula', passo: 72 },
       cheddar: { ferramenta: 'mao', passo: 0, desloca: -60, largura: 0.92 },
       mucarela: { ferramenta: 'mao', passo: 0, desloca: -60, largura: 0.92 },
-      coalho: { ferramenta: 'espatula', passo: 62, desloca: -17 },
+      coalho: { ferramenta: 'espatula', passo: 37, desloca: -10 },
       bacon: { ferramenta: 'mao', passo: 30, desloca: -8 },
       cebola: { ferramenta: 'espatula', passo: 46, desloca: -56 },
       abacaxi: { ferramenta: 'espatula', passo: 60, desloca: -6 },
