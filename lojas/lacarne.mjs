@@ -30,7 +30,7 @@ export const LOJA = {
     { id: 'coalho', nome: 'Queijo coalho (1 fatia)', preco: 5 },
     { id: 'cebola', nome: 'Cebola caramelizada', preco: 3 },
     { id: 'bacon', nome: 'Bacon', preco: 4 },
-    { id: 'carne', nome: 'Carne (blend 150g)', preco: 7, max: 3, maxMsg: 'Até 3 carnes extras por burger. Quer mais? Chama a loja no WhatsApp 📲' }, // Brenda, 02/10; teto de 3 (Pedro, 27/10)
+    { id: 'carne', nome: 'Carne (blend 150g)', preco: 7, max: 3, maxMsg: 'Até 3 carnes por burger. Quer mais? Chama a loja no WhatsApp 📲' }, // Brenda, 02/10; max = total no burger, contando a receita (Pedro, 27/10)
     { id: 'abacaxi', nome: 'Abacaxi (porção extra)', preco: 4 }, // Nicolas, 15/10
   ],
   // burger se montando no diálogo (monta.js). Adicional usa a camada de mesmo id.
@@ -45,7 +45,7 @@ export const LOJA = {
       mucarela: { ferramenta: 'mao', passo: 0, desloca: -60, largura: 0.92 },
       coalho: { ferramenta: 'espatula', passo: 62, desloca: -17 },
       bacon: { ferramenta: 'mao', passo: 30, desloca: -8 },
-      cebola: { ferramenta: 'espatula', passo: 40, desloca: -40 },
+      cebola: { ferramenta: 'espatula', passo: 62, desloca: -66 },
       abacaxi: { ferramenta: 'espatula', passo: 60, desloca: -6 },
       maionese: { ferramenta: 'bisnaga', passo: 8, desloca: -81 },
       nutella: { ferramenta: 'bisnaga', passo: 8, desloca: -81 },

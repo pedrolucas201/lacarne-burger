@@ -59,7 +59,13 @@ const esgotado = id => loja.esgotados?.[id] === hoje();
 const itemDe = id => loja.cardapio.find(x => x.id === id);
 const MAX_EXTRA = 5; // por adicional, por burger
 const adicional = x => loja.adicionais?.find(a => a.id === x);
-const maxDe = x => adicional(x)?.max ?? MAX_EXTRA;
+// `max` do adicional = total no burger, contando o que já vem na receita (o Bruto já tem 2 carnes, então só cabe mais 1)
+const maxDe = (x, id) => {
+  const a = adicional(x);
+  if (!a?.max) return MAX_EXTRA;
+  const receita = LOJA.cardapio.find(i => i.id === id)?.camadas ?? [];
+  return Math.max(0, a.max - receita.filter(c => c === x).length);
+};
 
 // preço sempre vem do cardápio: o que está salvo no navegador pode ter sido alterado
 // edição: linha que já estava no pedido (fixo) mantém o preço da época; o que entra agora vale o cardápio.
@@ -68,7 +74,7 @@ const validar = lista => lista.flatMap(i => {
   const m = itemDe(i?.id);
   const qtd = Math.min(99, Math.max(1, parseInt(i.qtd) || 1));
   const n = {}; // sacola antiga ou mexida não passa do teto de cada adicional
-  const extras = (Array.isArray(i.extras) ? i.extras : []).filter(x => adicional(x) && (n[x] = (n[x] || 0) + 1) <= maxDe(x));
+  const extras = (Array.isArray(i.extras) ? i.extras : []).filter(x => adicional(x) && (n[x] = (n[x] || 0) + 1) <= maxDe(x, i.id));
   return m && Array.isArray(i.escolhas) && Array.isArray(i.sem)
     ? [{ ...i, nome: m.nome, extras, unit: EDITAR && i.fixo ? i.unit : precoItem(loja, { id: i.id, extras }), qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
 });
@@ -274,8 +280,9 @@ function abrirItem(item) {
     const b = e.target.closest('[data-x]');
     if (!b) return;
     const x = b.dataset.x, antes = atual.extras[x] || 0;
-    if (+b.dataset.d > 0 && antes >= maxDe(x) && adicional(x)?.maxMsg) return toast(adicional(x).maxMsg, true);
-    const n = Math.min(maxDe(x), Math.max(0, antes + +b.dataset.d));
+    const teto = maxDe(x, atual.item.id);
+    if (+b.dataset.d > 0 && antes >= teto && adicional(x)?.maxMsg) return toast(adicional(x).maxMsg, true);
+    const n = Math.min(teto, Math.max(0, antes + +b.dataset.d));
     if (n === antes) return;
     atual.extras[x] = n;
     const contador = $('#itemCorpo').querySelector(`[data-n="${x}"]`);

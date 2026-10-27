@@ -38,9 +38,10 @@ export function montar(foto, item, loja) {
     const cal = m.pao[pao];
     let y = 10 + cal.base;
     let antes = null;
+    const fatia = id => m.camadas[id]?.passo === 0; // fatia de queijo: não cresce a pilha
     estado.filter(c => c.entregue && !c.el.dataset.sem).forEach((c, i) => {
       const cfg = m.camadas[c.id];
-      if (m.queijos.includes(c.id) && m.queijos.includes(antes)) y += 12; // queijo sobre queijo: degrau pra aparecer os dois
+      if (fatia(c.id) && fatia(antes)) y += 12; // fatia sobre fatia: degrau pra aparecer as duas
       antes = c.id;
       c.el.style.bottom = y + (cfg.desloca ?? 0) + 'px';
       c.el.style.zIndex = 1 + i;
