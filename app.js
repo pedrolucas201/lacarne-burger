@@ -5,6 +5,7 @@ import { VALIDOS } from './numeros.js';
 import { burgersDoPedido } from './avaliacao.js';
 import { $, brl, esc, toast } from './util.js';
 import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
+import { montar } from './monta.js';
 
 // Material e Firebase (~650 KB) carregam em segundo plano: o cardápio aparece antes, a partir de lojas/lacarne.mjs
 import('./vendor/material.js');
@@ -254,6 +255,15 @@ function abrirItem(item) {
       placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>
     </div>`;
   opinioes(item);
+  // receita e calibragem vêm do arquivo (o item do banco não tem as camadas)
+  const receita = LOJA.cardapio.find(x => x.id === item.id);
+  const foto = $('#itemCorpo .item-foto');
+  const monta = receita?.camadas && foto ? montar(foto, receita, LOJA) : null;
+  const mexeu = origem => monta?.atualizar(marcados('v'), extrasDe(), origem);
+  $('#itemCorpo md-chip-set')?.addEventListener('click', e => {
+    const c = e.target.closest('md-filter-chip');
+    if (c) requestAnimationFrame(() => mexeu(c)); // o chip troca o "selected" depois do clique
+  });
   // ponto escolhido fica destacado igual aos adicionais (o md-radio não expõe o "marcado" pro CSS)
   $('#itemCorpo').addEventListener('change', () =>
     $('#itemCorpo').querySelectorAll('.opt').forEach(o => o.classList.toggle('on', o.querySelector('md-radio').checked)));
@@ -261,11 +271,13 @@ function abrirItem(item) {
     const b = e.target.closest('[data-x]');
     if (!b) return;
     const x = b.dataset.x, n = Math.min(MAX_EXTRA, Math.max(0, (atual.extras[x] || 0) + +b.dataset.d));
+    if (n === (atual.extras[x] || 0)) return;
     atual.extras[x] = n;
     const contador = $('#itemCorpo').querySelector(`[data-n="${x}"]`);
     contador.textContent = n;
     contador.closest('.extra').classList.toggle('on', n > 0);
     atualizarItem();
+    mexeu(b);
   });
   atualizarItem();
   dItem.show();
