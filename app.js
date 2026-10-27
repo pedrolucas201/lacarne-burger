@@ -58,6 +58,8 @@ fb.then(m => m.onSnapshot(m.doc(m.db, 'lojas', LOJA_ID), s => {
 const esgotado = id => loja.esgotados?.[id] === hoje();
 const itemDe = id => loja.cardapio.find(x => x.id === id);
 const MAX_EXTRA = 5; // por adicional, por burger
+const adicional = x => loja.adicionais?.find(a => a.id === x);
+const maxDe = x => adicional(x)?.max ?? MAX_EXTRA;
 
 // preço sempre vem do cardápio: o que está salvo no navegador pode ter sido alterado
 // edição: linha que já estava no pedido (fixo) mantém o preço da época; o que entra agora vale o cardápio.
@@ -65,7 +67,8 @@ const MAX_EXTRA = 5; // por adicional, por burger
 const validar = lista => lista.flatMap(i => {
   const m = itemDe(i?.id);
   const qtd = Math.min(99, Math.max(1, parseInt(i.qtd) || 1));
-  const extras = (Array.isArray(i.extras) ? i.extras : []).filter(x => loja.adicionais?.some(a => a.id === x));
+  const n = {}; // sacola antiga ou mexida não passa do teto de cada adicional
+  const extras = (Array.isArray(i.extras) ? i.extras : []).filter(x => adicional(x) && (n[x] = (n[x] || 0) + 1) <= maxDe(x));
   return m && Array.isArray(i.escolhas) && Array.isArray(i.sem)
     ? [{ ...i, nome: m.nome, extras, unit: EDITAR && i.fixo ? i.unit : precoItem(loja, { id: i.id, extras }), qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
 });
@@ -270,8 +273,10 @@ function abrirItem(item) {
   $('#extras')?.addEventListener('click', e => {
     const b = e.target.closest('[data-x]');
     if (!b) return;
-    const x = b.dataset.x, n = Math.min(MAX_EXTRA, Math.max(0, (atual.extras[x] || 0) + +b.dataset.d));
-    if (n === (atual.extras[x] || 0)) return;
+    const x = b.dataset.x, antes = atual.extras[x] || 0;
+    if (+b.dataset.d > 0 && antes >= maxDe(x) && adicional(x)?.maxMsg) return toast(adicional(x).maxMsg, true);
+    const n = Math.min(maxDe(x), Math.max(0, antes + +b.dataset.d));
+    if (n === antes) return;
     atual.extras[x] = n;
     const contador = $('#itemCorpo').querySelector(`[data-n="${x}"]`);
     contador.textContent = n;

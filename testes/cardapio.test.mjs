@@ -13,3 +13,8 @@ test('nomes do cardápio não se repetem', () => {
   const nomes = LOJA.cardapio.map(i => i.nome);
   assert.equal(new Set(nomes).size, nomes.length);
 });
+
+// mais que isso a loja combina no WhatsApp (Pedro, 27/10)
+test('carne adicional vai até 3 por burger', () => {
+  assert.equal(LOJA.adicionais.find(a => a.id === 'carne').max, 3);
+});

@@ -23,14 +23,14 @@ export const LOJA = {
     'Matriz': 5, 'Maués': 6, 'Militina': 7, 'Natuba': 10, 'Petrobras': 7, 'Pinga Fogo': 5, 'Privê Shopping': 10,
     'Redenção': 6, 'Santana': 8, 'Shopping (fora)': 7, 'Shopping (dentro)': 10, 'Sítio do Meio': 6, 'Trajanos': 6,
   },
-  // adicionais (Brenda, 01/10): valem pra qualquer burger, até 5 de cada (app.js MAX_EXTRA); preço por unidade do burger
+  // adicionais (Brenda, 01/10): valem pra qualquer burger, até 5 de cada (app.js MAX_EXTRA) ou `max`; preço por unidade do burger
   adicionais: [
     { id: 'cheddar', nome: 'Cheddar (1 fatia)', preco: 2 },
     { id: 'mucarela', nome: 'Muçarela (1 fatia)', preco: 2 },
     { id: 'coalho', nome: 'Queijo coalho (1 fatia)', preco: 5 },
     { id: 'cebola', nome: 'Cebola caramelizada', preco: 3 },
     { id: 'bacon', nome: 'Bacon', preco: 4 },
-    { id: 'carne', nome: 'Carne (blend 150g)', preco: 7 }, // Brenda, 02/10
+    { id: 'carne', nome: 'Carne (blend 150g)', preco: 7, max: 3, maxMsg: 'Até 3 carnes extras por burger. Quer mais? Chama a loja no WhatsApp 📲' }, // Brenda, 02/10; teto de 3 (Pedro, 27/10)
     { id: 'abacaxi', nome: 'Abacaxi (porção extra)', preco: 4 }, // Nicolas, 15/10
   ],
   // burger se montando no diálogo (monta.js). Adicional usa a camada de mesmo id.
