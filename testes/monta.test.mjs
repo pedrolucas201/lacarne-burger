@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pilha } from '../camadas.js';
+import { LOJA } from '../lojas/lacarne.mjs';
 
 const ordem = ['maionese', 'nutella', 'geleia', 'proteina', 'bacon', 'cebola', 'abacaxi'];
 const queijos = ['cheddar', 'mucarela', 'coalho'];
@@ -34,4 +35,24 @@ test('tirar um adicional repetido remove a última chave daquele tipo', () => {
   const antes = pilha({ receita: ['carne'], extras: ['carne', 'carne'], ordem, queijos }).map(c => c.k);
   const depois = pilha({ receita: ['carne'], extras: ['carne'], ordem, queijos }).map(c => c.k);
   assert.deepEqual(antes.filter(k => !depois.includes(k)), ['carne#2']);
+});
+
+const burgers = LOJA.cardapio.filter(i => !i.tipo);
+const m = LOJA.monta;
+const naOrdem = id => m.ordem.includes(id) || (id === 'carne' || m.queijos.includes(id)) && m.ordem.includes('proteina');
+
+test('toda camada de receita e todo adicional têm calibragem e lugar na ordem', () => {
+  const usadas = [...burgers.flatMap(b => b.camadas), ...LOJA.adicionais.map(a => a.id)];
+  for (const id of usadas) {
+    assert.ok(m.camadas[id], `sem calibragem: ${id}`);
+    assert.ok(naOrdem(id), `fora da ordem: ${id}`);
+  }
+});
+
+test('tiraCamada só usa textos do "tira" e aponta pra camada da receita', () => {
+  for (const b of burgers)
+    for (const [t, c] of Object.entries(b.tiraCamada)) {
+      assert.ok(b.tira.includes(t), `${b.nome}: "${t}" não está no tira`);
+      assert.ok(b.camadas.includes(c), `${b.nome}: ${c} não está na receita`);
+    }
 });
