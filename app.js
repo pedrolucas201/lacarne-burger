@@ -268,7 +268,21 @@ function abrirItem(item) {
   const receita = LOJA.cardapio.find(x => x.id === item.id);
   const foto = $('#itemCorpo .item-foto');
   const monta = receita?.camadas && foto ? montar(foto, receita, LOJA) : null;
-  const mexeu = origem => monta?.atualizar(marcados('v'), extrasDe(), origem);
+  // o cliente escolhe ver o lanche se montando; a escolha vale pros próximos burgers
+  let montando = false;
+  const mexeu = origem => montando && monta.atualizar(marcados('v'), extrasDe(), origem);
+  if (monta) {
+    const botao = Object.assign(document.createElement('button'), { type: 'button', className: 'monta-botao' });
+    const alterna = liga => {
+      montando = liga;
+      store.set('montar', liga);
+      liga ? monta.atualizar(marcados('v'), extrasDe(), null) : monta.desligar(); // ligar mostra o que já foi escolhido, sem voo
+      botao.textContent = liga ? '📷 Ver foto' : '🍔 Montar na tela';
+      foto.append(botao);
+    };
+    botao.onclick = () => alterna(!montando);
+    alterna(store.get('montar', false));
+  }
   $('#itemCorpo md-chip-set')?.addEventListener('click', e => {
     const c = e.target.closest('md-filter-chip');
     if (c) requestAnimationFrame(() => mexeu(c)); // o chip troca o "selected" depois do clique

@@ -18,7 +18,8 @@ const ferramenta = f => ferrImg[f] ??= Object.assign(new Image(), { src: `img/mo
 
 export function montar(foto, item, loja) {
   const m = loja.monta, pao = item.pao ? `pao-${item.pao}` : 'pao';
-  let palco, monte, topo, estado = [], fila = Promise.resolve();
+  const original = { cls: foto.className, html: foto.innerHTML }; // pra voltar pra foto real
+  let palco, monte, topo, olho, estado = [], fila = Promise.resolve();
   Object.keys(FERR).forEach(ferramenta); // já baixa as ferramentas
 
   function camada(id) {
@@ -66,7 +67,7 @@ export function montar(foto, item, loja) {
     estado = pilha({ receita: item.camadas, ordem: m.ordem, queijos: m.queijos })
       .map(c => ({ ...c, el: camada(c.id), entregue: true }));
     monte.append(...estado.map(c => c.el));
-    new ResizeObserver(cabe).observe(foto);
+    (olho = new ResizeObserver(cabe)).observe(foto);
     cabe();
   }
 
@@ -147,6 +148,13 @@ export function montar(foto, item, loja) {
   }
 
   return {
+    // volta pra foto real; ligar de novo remonta do zero
+    desligar() {
+      foto.className = original.cls;
+      foto.innerHTML = original.html;
+      olho?.disconnect();
+      palco = topo = null; estado = []; fila = Promise.resolve();
+    },
     // sem = textos marcados em "Quer tirar algo?"; extras = ids dos adicionais (repetidos); origem = botão tocado
     atualizar(sem, extras, origem) {
       if (!palco) abrir();
