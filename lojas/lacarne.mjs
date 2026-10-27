@@ -48,7 +48,7 @@ export const LOJA = {
       cebola: { ferramenta: 'espatula', passo: 46, desloca: -56 },
       abacaxi: { ferramenta: 'espatula', passo: 60, desloca: -6 },
       maionese: { ferramenta: 'bisnaga', passo: 8, desloca: -45 },
-      nutella: { ferramenta: 'bisnaga', passo: 8, desloca: -81 },
+      nutella: { ferramenta: 'bisnaga', passo: 8, desloca: -45 },
       geleia: { ferramenta: 'bisnaga', passo: 20, desloca: -100 },
     },
   },
