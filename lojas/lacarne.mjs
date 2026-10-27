@@ -46,7 +46,7 @@ export const LOJA = {
       coalho: { ferramenta: 'espatula', passo: 37, desloca: -10 },
       bacon: { ferramenta: 'mao', passo: 30, desloca: -8 },
       cebola: { ferramenta: 'espatula', passo: 46, desloca: -56 },
-      abacaxi: { ferramenta: 'espatula', passo: 60, desloca: -6 },
+      abacaxi: { ferramenta: 'espatula', passo: 54, desloca: -4 },
       maionese: { ferramenta: 'bisnaga', passo: -6, desloca: -45 },
       nutella: { ferramenta: 'bisnaga', passo: -6, desloca: -45 },
       geleia: { ferramenta: 'bisnaga', passo: 20, desloca: -100 },
