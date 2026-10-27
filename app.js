@@ -5,7 +5,7 @@ import { VALIDOS } from './numeros.js';
 import { burgersDoPedido } from './avaliacao.js';
 import { $, brl, esc, toast } from './util.js';
 import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
-import { montar } from './monta.js';
+import { montar, altura } from './monta.js';
 
 // Material e Firebase (~650 KB) carregam em segundo plano: o cardápio aparece antes, a partir de lojas/lacarne.mjs
 import('./vendor/material.js');
@@ -672,6 +672,9 @@ function comanda({ cod, total, tx, forma, entrega, url, feito, pix }) {
   });
   if (burgers.length > 3) grelha.insertAdjacentHTML('beforeend', `<span class="comanda-mais">+${burgers.length - 3}</span>`);
   grelha.hidden = !burgers.length;
+  // grelha da altura do burger mais alto: ele ocupa a largura da sua vaga (pão de 302 em 360) e pousa a 14% da base
+  const fr = [46, 36, 29][mostra.length - 1] / 100, alto = Math.max(0, ...mostra.map(([i, r]) => altura(r, i.sem, i.extras, LOJA)));
+  grelha.style.aspectRatio = String(Math.min(2.2, 0.82 * 360 / (alto * fr)));
   dComanda.classList.remove('rodando');
   dComanda.showModal(); // antes de montar: a pilha mede o espaço que tem
   mostra.forEach(([i, r], k) => montar(els[k], r, LOJA, 520).atualizar(i.sem, i.extras, null));

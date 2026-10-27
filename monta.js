@@ -16,6 +16,27 @@ const FERR = {
 const ferrImg = {};
 const ferramenta = f => ferrImg[f] ??= Object.assign(new Image(), { src: `img/monta/ferr-${f}.webp` });
 
+// onde cada camada assenta (bottom, px do desenho) e onde fica o pão de cima
+function assenta(m, pao, ids) {
+  const cal = m.pao[pao], fatia = id => m.camadas[id]?.passo === 0; // fatia de queijo: não cresce a pilha
+  let y = 10 + cal.base, antes = null;
+  const bottoms = ids.map(id => {
+    if (fatia(id) && fatia(antes)) y += 12; // fatia sobre fatia: degrau pra aparecer as duas
+    antes = id;
+    const b = y + (m.camadas[id].desloca ?? 0);
+    y += m.camadas[id].passo;
+    return b;
+  });
+  return { bottoms, yTopo: y + cal.topo };
+}
+
+// altura da pilha pronta, com o pão de cima (px do desenho; 130 ≈ altura do pão de cima): a comanda dimensiona a grelha por ela
+export function altura(item, sem, extras, loja) {
+  const m = loja.monta, tirar = sem.map(t => item.tiraCamada?.[t]).filter(Boolean);
+  const ids = pilha({ receita: item.camadas, tirar, extras, ordem: m.ordem, queijos: m.queijos }).map(c => c.id);
+  return assenta(m, item.pao ? `pao-${item.pao}` : 'pao', ids).yTopo + 130;
+}
+
 // H = altura do palco: no diálogo 340 (pilha alta encolhe); na comanda mais alto, pra todo burger sair com o pão do mesmo tamanho
 export function montar(foto, item, loja, H = 340) {
   const m = loja.monta, pao = item.pao ? `pao-${item.pao}` : 'pao';
@@ -37,19 +58,9 @@ export function montar(foto, item, loja, H = 340) {
   }
 
   function arruma() {
-    const cal = m.pao[pao];
-    let y = 10 + cal.base;
-    let antes = null;
-    const fatia = id => m.camadas[id]?.passo === 0; // fatia de queijo: não cresce a pilha
-    estado.filter(c => c.entregue && !c.el.dataset.sem).forEach((c, i) => {
-      const cfg = m.camadas[c.id];
-      if (fatia(c.id) && fatia(antes)) y += 12; // fatia sobre fatia: degrau pra aparecer as duas
-      antes = c.id;
-      c.el.style.bottom = y + (cfg.desloca ?? 0) + 'px';
-      c.el.style.zIndex = 1 + i;
-      y += cfg.passo;
-    });
-    const yTopo = y + cal.topo;
+    const vis = estado.filter(c => c.entregue && !c.el.dataset.sem);
+    const { bottoms, yTopo } = assenta(m, pao, vis.map(c => c.id));
+    vis.forEach((c, i) => { c.el.style.bottom = bottoms[i] + 'px'; c.el.style.zIndex = 1 + i; });
     topo.style.bottom = yTopo + 'px';
     topo.style.zIndex = 99;
     monte.style.scale = Math.min(1, (H - 10) / (yTopo + 130)); // pilha alta encolhe (130 ≈ altura do pão de cima)
