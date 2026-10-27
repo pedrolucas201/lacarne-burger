@@ -38,18 +38,18 @@ export const LOJA = {
   monta: {
     ordem: ['maionese', 'nutella', 'geleia', 'proteina', 'bacon', 'cebola', 'abacaxi'],
     queijos: ['cheddar', 'mucarela', 'coalho'],
-    pao: { base: 80, topo: -18 },
+    pao: { pao: { base: 80, topo: -18 }, 'pao-amanteigado': { base: 108, topo: -18 } }, // por arte de pão
     camadas: {
       carne: { ferramenta: 'espatula', passo: 72 },
       cheddar: { ferramenta: 'mao', passo: 0, desloca: -60, largura: 0.92 },
       mucarela: { ferramenta: 'mao', passo: 0, desloca: -60, largura: 0.92 },
-      coalho: { ferramenta: 'espatula', passo: 30, desloca: -6 },
+      coalho: { ferramenta: 'espatula', passo: 62, desloca: -17 },
       bacon: { ferramenta: 'mao', passo: 30, desloca: -8 },
-      cebola: { ferramenta: 'espatula', passo: 24, desloca: -10 },
-      abacaxi: { ferramenta: 'espatula', passo: 22, desloca: -6 },
+      cebola: { ferramenta: 'espatula', passo: 40, desloca: -40 },
+      abacaxi: { ferramenta: 'espatula', passo: 60, desloca: -6 },
       maionese: { ferramenta: 'bisnaga', passo: 8, desloca: -81 },
       nutella: { ferramenta: 'bisnaga', passo: 8, desloca: -81 },
-      geleia: { ferramenta: 'bisnaga', passo: 8, desloca: -81 },
+      geleia: { ferramenta: 'bisnaga', passo: 8, desloca: -115 },
     },
   },
   // tira: todo ingrediente pode sair, menos pão e carne (Brenda, 01/10)

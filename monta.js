@@ -35,14 +35,18 @@ export function montar(foto, item, loja) {
   }
 
   function arruma() {
-    let y = 10 + m.pao.base;
+    const cal = m.pao[pao];
+    let y = 10 + cal.base;
+    let antes = null;
     estado.filter(c => c.entregue && !c.el.dataset.sem).forEach((c, i) => {
       const cfg = m.camadas[c.id];
+      if (m.queijos.includes(c.id) && m.queijos.includes(antes)) y += 12; // queijo sobre queijo: degrau pra aparecer os dois
+      antes = c.id;
       c.el.style.bottom = y + (cfg.desloca ?? 0) + 'px';
       c.el.style.zIndex = 1 + i;
       y += cfg.passo;
     });
-    const yTopo = y + m.pao.topo;
+    const yTopo = y + cal.topo;
     topo.style.bottom = yTopo + 'px';
     topo.style.zIndex = 99;
     monte.style.scale = Math.min(1, (H - 10) / (yTopo + 130)); // pilha alta encolhe (130 ≈ altura do pão de cima)
