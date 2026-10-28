@@ -37,9 +37,18 @@ Cada restaurante é uma loja: um arquivo em `lojas/` (cardápio, taxas por bairr
 - **Números** por período, com variação contra o anterior: faturamento, ticket médio, mais vendidos, formas de pagamento, bairros, dias da semana e melhores clientes. Exporta CSV.
 - **Registro** de cada ação da loja (quem e quando), gravado junto com a mudança e impossível de editar ou apagar.
 
+## Por que sem framework
+
+Foi escolha, não falta de opção. O cliente chega pelo link no WhatsApp, no celular e muitas vezes com internet ruim: o site precisa abrir rápido e o pedido não pode travar.
+
+- **Peso:** todo o código próprio do site (HTML, CSS e JS) dá uns **33 KB comprimido**. O grosso do download é o SDK do Firebase, que estaria lá com ou sem framework. React, Vue ou Next só somariam bundle, build e dependência.
+- **Manutenção:** produto de loja pequena precisa durar anos com pouca mão. Módulos ES nativos, sem etapa de build no código da loja; o `esbuild` só empacota as bibliotecas de terceiros em `vendor/`.
+- **O que segura a qualidade não é o framework:** é regra pura e testada, regras do banco testadas no emulador, teste de ponta a ponta e CI obrigatório.
+
+Quando o produto pedir (estado complexo no painel, várias pessoas mexendo no front), migrar o painel pra um framework é um passo pequeno, porque a regra de negócio já está fora do DOM.
+
 ## Como foi pensado
 
-- **Sem framework.** HTML, CSS e JS puro, módulos ES. O `esbuild` só empacota as bibliotecas de terceiros em `vendor/`.
 - **A regra mora num lugar só.** `pedido.js`, `horario.js`, `numeros.js` e `avaliacao.js` são puros (sem DOM, sem Firebase) e rodam igual no site, no painel e nos testes.
 - **O banco não confia no navegador.** O `firestore.rules` valida o formato do pedido, quem pode ler o quê, convite de avaliação de uso único e o registro de auditoria amarrado a cada alteração. As etiquetas de avaliação existem nas regras e no código, e um teste garante que as duas listas batem.
 - **Deploy que se recusa a fazer besteira.** `npm run deploy` só publica a partir do `main` limpo, com tag publicada e testes verdes.
