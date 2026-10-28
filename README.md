@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🍔 La Carne Burger · Pede Direto
+# 🍔 Pede Direto
 
-**Pedido direto pro WhatsApp da hamburgueria, sem app de delivery no meio e sem comissão.**
+**Pedido direto pro WhatsApp do restaurante, sem app de delivery no meio e sem comissão.**
 
 O cliente monta o pedido no site e manda pro WhatsApp da loja. A loja recebe, imprime a comanda e acompanha os números num painel.
 
@@ -10,16 +10,21 @@ O cliente monta o pedido no site e manda pro WhatsApp da loja. A loja recebe, im
 ![Firebase](https://img.shields.io/badge/Firestore_·_Auth_·_App_Check-FFCA28?style=flat-square&logo=firebase&logoColor=black)
 ![Testes](https://img.shields.io/badge/testes-unidade_·_regras_·_e2e-3ddc97?style=flat-square)
 ![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)
-![Em produção](https://img.shields.io/badge/status-em_produção-16a34a?style=flat-square)
+![White label](https://img.shields.io/badge/white_label-multi--loja-7c3aed?style=flat-square)
+![Em produção](https://img.shields.io/badge/em_produção-La_Carne_Burger-16a34a?style=flat-square)
 
 </div>
 
 ---
 
+## White label
+
+Cada restaurante é uma loja: um arquivo em `lojas/` (cardápio, taxas por bairro, horário, WhatsApp e chave Pix) e um documento próprio no Firestore, com admins, pedidos, clientes e avaliações separados. A primeira loja em produção é a **La Carne Burger**.
+
 ## O que faz
 
 **Pro cliente (site)**
-- Cardápio com montagem de burger um por vez, adicionais "em cada" e sacola com `+` pra repetir.
+- Cardápio com montagem de item um por vez, adicionais "em cada" e sacola com `+` pra repetir.
 - Selo de aberto/fechado no fuso da loja, com a próxima abertura; fora do horário, o envio fica bloqueado.
 - Pix **copia e cola** gerado na hora (BR Code estático no padrão do Banco Central).
 - O pedido sai formatado pro WhatsApp da loja; CEP preenchido pelo ViaCEP.
@@ -77,4 +82,4 @@ Cardápio, taxas e horário: `lojas/lacarne.mjs` (o site também lê esse arquiv
 
 ---
 
-<div align="center"><sub>Feito por <a href="https://github.com/pedrolucas201">Pedro Gomes</a> · da chapa pro WhatsApp, sem taxa de app no meio.</sub></div>
+<div align="center"><sub>Feito por <a href="https://github.com/pedrolucas201">Pedro Gomes</a> · do cardápio pro WhatsApp, sem taxa de app no meio.</sub></div>
