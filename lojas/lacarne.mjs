@@ -32,6 +32,7 @@ export const LOJA = {
     { id: 'bacon', nome: 'Bacon', preco: 4 },
     { id: 'carne', nome: 'Carne (blend 150g)', preco: 7 }, // Brenda, 02/10
     { id: 'abacaxi', nome: 'Abacaxi (porção extra)', preco: 4 }, // Nicolas, 15/10
+    { id: 'geleia-bacon', nome: 'Geleia de bacon', preco: 5 }, // Pedro, 29/10
   ],
   // tira: todo ingrediente pode sair, menos pão e carne (Brenda, 01/10)
   // fotoAlta: versão vertical (das originais em alta) pra tela larga do computador
