@@ -33,24 +33,26 @@ export const LOJA = {
     { id: 'carne', nome: 'Carne (blend 150g)', preco: 7, max: 3, maxMsg: 'Até 3 carnes por burger. Quer mais? Chama a loja no WhatsApp 📲' }, // Brenda, 02/10; max = total no burger, contando a receita (estimativa do Pedro, 27/10: confirmar com o Nicolas)
     { id: 'abacaxi', nome: 'Abacaxi (porção extra)', preco: 4 }, // Nicolas, 15/10
     { id: 'geleia-bacon', nome: 'Geleia de bacon', preco: 5 }, // Pedro, 29/10
+    { id: 'mel', nome: 'Mel', preco: 2 }, // demo (30/10): preço sugerido, a confirmar com o Nicolas
   ],
   // burger se montando no diálogo (monta.js). Adicional usa a camada de mesmo id. Geleia: a camada usa o id do adicional (geleia-bacon) pra ele aparecer na pilha.
   // passo = quanto a pilha cresce; desloca = quanto a camada desce sobre a de baixo; px com o pão a 302 px (teste de arte, 27/10)
   monta: {
-    ordem: ['maionese', 'nutella', 'proteina', 'geleia-bacon', 'bacon', 'cebola', 'abacaxi'],
+    ordem: ['maionese', 'nutella', 'proteina', 'geleia-bacon', 'bacon', 'cebola', 'abacaxi', 'mel'], // mel por último: escorre sobre o que estiver em cima
     queijos: ['cheddar', 'mucarela', 'coalho'],
     pao: { pao: { base: 80, topo: -18 }, 'pao-amanteigado': { base: 96, topo: -6 } }, // por arte de pão
     camadas: {
       carne: { ferramenta: 'espatula', passo: 72 },
       cheddar: { ferramenta: 'mao', passo: 0, desloca: -60, largura: 0.92 },
       mucarela: { ferramenta: 'mao', passo: 0, desloca: -60, largura: 0.92 },
-      coalho: { ferramenta: 'espatula', passo: 37, desloca: -10 },
+      coalho: { ferramenta: 'espatula', passo: 56, desloca: -16 }, // fatia retangular assada (30/10), sem mel: o mel é camada própria
       bacon: { ferramenta: 'mao', passo: 30, desloca: -8 },
       cebola: { ferramenta: 'espatula', passo: 46, desloca: -56 },
       abacaxi: { ferramenta: 'espatula', passo: 54, desloca: -4 },
       maionese: { ferramenta: 'bisnaga', passo: -6, desloca: -45 },
       nutella: { ferramenta: 'bisnaga', passo: -6, desloca: -45 },
       'geleia-bacon': { ferramenta: 'bisnaga', passo: 20, desloca: -100 },
+      mel: { ferramenta: 'bisnaga', passo: 2, desloca: -100 }, // poça em cima, 2 fios escorrendo pela frente
     },
   },
   // tira: todo ingrediente pode sair, menos pão e carne (Brenda, 01/10)
@@ -68,13 +70,13 @@ export const LOJA = {
     { id: 'matuto', nome: 'Matuto', preco: 28, emoji: '🧀', foto: 'img/matuto.webp', fotoAlta: 'img/matuto-alta.webp', boi: 'img/boi-matuto.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), queijo coalho no mel, queijo cheddar, cebola caramelizada e maionese da casa.',
       tira: ['Queijo coalho', 'Mel', 'Queijo cheddar', 'Cebola caramelizada', 'Maionese da casa'],
-      // o mel vem dentro da arte do coalho e do abacaxi: tirar o mel não muda a pilha
-      camadas: ['maionese', 'carne', 'coalho', 'cheddar', 'cebola'], tiraCamada: { 'Queijo coalho': 'coalho', 'Queijo cheddar': 'cheddar', 'Cebola caramelizada': 'cebola', 'Maionese da casa': 'maionese' } },
+      // queijo e mel são camadas separadas (Pedro, 30/10): "Sem mel" tira só o mel
+      camadas: ['maionese', 'carne', 'coalho', 'cheddar', 'cebola', 'mel'], tiraCamada: { 'Queijo coalho': 'coalho', 'Mel': 'mel', 'Queijo cheddar': 'cheddar', 'Cebola caramelizada': 'cebola', 'Maionese da casa': 'maionese' } },
     // Praiêro e Amostradinho (01/10): descrição e preço da Brenda; "tira" confirmado pela loja (02/10)
     { id: 'praiero', nome: 'Praiêro', preco: 26, emoji: '🍍', foto: 'img/praiero.webp', fotoAlta: 'img/praiero-alta.webp', boi: 'img/boi-praiero.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), abacaxi grelhado com mel, queijo muçarela e maionese da casa.',
       tira: ['Abacaxi', 'Mel', 'Queijo muçarela', 'Maionese da casa'],
-      camadas: ['maionese', 'carne', 'mucarela', 'abacaxi'], tiraCamada: { 'Abacaxi': 'abacaxi', 'Queijo muçarela': 'mucarela', 'Maionese da casa': 'maionese' } },
+      camadas: ['maionese', 'carne', 'mucarela', 'abacaxi', 'mel'], tiraCamada: { 'Abacaxi': 'abacaxi', 'Mel': 'mel', 'Queijo muçarela': 'mucarela', 'Maionese da casa': 'maionese' } },
     { id: 'amostradinho', nome: 'Amostradinho', preco: 27, emoji: '😎', foto: 'img/amostradinho.webp', fotoAlta: 'img/amostradinho-alta.webp', boi: 'img/boi-amostradinho.webp', escolhas: [PONTO],
       desc: 'Pão brioche amanteigado, blend de fraldinha (150g), maionese da casa, queijo cheddar e geleia de bacon.',
       tira: ['Maionese da casa', 'Queijo cheddar', 'Geleia de bacon'],
