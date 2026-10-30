@@ -219,7 +219,7 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 .emoji span .mini-boi, .card:hover .emoji span .mini-boi {
   position: static; width: 100%; height: 100%; margin: 0; object-fit: contain; filter: none; animation: none; transform: scale(1.35) translateY(4%);
 }
-/* bebidas: cards pequenos verticais (lata e garrafa são altas); 2 por linha no celular */
+/* bebidas: cards pequenos verticais (lata e garrafa são altas); trilho no celular */
 .bebidas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .bebida {
   display: flex; flex-direction: column; padding: 12px; border-radius: 20px;
@@ -253,6 +253,18 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
   .bebida:hover img { transform: scale(1.06) rotate(-4deg); }
 }
 .bebida.esgotado { opacity: .55; }
+/* computador (e o balcão da loja): bebida vira linha baixa, 3 por fileira, todas à vista */
+@media (min-width: 701px) {
+  .bebidas { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .bebida h3 { text-wrap: balance; }
+  .bebida { display: grid; grid-template-columns: 56px 1fr auto; grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 8px 12px 8px 8px; }
+  .bebida img { grid-row: 1 / 3; width: 56px; height: 56px; padding: 4px; margin: 0; }
+  .bebida h3 { align-self: end; }
+  .bebida small { align-self: start; }
+  .bebida .pe { grid-column: 3; grid-row: 1 / 3; margin: 0; padding: 0; gap: 8px; }
+  .bebida:hover { transform: translateY(-2px); }
+  .bebida:hover img { transform: scale(1.08) rotate(-4deg); }
+}
 .bebida .mais { flex: none; border-radius: 50%; background: var(--md-sys-color-secondary-container); --md-icon-button-icon-color: var(--md-sys-color-on-secondary-container); }
 .card h3 { margin: 14px 0 4px; font-size: 1.9rem; color: var(--md-sys-color-primary); }
 .card p { margin: 0 0 16px; flex: 1; color: var(--md-sys-color-on-surface-variant); font-size: .9rem; }
@@ -439,7 +451,9 @@ md-outlined-text-field { width: 100%; }
 @keyframes balancar { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg) translateY(-4px); } }
 
 @media (max-width: 700px) {
-  .bebidas { grid-template-columns: 1fr 1fr; }
+  /* bebidas viram trilho (como a sugestão da sacola): 2 cards e meio, o cortado avisa que arrasta */
+  .bebidas { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+  .bebida { flex: 0 0 40%; scroll-snap-align: start; }
   .hero { flex-direction: column; gap: 32px; padding-top: 32px; text-align: center; }
   .foto { width: calc(100% - 24px); }
   .ring { left: -12px; bottom: -20px; }
@@ -466,7 +480,7 @@ md-outlined-text-field { width: 100%; }
   .bois { inset: 7px; }
   .boi-nome { margin-top: 2px; font-size: 1.15rem; }
   .titulo { margin: 20px 0 12px; }
-  .grid { gap: 12px; }
+  .grid { gap: 12px; grid-template-columns: minmax(0, 1fr); } /* card com foto do lado: 2 por linha (600-700 px) estoura o "Adicionar" */
   .card { display: grid; grid-template-columns: 112px minmax(0, 1fr); grid-template-rows: auto 1fr auto; column-gap: 12px; padding: 10px; border-radius: 18px; }
   .card .emoji { grid-row: 1 / 4; align-self: center; aspect-ratio: 1; }
   .emoji span { top: 6px; right: 6px; width: 28px; height: 28px; font-size: 15px; }

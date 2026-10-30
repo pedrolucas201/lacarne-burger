@@ -32,11 +32,12 @@ export const LOJA = {
     { id: 'bacon', nome: 'Bacon', preco: 4 },
     { id: 'carne', nome: 'Carne (blend 150g)', preco: 7, max: 3, maxMsg: 'Até 3 carnes por burger. Quer mais? Chama a loja no WhatsApp 📲' }, // Brenda, 02/10; max = total no burger, contando a receita (estimativa do Pedro, 27/10: confirmar com o Nicolas)
     { id: 'abacaxi', nome: 'Abacaxi (porção extra)', preco: 4 }, // Nicolas, 15/10
+    { id: 'geleia-bacon', nome: 'Geleia de bacon', preco: 5 }, // Pedro, 29/10
   ],
-  // burger se montando no diálogo (monta.js). Adicional usa a camada de mesmo id.
+  // burger se montando no diálogo (monta.js). Adicional usa a camada de mesmo id. Geleia: a camada usa o id do adicional (geleia-bacon) pra ele aparecer na pilha.
   // passo = quanto a pilha cresce; desloca = quanto a camada desce sobre a de baixo; px com o pão a 302 px (teste de arte, 27/10)
   monta: {
-    ordem: ['maionese', 'nutella', 'proteina', 'geleia', 'bacon', 'cebola', 'abacaxi'],
+    ordem: ['maionese', 'nutella', 'proteina', 'geleia-bacon', 'bacon', 'cebola', 'abacaxi'],
     queijos: ['cheddar', 'mucarela', 'coalho'],
     pao: { pao: { base: 80, topo: -18 }, 'pao-amanteigado': { base: 96, topo: -6 } }, // por arte de pão
     camadas: {
@@ -49,7 +50,7 @@ export const LOJA = {
       abacaxi: { ferramenta: 'espatula', passo: 54, desloca: -4 },
       maionese: { ferramenta: 'bisnaga', passo: -6, desloca: -45 },
       nutella: { ferramenta: 'bisnaga', passo: -6, desloca: -45 },
-      geleia: { ferramenta: 'bisnaga', passo: 20, desloca: -100 },
+      'geleia-bacon': { ferramenta: 'bisnaga', passo: 20, desloca: -100 },
     },
   },
   // tira: todo ingrediente pode sair, menos pão e carne (Brenda, 01/10)
@@ -77,25 +78,26 @@ export const LOJA = {
     { id: 'amostradinho', nome: 'Amostradinho', preco: 27, emoji: '😎', foto: 'img/amostradinho.webp', fotoAlta: 'img/amostradinho-alta.webp', boi: 'img/boi-amostradinho.webp', escolhas: [PONTO],
       desc: 'Pão brioche amanteigado, blend de fraldinha (150g), maionese da casa, queijo cheddar e geleia de bacon.',
       tira: ['Maionese da casa', 'Queijo cheddar', 'Geleia de bacon'],
-      pao: 'amanteigado', camadas: ['maionese', 'carne', 'cheddar', 'geleia'], tiraCamada: { 'Maionese da casa': 'maionese', 'Queijo cheddar': 'cheddar', 'Geleia de bacon': 'geleia' } },
+      pao: 'amanteigado', camadas: ['maionese', 'carne', 'cheddar', 'geleia-bacon'], tiraCamada: { 'Maionese da casa': 'maionese', 'Queijo cheddar': 'cheddar', 'Geleia de bacon': 'geleia-bacon' } },
     { id: 'bruto', nome: 'Bruto', preco: 35, emoji: '🥓', foto: 'img/bruto.webp', fotoAlta: 'img/bruto-alta.webp', boi: 'img/boi-bruto.webp', escolhas: [PONTO],
       desc: 'Pão brioche, dois blends de fraldinha (150g cada), queijo cheddar, bacon, cebola caramelizada e maionese da casa.',
       tira: ['Queijo cheddar', 'Bacon', 'Cebola caramelizada', 'Maionese da casa'],
       camadas: ['maionese', 'carne', 'cheddar', 'carne', 'bacon', 'cebola'], tiraCamada: { 'Queijo cheddar': 'cheddar', 'Bacon': 'bacon', 'Cebola caramelizada': 'cebola', 'Maionese da casa': 'maionese' } },
     // carne crua pra fazer em casa: só no balcão, pra contar a saída de carne nos Números (Nicolas, 25/10)
     { id: 'carne-crua', tipo: 'carne', soBalcao: true, nome: 'Carne crua (blend 150g)', preco: 7.5, emoji: '🥩', desc: 'Blend de fraldinha cru, pra fazer em casa.', escolhas: [], tira: [] },
-    // bebidas (cardápio da Brenda, 01/10): vão direto pra sacola, sem diálogo
-    { id: 'guarana', tipo: 'bebida', nome: 'Guaraná Antarctica', preco: 6, foto: 'img/bebida-guarana.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
-    { id: 'coca', tipo: 'bebida', nome: 'Coca-Cola', preco: 6, foto: 'img/bebida-coca.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
-    { id: 'fanta', tipo: 'bebida', nome: 'Fanta Laranja', preco: 6, foto: 'img/bebida-fanta.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
-    { id: 'coca-zero', tipo: 'bebida', nome: 'Coca-Cola Zero', preco: 6, foto: 'img/bebida-coca-zero.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
-    { id: 'coca-zero-ks', tipo: 'bebida', nome: 'Coca-Cola Zero KS', preco: 6, foto: 'img/bebida-coca-zero-ks.webp', desc: 'Garrafa de vidro 290 ml', escolhas: [], tira: [] },
+    // bebidas (cardápio da Brenda, 01/10): vão direto pra sacola, sem diálogo; ordem = mais vendidas em outubro (29/10)
     { id: 'coca-1l', tipo: 'bebida', nome: 'Coca-Cola 1 L', preco: 10, foto: 'img/bebida-coca-1l.webp', desc: 'Garrafa de vidro 1 litro', escolhas: [], tira: [] },
-    { id: 'coca-1l-pet', tipo: 'bebida', nome: 'Coca-Cola 1 L Pet', preco: 12, foto: 'img/bebida-coca-1l-pet.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
-    { id: 'coca-zero-1l', tipo: 'bebida', nome: 'Coca-Cola Zero 1 L', preco: 12, foto: 'img/bebida-coca-zero-1l.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
+    { id: 'coca-zero-ks', tipo: 'bebida', nome: 'Coca-Cola Zero KS', preco: 6, foto: 'img/bebida-coca-zero-ks.webp', desc: 'Garrafa de vidro 290 ml', escolhas: [], tira: [] },
     { id: 'limoneto', tipo: 'bebida', nome: 'H2OH! Limoneto', preco: 7, foto: 'img/bebida-limoneto.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
-    { id: 'monster', tipo: 'bebida', nome: 'Monster Energy', preco: 12, foto: 'img/bebida-monster.webp', desc: 'Lata 473 ml', escolhas: [], tira: [] }, // Nicolas, 15/10
+    { id: 'coca', tipo: 'bebida', nome: 'Coca-Cola', preco: 6, foto: 'img/bebida-coca.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
+    { id: 'coca-zero', tipo: 'bebida', nome: 'Coca-Cola Zero', preco: 6, foto: 'img/bebida-coca-zero.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
+    { id: 'coca-zero-1l', tipo: 'bebida', nome: 'Coca-Cola Zero 1 L', preco: 12, foto: 'img/bebida-coca-zero-1l.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
+    { id: 'guarana', tipo: 'bebida', nome: 'Guaraná Antarctica', preco: 6, foto: 'img/bebida-guarana.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
     { id: 'agua', tipo: 'bebida', nome: 'Água mineral', preco: 2, foto: 'img/bebida-agua.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
+    { id: 'fanta', tipo: 'bebida', nome: 'Fanta Laranja', preco: 6, foto: 'img/bebida-fanta.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
+    { id: 'fanta-ks', tipo: 'bebida', nome: 'Fanta Laranja KS', preco: 6, foto: 'img/bebida-fanta-ks.webp', desc: 'Garrafa de vidro 290 ml', escolhas: [], tira: [] }, // Pedro, 29/10
+    { id: 'coca-1l-pet', tipo: 'bebida', nome: 'Coca-Cola 1 L Pet', preco: 12, foto: 'img/bebida-coca-1l-pet.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
     { id: 'agua-gas', tipo: 'bebida', nome: 'Água com gás', preco: 4, foto: 'img/bebida-agua-gas.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] }, // Nicolas, 15/10; preço 16/10
+    { id: 'monster', tipo: 'bebida', nome: 'Monster Energy', preco: 12, foto: 'img/bebida-monster.webp', desc: 'Lata 473 ml', escolhas: [], tira: [] }, // Nicolas, 15/10
   ],
 };
