@@ -33,7 +33,7 @@ export const LOJA = {
     { id: 'carne', nome: 'Carne (blend 150g)', preco: 7, max: 3, maxMsg: 'Até 3 carnes por burger. Quer mais? Chama a loja no WhatsApp 📲' }, // Brenda, 02/10; max = total no burger, contando a receita (estimativa do Pedro, 27/10: confirmar com o Nicolas)
     { id: 'abacaxi', nome: 'Abacaxi (porção extra)', preco: 4 }, // Nicolas, 15/10
     { id: 'geleia-bacon', nome: 'Geleia de bacon', preco: 5 }, // Pedro, 29/10
-    { id: 'mel', nome: 'Mel', preco: 2 }, // demo (30/10): preço sugerido, a confirmar com o Nicolas
+    { id: 'nutella', nome: 'Nutella', preco: 5 }, // Pedro, 30/10 (o mel saiu dos adicionais)
   ],
   // burger se montando no diálogo (monta.js). Adicional usa a camada de mesmo id. Geleia: a camada usa o id do adicional (geleia-bacon) pra ele aparecer na pilha.
   // passo = quanto a pilha cresce; desloca = quanto a camada desce sobre a de baixo; px com o pão a 302 px (teste de arte, 27/10)
