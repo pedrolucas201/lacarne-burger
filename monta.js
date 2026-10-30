@@ -19,7 +19,8 @@ const ferramenta = f => ferrImg[f] ??= Object.assign(new Image(), { src: `img/mo
 // onde cada camada assenta (bottom, px do desenho) e onde fica o pão de cima
 function assenta(m, pao, ids) {
   const cal = m.pao[pao], fatia = id => m.camadas[id]?.passo === 0; // fatia de queijo: não cresce a pilha
-  let y = 10 + cal.base, antes = null;
+  // sem molho no pão (ex.: "Sem maionese"), a 1ª camada desce até o miolo, senão sobra uma faixa de pão vazia embaixo da carne
+  let y = 10 + cal.base - (ids.length && m.camadas[ids[0]]?.ferramenta !== 'bisnaga' ? 12 : 0), antes = null;
   const bottoms = ids.map(id => {
     if (fatia(id) && fatia(antes)) y += 12; // fatia sobre fatia: degrau pra aparecer as duas
     antes = id;
