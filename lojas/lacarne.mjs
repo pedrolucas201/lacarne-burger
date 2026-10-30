@@ -59,18 +59,19 @@ export const LOJA = {
       tira: ['Queijo cheddar', 'Bacon', 'Cebola caramelizada', 'Maionese da casa'] },
     // carne crua pra fazer em casa: só no balcão, pra contar a saída de carne nos Números (Nicolas, 25/10)
     { id: 'carne-crua', tipo: 'carne', soBalcao: true, nome: 'Carne crua (blend 150g)', preco: 7.5, emoji: '🥩', desc: 'Blend de fraldinha cru, pra fazer em casa.', escolhas: [], tira: [] },
-    // bebidas (cardápio da Brenda, 01/10): vão direto pra sacola, sem diálogo
-    { id: 'guarana', tipo: 'bebida', nome: 'Guaraná Antarctica', preco: 6, foto: 'img/bebida-guarana.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
-    { id: 'coca', tipo: 'bebida', nome: 'Coca-Cola', preco: 6, foto: 'img/bebida-coca.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
-    { id: 'fanta', tipo: 'bebida', nome: 'Fanta Laranja', preco: 6, foto: 'img/bebida-fanta.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
-    { id: 'coca-zero', tipo: 'bebida', nome: 'Coca-Cola Zero', preco: 6, foto: 'img/bebida-coca-zero.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
-    { id: 'coca-zero-ks', tipo: 'bebida', nome: 'Coca-Cola Zero KS', preco: 6, foto: 'img/bebida-coca-zero-ks.webp', desc: 'Garrafa de vidro 290 ml', escolhas: [], tira: [] },
+    // bebidas (cardápio da Brenda, 01/10): vão direto pra sacola, sem diálogo; ordem = mais vendidas em outubro (29/10)
     { id: 'coca-1l', tipo: 'bebida', nome: 'Coca-Cola 1 L', preco: 10, foto: 'img/bebida-coca-1l.webp', desc: 'Garrafa de vidro 1 litro', escolhas: [], tira: [] },
-    { id: 'coca-1l-pet', tipo: 'bebida', nome: 'Coca-Cola 1 L Pet', preco: 12, foto: 'img/bebida-coca-1l-pet.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
-    { id: 'coca-zero-1l', tipo: 'bebida', nome: 'Coca-Cola Zero 1 L', preco: 12, foto: 'img/bebida-coca-zero-1l.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
+    { id: 'coca-zero-ks', tipo: 'bebida', nome: 'Coca-Cola Zero KS', preco: 6, foto: 'img/bebida-coca-zero-ks.webp', desc: 'Garrafa de vidro 290 ml', escolhas: [], tira: [] },
     { id: 'limoneto', tipo: 'bebida', nome: 'H2OH! Limoneto', preco: 7, foto: 'img/bebida-limoneto.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
-    { id: 'monster', tipo: 'bebida', nome: 'Monster Energy', preco: 12, foto: 'img/bebida-monster.webp', desc: 'Lata 473 ml', escolhas: [], tira: [] }, // Nicolas, 15/10
+    { id: 'coca', tipo: 'bebida', nome: 'Coca-Cola', preco: 6, foto: 'img/bebida-coca.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
+    { id: 'coca-zero', tipo: 'bebida', nome: 'Coca-Cola Zero', preco: 6, foto: 'img/bebida-coca-zero.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
+    { id: 'coca-zero-1l', tipo: 'bebida', nome: 'Coca-Cola Zero 1 L', preco: 12, foto: 'img/bebida-coca-zero-1l.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
+    { id: 'guarana', tipo: 'bebida', nome: 'Guaraná Antarctica', preco: 6, foto: 'img/bebida-guarana.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
     { id: 'agua', tipo: 'bebida', nome: 'Água mineral', preco: 2, foto: 'img/bebida-agua.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] },
+    { id: 'fanta', tipo: 'bebida', nome: 'Fanta Laranja', preco: 6, foto: 'img/bebida-fanta.webp', desc: 'Lata 350 ml', escolhas: [], tira: [] },
+    { id: 'fanta-ks', tipo: 'bebida', nome: 'Fanta Laranja KS', preco: 6, foto: 'img/bebida-fanta-ks.webp', desc: 'Garrafa de vidro 290 ml', escolhas: [], tira: [] }, // Pedro, 29/10
+    { id: 'coca-1l-pet', tipo: 'bebida', nome: 'Coca-Cola 1 L Pet', preco: 12, foto: 'img/bebida-coca-1l-pet.webp', desc: 'Garrafa plástica 1 litro', escolhas: [], tira: [] },
     { id: 'agua-gas', tipo: 'bebida', nome: 'Água com gás', preco: 4, foto: 'img/bebida-agua-gas.webp', desc: 'Garrafa 500 ml', escolhas: [], tira: [] }, // Nicolas, 15/10; preço 16/10
+    { id: 'monster', tipo: 'bebida', nome: 'Monster Energy', preco: 12, foto: 'img/bebida-monster.webp', desc: 'Lata 473 ml', escolhas: [], tira: [] }, // Nicolas, 15/10
   ],
 };
