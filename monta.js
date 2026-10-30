@@ -86,8 +86,8 @@ export function montar(foto, item, loja, H = 340, reserva = 0, chao = '') {
       textContent: `${valor > 0 ? '+' : '−'}R$ ${Math.abs(valor).toLocaleString('pt-BR')}` });
     s.style.bottom = (bottom + 40) * encolhe + 'px';
     palco.append(s);
-    s.animate([{ translate: '0 10px', opacity: 0 }, { translate: '0 0', opacity: 1, offset: 0.2 }, { translate: '0 -50px', opacity: 0 }],
-      { duration: 900, easing: 'ease-out' }).finished.then(() => s.remove());
+    s.animate([{ scale: .5, opacity: 0 }, { scale: 1.15, opacity: 1, offset: .12 }, { scale: 1, offset: .22 }, { translate: '0 -14px', opacity: 1, offset: .75 },
+      { translate: '0 -40px', opacity: 0 }], { duration: 1600, easing: 'ease-out' }).finished.then(() => s.remove());
   }
 
   function abrir() {

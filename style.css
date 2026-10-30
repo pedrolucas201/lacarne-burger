@@ -141,8 +141,8 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
   background: radial-gradient(closest-side, rgb(50 25 10 / .55), rgb(50 25 10 / .25) 55%, transparent);
 }
 .monta-selo {
-  position: absolute; left: 50%; margin-left: 105px; z-index: 100; pointer-events: none; white-space: nowrap;
-  padding: 5px 14px; border-radius: 999px; font: 700 26px/1 var(--md-ref-typeface-brand); color: #fff;
+  position: absolute; right: 50%; margin-right: 110px; /* lado esquerdo: a ferramenta sai pela direita */ z-index: 100; pointer-events: none; white-space: nowrap;
+  padding: 5px 14px; border-radius: 999px; font: 700 32px/1 var(--md-ref-typeface-brand); color: #fff;
   background: var(--md-sys-color-primary); box-shadow: 0 4px 10px rgb(0 0 0 / .25);
 }
 .monta-palco { position: absolute; left: 50%; top: 50%; width: 360px; height: 340px; translate: -50% -50%; }
