@@ -690,10 +690,19 @@ function comanda({ cod, total, tx, forma, entrega, url, feito, pix }) {
 }
 $('#comandaEnviar').onclick = () => { window.open(urlComanda, '_blank', 'noopener'); dComanda.close(); };
 $('.comanda-fechar').onclick = () => dComanda.close();
-// copiou: pronto; não deu (navegador sem permissão), abre a tela do Pix com o código pra selecionar na mão
+// área de transferência; sem ela (página sem HTTPS, navegador antigo) copia por uma caixa de texto escondida.
+// dentro = o dialog aberto: fora dele (modal) a caixa não recebe a seleção
+async function copiar(txt, dentro = document.body) {
+  try { await navigator.clipboard.writeText(txt); return true; } catch {}
+  const c = Object.assign(document.createElement('textarea'), { value: txt, readOnly: true });
+  c.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+  dentro.append(c); c.select();
+  try { return document.execCommand('copy'); } catch { return false; } finally { c.remove(); }
+}
+// copia direto; só se nenhum jeito funcionar abre a tela do Pix com o código pra selecionar na mão
 $('#comandaPix').onclick = async () => {
-  try { await navigator.clipboard.writeText(codigoPix(pixComanda.valor, pixComanda.cod)); toast('Código Pix copiado ✅'); }
-  catch { abrirPix(pixComanda.valor, pixComanda.cod); }
+  if (await copiar(codigoPix(pixComanda.valor, pixComanda.cod), dComanda)) toast('Código Pix copiado ✅');
+  else abrirPix(pixComanda.valor, pixComanda.cod);
 };
 
 // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
@@ -784,8 +793,8 @@ function abrirPix(valor, cod) {
   $('#pixDialog').show();
 }
 $('#pixCopiar').onclick = async () => {
-  try { await navigator.clipboard.writeText($('#pixCodigo').value); toast('Código Pix copiado ✅'); }
-  catch { $('#pixCodigo').select(); toast('Selecione o código e copie', true); }
+  if (await copiar($('#pixCodigo').value, $('#pixDialog'))) toast('Código Pix copiado ✅');
+  else { $('#pixCodigo').select(); toast('Selecione o código e copie', true); }
 };
 
 function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, painel) {
