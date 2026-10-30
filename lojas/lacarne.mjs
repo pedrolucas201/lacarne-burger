@@ -38,7 +38,7 @@ export const LOJA = {
   // burger se montando no diálogo (monta.js). Adicional usa a camada de mesmo id. Geleia: a camada usa o id do adicional (geleia-bacon) pra ele aparecer na pilha.
   // passo = quanto a pilha cresce; desloca = quanto a camada desce sobre a de baixo; px com o pão a 302 px (teste de arte, 27/10)
   monta: {
-    ordem: ['maionese', 'nutella', 'proteina', 'mel', 'geleia-bacon', 'bacon', 'cebola', 'abacaxi'], // mel logo acima do queijo (Pedro, 30/10)
+    ordem: ['maionese', 'nutella', 'proteina', 'abacaxi', 'mel', 'geleia-bacon', 'bacon', 'cebola'], // mel acima do queijo, e no Praiêro acima do abacaxi (Pedro, 30/10)
     queijos: ['cheddar', 'mucarela', 'coalho'],
     pao: { pao: { base: 80, topo: -18 }, 'pao-amanteigado': { base: 96, topo: -6 } }, // por arte de pão
     camadas: {
