@@ -267,7 +267,8 @@ function abrirItem(item) {
   // receita e calibragem vêm do arquivo (o item do banco não tem as camadas)
   const receita = LOJA.cardapio.find(x => x.id === item.id);
   const foto = $('#itemCorpo .item-foto');
-  const monta = receita?.camadas && foto ? montar(foto, receita, LOJA) : null;
+  // 52 = faixa das abas no topo da foto; o burger fica numa tábua (Pedro, 29/10)
+  const monta = receita?.camadas && foto ? montar(foto, receita, LOJA, 340, 52, 'tabua') : null;
   // abas Foto | Monte o seu: o cliente escolhe ver o lanche se montando; a escolha vale pros próximos burgers
   let montando = false, convite = null;
   const abas = monta && Object.assign(document.createElement('div'), { className: 'monta-abas', role: 'tablist',

@@ -129,7 +129,22 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 .item-foto.com-boi img { object-fit: contain; padding: 6%; box-sizing: border-box; }
 @keyframes expandir { from { opacity: 0; transform: scale(.85) translateY(12px); } }
 /* burger se montando (monta.js): a foto vira palco no 1º toque num adicional ou num "Sem…" */
-.item-foto.com-pilha { position: relative; background: var(--creme); }
+.item-foto.com-pilha { position: relative; background: radial-gradient(ellipse 80% 70% at 50% 45%, #fdf5e6, var(--creme) 65%, #e6cfa6); }
+/* tábua embaixo do burger, dentro da pilha (encolhe junto): arte do Gemini (mesma conversa das camadas),
+   achatada pra bater com a câmera na altura do burger; o pão de baixo assenta a 52 px do pé dela, onde fica a sombra de contato */
+.monta-chao.tabua {
+  position: absolute; left: 50%; bottom: -42px; translate: -50% 0; z-index: 0; pointer-events: none; width: 460px; height: 154px;
+  background: url(img/monta/chao-tabua.webp) center / 100% 100%; filter: drop-shadow(0 8px 8px rgb(40 20 10 / .35));
+}
+.monta-chao.tabua::after {
+  content: ''; position: absolute; left: 50%; bottom: 33px; width: 300px; height: 38px; translate: -50% 0;
+  background: radial-gradient(closest-side, rgb(50 25 10 / .55), rgb(50 25 10 / .25) 55%, transparent);
+}
+.monta-selo {
+  position: absolute; left: 50%; margin-left: 105px; z-index: 100; pointer-events: none; white-space: nowrap;
+  padding: 5px 14px; border-radius: 999px; font: 700 26px/1 var(--md-ref-typeface-brand); color: #fff;
+  background: var(--md-sys-color-primary); box-shadow: 0 4px 10px rgb(0 0 0 / .25);
+}
 .monta-palco { position: absolute; left: 50%; top: 50%; width: 360px; height: 340px; translate: -50% -50%; }
 .monta-pilha { position: absolute; inset: 0; transform-origin: 50% 100%; transition: scale .3s ease-out; }
 .monta-pilha .camada { position: absolute; left: 50%; translate: -50% 0; transition: bottom .25s ease-out; }
@@ -156,7 +171,8 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 .monta-convite b { margin-left: auto; padding: 6px 12px; border-radius: 999px; background: var(--md-sys-color-primary); white-space: nowrap; }
 /* celular: a pilha fica presa no topo enquanto o cliente rola até os adicionais (senão ele nem vê o lanche mudar) */
 @media (max-width: 799px) {
-  .item-foto.com-pilha { position: sticky; top: 0; z-index: 3; aspect-ratio: auto; height: 220px; box-shadow: 0 8px 16px -12px rgb(0 0 0 / .35); }
+  /* topo reto: presa no topo, o canto arredondado deixava ver os chips passando por baixo */
+  .item-foto.com-pilha { position: sticky; top: 0; z-index: 3; aspect-ratio: auto; height: 250px; border-radius: 0 0 18px 18px; box-shadow: 0 8px 16px -12px rgb(0 0 0 / .35); }
   .monta-convite { position: fixed; left: 16px; right: 16px; bottom: 96px; z-index: 10; box-shadow: 0 6px 20px rgb(0 0 0 / .3); }
 }
 /* computador: burger aberto em tela larga e sem rolagem; foto à esquerda na altura do conteúdo, opções compactas à direita */

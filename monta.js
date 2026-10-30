@@ -38,11 +38,16 @@ export function altura(item, sem, extras, loja) {
 }
 
 // H = altura do palco: no diálogo 340 (pilha alta encolhe); na comanda mais alto, pra todo burger sair com o pão do mesmo tamanho
-export function montar(foto, item, loja, H = 340) {
+// reserva = px no topo da foto tomados pelas abas: a pilha encolhe pra o pão de cima não passar por baixo delas
+// chao = 'tabua' põe a tábua com a sombra de contato embaixo do burger (vazio na comanda, que já tem a grelha)
+export function montar(foto, item, loja, H = 340, reserva = 0, chao = '') {
   const m = loja.monta, pao = item.pao ? `pao-${item.pao}` : 'pao';
   const original = { cls: foto.className, html: foto.innerHTML }; // pra voltar pra foto real
-  let palco, monte, topo, olho, estado = [], fila = Promise.resolve();
+  let palco, monte, topo, olho, estado = [], fila = Promise.resolve(), corte = 0, encolhe = 1, extrasAntes = [];
   Object.keys(FERR).forEach(ferramenta); // já baixa as ferramentas
+  const preco = id => loja.adicionais.find(a => a.id === id)?.preco;
+  const piso = chao ? 34 : 0; // o chão aparece embaixo do pão de baixo: a pilha sobe esse tanto
+  const conta = l => l.reduce((n, id) => (n[id] = (n[id] ?? 0) + 1, n), {});
 
   function camada(id) {
     const d = document.createElement('div');
@@ -63,16 +68,36 @@ export function montar(foto, item, loja, H = 340) {
     vis.forEach((c, i) => { c.el.style.bottom = bottoms[i] + 'px'; c.el.style.zIndex = 1 + i; });
     topo.style.bottom = yTopo + 'px';
     topo.style.zIndex = 99;
-    monte.style.scale = Math.min(1, (H - 10) / (yTopo + 130)); // pilha alta encolhe (130 ≈ altura do pão de cima)
+    monte.style.scale = encolhe = Math.min(1, (H - 10 - corte - piso) / (yTopo + 130)); // pilha alta encolhe (130 ≈ altura do pão de cima)
   }
 
-  const cabe = () => palco.style.scale = Math.min(foto.clientWidth / W, foto.clientHeight / H);
+  // corte = quanto do topo do palco fica atrás das abas (px do desenho)
+  const cabe = () => {
+    const k = Math.min(foto.clientWidth / W, foto.clientHeight / H);
+    palco.style.scale = k;
+    corte = Math.max(0, reserva - (foto.clientHeight - H * k) / 2) / k;
+    if (topo) arruma();
+  };
+
+  // "+R$ 7" sobe de onde a camada assentou (ou "−R$ 7" de onde saiu) e some
+  function selo(valor, bottom) {
+    if (!valor || calmo() || !palco) return;
+    const s = Object.assign(document.createElement('span'), { className: 'monta-selo',
+      textContent: `${valor > 0 ? '+' : '−'}R$ ${Math.abs(valor).toLocaleString('pt-BR')}` });
+    s.style.bottom = (bottom + 40) * encolhe + 'px';
+    palco.append(s);
+    s.animate([{ translate: '0 10px', opacity: 0 }, { translate: '0 0', opacity: 1, offset: 0.2 }, { translate: '0 -50px', opacity: 0 }],
+      { duration: 900, easing: 'ease-out' }).finished.then(() => s.remove());
+  }
 
   function abrir() {
     foto.classList.remove('com-foto', 'com-boi'); // .com-boi mexe no img da foto
     foto.classList.add('com-pilha');
-    foto.innerHTML = `<div class="monta-palco" style="height:${H}px"><div class="monta-pilha"></div></div>`;
+    foto.innerHTML = `<div class="monta-palco" style="height:${H}px"><div class="monta-pilha">${chao ? `<div class="monta-chao ${chao}"></div>` : ''}</div></div>`;
     palco = foto.firstChild; monte = palco.firstChild;
+    monte.style.bottom = piso + 'px';
+    // decodifica as artes antes do 1º toque, senão a primeira carne só aparece depois de voar
+    Object.keys(m.camadas).forEach(id => Object.assign(new Image(), { src: `img/monta/${id}.webp` }).decode?.().catch(() => {}));
     const base = camada(`${pao}-base`); topo = camada(`${pao}-topo`);
     base.style.bottom = '10px';
     monte.append(base, topo);
@@ -125,6 +150,8 @@ export function montar(foto, item, loja, H = 340) {
       acima.forEach(el => el.animate([{ translate: '-50% 0' }, { translate: `-50% -${vao}px`, offset: 0.25 }, { translate: `-50% -${vao}px`, offset: 0.85 },
         { translate: '-50% 0', offset: 0.95 }, { translate: '-50% -4px' }, { translate: '-50% 0' }], { duration: dur, easing: 'ease-in-out' }));
       setTimeout(() => { vibra(8); amassa(vis.slice(0, i + 1).map(q => q.el)); }, dur * 0.95);
+      // a ferramenta passa por cima das abas: elas apagam durante o voo pra não brigar com ela
+      foto.querySelector('.monta-abas')?.animate([{ opacity: 1 }, { opacity: 0.2, offset: 0.15 }, { opacity: 0.2, offset: 0.85 }, { opacity: 1 }], { duration: dur });
       let w, h;
       const quadro = () => {
         if (!c.el.isConnected) { voo.remove(); return pronto(); }
@@ -142,6 +169,7 @@ export function montar(foto, item, loja, H = 340) {
       const chegou = tr => {
         leva?.remove();
         c.el.style.opacity = 1;
+        selo(c.selo, parseFloat(c.el.style.bottom));
         vibra(12);
         const vai = de => voo.animate([{ transform: de, opacity: 1 }, { transform: de + ' translate(80px, -140px) rotate(14deg)', opacity: 0 }],
           { duration: 380, easing: 'ease-in', fill: 'forwards' }).finished.then(() => voo.remove());
@@ -174,8 +202,16 @@ export function montar(foto, item, loja, H = 340) {
       const tirar = sem.map(t => item.tiraCamada?.[t]).filter(Boolean);
       const nova = pilha({ receita: item.camadas, tirar, extras, ordem: m.ordem, queijos: m.queijos });
       const chaves = new Set(nova.map(c => c.k)), antigo = new Map(estado.map(c => [c.k, c]));
-      estado.filter(c => !chaves.has(c.k)).forEach(c => sai(c, origem));
-      estado = nova.map(c => antigo.get(c.k) ?? { ...c, el: camada(c.id), entregue: false, nova: true });
+      // selo só pro que é adicional pago: quanto de cada id entrou ou saiu desde o último toque
+      const antes = conta(extrasAntes), agora = conta(extras), saldo = {};
+      for (const id of new Set([...extrasAntes, ...extras])) saldo[id] = (agora[id] ?? 0) - (antes[id] ?? 0);
+      extrasAntes = extras;
+      estado.filter(c => !chaves.has(c.k)).forEach(c => {
+        if (origem && saldo[c.id] < 0) { saldo[c.id]++; selo(-preco(c.id), parseFloat(c.el.style.bottom) || 0); }
+        sai(c, origem);
+      });
+      estado = nova.map(c => antigo.get(c.k) ?? { ...c, el: camada(c.id), entregue: false, nova: true,
+        selo: origem && saldo[c.id] > 0 && saldo[c.id]-- ? preco(c.id) : 0 });
       for (const c of estado.filter(c => c.nova)) {
         delete c.nova;
         c.el.style.opacity = 0;
