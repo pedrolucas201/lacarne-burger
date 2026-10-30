@@ -43,7 +43,7 @@ export function altura(item, sem, extras, loja) {
 export function montar(foto, item, loja, H = 340, reserva = 0, chao = '') {
   const m = loja.monta, pao = item.pao ? `pao-${item.pao}` : 'pao';
   const original = { cls: foto.className, html: foto.innerHTML }; // pra voltar pra foto real
-  let palco, monte, topo, olho, estado = [], fila = Promise.resolve(), corte = 0, encolhe = 1, extrasAntes = [];
+  let palco, monte, topo, olho, estado = [], fila = Promise.resolve(), corte = 0, encolhe = 1, k = 1, extrasAntes = [];
   Object.keys(FERR).forEach(ferramenta); // já baixa as ferramentas
   const preco = id => loja.adicionais.find(a => a.id === id)?.preco;
   const piso = chao ? 34 : 0; // o chão aparece embaixo do pão de baixo: a pilha sobe esse tanto
@@ -73,7 +73,7 @@ export function montar(foto, item, loja, H = 340, reserva = 0, chao = '') {
 
   // corte = quanto do topo do palco fica atrás das abas (px do desenho)
   const cabe = () => {
-    const k = Math.min(foto.clientWidth / W, foto.clientHeight / H);
+    k = Math.min(foto.clientWidth / W, foto.clientHeight / H);
     palco.style.scale = k;
     corte = Math.max(0, reserva - (foto.clientHeight - H * k) / 2) / k;
     if (topo) arruma();
@@ -86,6 +86,8 @@ export function montar(foto, item, loja, H = 340, reserva = 0, chao = '') {
       textContent: `${valor > 0 ? '+' : '−'}R$ ${Math.abs(valor).toLocaleString('pt-BR')}` });
     s.style.bottom = (bottom + 40) * encolhe + 'px';
     palco.append(s);
+    // à esquerda do burger, mas sem sair da foto (no computador o burger ocupa quase toda a largura)
+    s.style.marginRight = Math.min(110, foto.clientWidth / 2 / k - s.offsetWidth - 8) + 'px';
     s.animate([{ scale: .5, opacity: 0 }, { scale: 1.15, opacity: 1, offset: .12 }, { scale: 1, offset: .22 }, { translate: '0 -14px', opacity: 1, offset: .75 },
       { translate: '0 -40px', opacity: 0 }], { duration: 1600, easing: 'ease-out' }).finished.then(() => s.remove());
   }

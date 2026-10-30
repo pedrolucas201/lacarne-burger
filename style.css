@@ -129,7 +129,8 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 .item-foto.com-boi img { object-fit: contain; padding: 6%; box-sizing: border-box; }
 @keyframes expandir { from { opacity: 0; transform: scale(.85) translateY(12px); } }
 /* burger se montando (monta.js): a foto vira palco no 1º toque num adicional ou num "Sem…" */
-.item-foto.com-pilha { position: relative; background: radial-gradient(ellipse 80% 70% at 50% 45%, #fdf5e6, var(--creme) 65%, #e6cfa6); }
+/* clip, não hidden: a tábua passa da largura e uma caixa hidden ainda rola de lado (o burger ficava torto) */
+.item-foto.com-pilha { position: relative; overflow: clip; background: radial-gradient(ellipse 80% 70% at 50% 45%, #fdf5e6, var(--creme) 65%, #e6cfa6); }
 /* tábua embaixo do burger, dentro da pilha (encolhe junto): arte do Gemini (mesma conversa das camadas),
    achatada pra bater com a câmera na altura do burger; o pão de baixo assenta a 52 px do pé dela, onde fica a sombra de contato */
 .monta-chao.tabua {
