@@ -38,6 +38,9 @@ try {
     q('md-radio[name=pag][value=Pix]').checked = true;
     q('#cartDialog').dispatchEvent(new Event('change'));
     q('#enviar').click();
+    if (window.__url) return 'abriu o WhatsApp antes da comanda';
+    if (!q('#comanda').open) return 'comanda não abriu'; // a sacola fecha com animação, não dá pra conferir aqui
+    q('#comandaEnviar').click(); // o pedido já foi pro painel no toque em enviar; o WhatsApp é opcional na comanda
     return decodeURIComponent(window.__url.split('text=')[1]);
   });
   assert.match(msg, /VALOR FINAL: R\$\s40,00/);

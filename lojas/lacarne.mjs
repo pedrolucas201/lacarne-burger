@@ -23,40 +23,68 @@ export const LOJA = {
     'Matriz': 5, 'Maués': 6, 'Militina': 7, 'Natuba': 10, 'Petrobras': 7, 'Pinga Fogo': 5, 'Privê Shopping': 10,
     'Redenção': 6, 'Santana': 8, 'Shopping (fora)': 7, 'Shopping (dentro)': 10, 'Sítio do Meio': 6, 'Trajanos': 6,
   },
-  // adicionais (Brenda, 01/10): valem pra qualquer burger, até 5 de cada (app.js MAX_EXTRA); preço por unidade do burger
+  // adicionais (Brenda, 01/10): valem pra qualquer burger, até 5 de cada (app.js MAX_EXTRA) ou `max`; preço por unidade do burger
   adicionais: [
     { id: 'cheddar', nome: 'Cheddar (1 fatia)', preco: 2 },
     { id: 'mucarela', nome: 'Muçarela (1 fatia)', preco: 2 },
     { id: 'coalho', nome: 'Queijo coalho (1 fatia)', preco: 5 },
     { id: 'cebola', nome: 'Cebola caramelizada', preco: 3 },
     { id: 'bacon', nome: 'Bacon', preco: 4 },
-    { id: 'carne', nome: 'Carne (blend 150g)', preco: 7 }, // Brenda, 02/10
+    { id: 'carne', nome: 'Carne (blend 150g)', preco: 7, max: 3, maxMsg: 'Até 3 carnes por burger. Quer mais? Chama a loja no WhatsApp 📲' }, // Brenda, 02/10; max = total no burger, contando a receita (estimativa do Pedro, 27/10: confirmar com o Nicolas)
     { id: 'abacaxi', nome: 'Abacaxi (porção extra)', preco: 4 }, // Nicolas, 15/10
     { id: 'geleia-bacon', nome: 'Geleia de bacon', preco: 5 }, // Pedro, 29/10
+    { id: 'mel', nome: 'Mel', preco: 2 }, // demo (30/10): preço sugerido, a confirmar com o Nicolas
   ],
+  // burger se montando no diálogo (monta.js). Adicional usa a camada de mesmo id. Geleia: a camada usa o id do adicional (geleia-bacon) pra ele aparecer na pilha.
+  // passo = quanto a pilha cresce; desloca = quanto a camada desce sobre a de baixo; px com o pão a 302 px (teste de arte, 27/10)
+  monta: {
+    ordem: ['maionese', 'nutella', 'proteina', 'abacaxi', 'mel', 'geleia-bacon', 'bacon', 'cebola'], // mel acima do queijo, e no Praiêro acima do abacaxi (Pedro, 30/10)
+    queijos: ['cheddar', 'mucarela', 'coalho'],
+    pao: { pao: { base: 80, topo: -18 }, 'pao-amanteigado': { base: 96, topo: -6 } }, // por arte de pão
+    camadas: {
+      carne: { ferramenta: 'espatula', passo: 72 },
+      cheddar: { ferramenta: 'mao', passo: 0, desloca: -60, largura: 0.92 },
+      mucarela: { ferramenta: 'mao', passo: 0, desloca: -60, largura: 0.92 },
+      coalho: { ferramenta: 'espatula', passo: 56, desloca: -16 }, // fatia retangular assada (30/10), sem mel: o mel é camada própria
+      bacon: { ferramenta: 'mao', passo: 30, desloca: -8 },
+      cebola: { ferramenta: 'espatula', passo: 46, desloca: -56 },
+      abacaxi: { ferramenta: 'espatula', passo: 54, desloca: -4 },
+      maionese: { ferramenta: 'bisnaga', passo: -6, desloca: -45 },
+      nutella: { ferramenta: 'bisnaga', passo: -6, desloca: -45 },
+      'geleia-bacon': { ferramenta: 'bisnaga', passo: 20, desloca: -100 },
+      mel: { ferramenta: 'bisnaga', passo: 2, desloca: -100 }, // poça em cima, 2 fios escorrendo pela frente
+    },
+  },
   // tira: todo ingrediente pode sair, menos pão e carne (Brenda, 01/10)
   // fotoAlta: versão vertical (das originais em alta) pra tela larga do computador
   // boi: desenho de cada burger (PDF da Brenda); aparece quando ainda não tem foto
   cardapio: [
     { id: 'manso', nome: 'Manso', preco: 20, emoji: '🍔', foto: 'img/manso.webp', fotoAlta: 'img/manso-alta.webp', boi: 'img/boi-manso.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), queijo cheddar e maionese da casa.',
-      tira: ['Queijo cheddar', 'Maionese da casa'] },
+      tira: ['Queijo cheddar', 'Maionese da casa'],
+      camadas: ['maionese', 'carne', 'cheddar'], tiraCamada: { 'Queijo cheddar': 'cheddar', 'Maionese da casa': 'maionese' } },
     { id: 'abusado', nome: 'Abusado', preco: 24, emoji: '🍫', foto: 'img/abusado.webp', fotoAlta: 'img/abusado-alta.webp', boi: 'img/boi-abusado.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), queijo cheddar e Nutella.',
-      tira: ['Queijo cheddar', 'Nutella'] },
+      tira: ['Queijo cheddar', 'Nutella'],
+      camadas: ['nutella', 'carne', 'cheddar'], tiraCamada: { 'Queijo cheddar': 'cheddar', 'Nutella': 'nutella' } },
     { id: 'matuto', nome: 'Matuto', preco: 28, emoji: '🧀', foto: 'img/matuto.webp', fotoAlta: 'img/matuto-alta.webp', boi: 'img/boi-matuto.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), queijo coalho no mel, queijo cheddar, cebola caramelizada e maionese da casa.',
-      tira: ['Queijo coalho', 'Mel', 'Queijo cheddar', 'Cebola caramelizada', 'Maionese da casa'] },
+      tira: ['Queijo coalho', 'Mel', 'Queijo cheddar', 'Cebola caramelizada', 'Maionese da casa'],
+      // queijo e mel são camadas separadas (Pedro, 30/10): "Sem mel" tira só o mel
+      camadas: ['maionese', 'carne', 'coalho', 'cheddar', 'cebola', 'mel'], tiraCamada: { 'Queijo coalho': 'coalho', 'Mel': 'mel', 'Queijo cheddar': 'cheddar', 'Cebola caramelizada': 'cebola', 'Maionese da casa': 'maionese' } },
     // Praiêro e Amostradinho (01/10): descrição e preço da Brenda; "tira" confirmado pela loja (02/10)
     { id: 'praiero', nome: 'Praiêro', preco: 26, emoji: '🍍', foto: 'img/praiero.webp', fotoAlta: 'img/praiero-alta.webp', boi: 'img/boi-praiero.webp', escolhas: [PONTO],
       desc: 'Pão brioche, blend de fraldinha (150g), abacaxi grelhado com mel, queijo muçarela e maionese da casa.',
-      tira: ['Abacaxi', 'Mel', 'Queijo muçarela', 'Maionese da casa'] },
+      tira: ['Abacaxi', 'Mel', 'Queijo muçarela', 'Maionese da casa'],
+      camadas: ['maionese', 'carne', 'mucarela', 'abacaxi', 'mel'], tiraCamada: { 'Abacaxi': 'abacaxi', 'Mel': 'mel', 'Queijo muçarela': 'mucarela', 'Maionese da casa': 'maionese' } },
     { id: 'amostradinho', nome: 'Amostradinho', preco: 27, emoji: '😎', foto: 'img/amostradinho.webp', fotoAlta: 'img/amostradinho-alta.webp', boi: 'img/boi-amostradinho.webp', escolhas: [PONTO],
       desc: 'Pão brioche amanteigado, blend de fraldinha (150g), maionese da casa, queijo cheddar e geleia de bacon.',
-      tira: ['Maionese da casa', 'Queijo cheddar', 'Geleia de bacon'] },
+      tira: ['Maionese da casa', 'Queijo cheddar', 'Geleia de bacon'],
+      pao: 'amanteigado', camadas: ['maionese', 'carne', 'cheddar', 'geleia-bacon'], tiraCamada: { 'Maionese da casa': 'maionese', 'Queijo cheddar': 'cheddar', 'Geleia de bacon': 'geleia-bacon' } },
     { id: 'bruto', nome: 'Bruto', preco: 35, emoji: '🥓', foto: 'img/bruto.webp', fotoAlta: 'img/bruto-alta.webp', boi: 'img/boi-bruto.webp', escolhas: [PONTO],
       desc: 'Pão brioche, dois blends de fraldinha (150g cada), queijo cheddar, bacon, cebola caramelizada e maionese da casa.',
-      tira: ['Queijo cheddar', 'Bacon', 'Cebola caramelizada', 'Maionese da casa'] },
+      tira: ['Queijo cheddar', 'Bacon', 'Cebola caramelizada', 'Maionese da casa'],
+      camadas: ['maionese', 'carne', 'cheddar', 'carne', 'bacon', 'cebola'], tiraCamada: { 'Queijo cheddar': 'cheddar', 'Bacon': 'bacon', 'Cebola caramelizada': 'cebola', 'Maionese da casa': 'maionese' } },
     // carne crua pra fazer em casa: só no balcão, pra contar a saída de carne nos Números (Nicolas, 25/10)
     { id: 'carne-crua', tipo: 'carne', soBalcao: true, nome: 'Carne crua (blend 150g)', preco: 7.5, emoji: '🥩', desc: 'Blend de fraldinha cru, pra fazer em casa.', escolhas: [], tira: [] },
     // bebidas (cardápio da Brenda, 01/10): vão direto pra sacola, sem diálogo; ordem = mais vendidas em outubro (29/10)

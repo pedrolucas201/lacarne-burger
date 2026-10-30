@@ -13,3 +13,10 @@ test('nomes do cardápio não se repetem', () => {
   const nomes = LOJA.cardapio.map(i => i.nome);
   assert.equal(new Set(nomes).size, nomes.length);
 });
+
+// até 3 carnes no burger, contando a receita; mais que isso a loja combina no WhatsApp (Pedro, 27/10)
+test('nenhum burger já vem com mais carnes que o teto', () => {
+  const max = LOJA.adicionais.find(a => a.id === 'carne').max;
+  assert.equal(max, 3);
+  for (const b of LOJA.cardapio.filter(i => !i.tipo)) assert.ok(b.camadas.filter(c => c === 'carne').length <= max, b.nome);
+});

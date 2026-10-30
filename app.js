@@ -5,6 +5,7 @@ import { VALIDOS } from './numeros.js';
 import { burgersDoPedido } from './avaliacao.js';
 import { $, brl, esc, toast } from './util.js';
 import { LOJA_ID, LOJA } from './lojas/lacarne.mjs';
+import { montar, altura } from './monta.js';
 
 // Material e Firebase (~650 KB) carregam em segundo plano: o cardápio aparece antes, a partir de lojas/lacarne.mjs
 import('./vendor/material.js');
@@ -57,6 +58,14 @@ fb.then(m => m.onSnapshot(m.doc(m.db, 'lojas', LOJA_ID), s => {
 const esgotado = id => loja.esgotados?.[id] === hoje();
 const itemDe = id => loja.cardapio.find(x => x.id === id);
 const MAX_EXTRA = 5; // por adicional, por burger
+const adicional = x => loja.adicionais?.find(a => a.id === x);
+// `max` do adicional = total no burger, contando o que já vem na receita (o Bruto já tem 2 carnes, então só cabe mais 1)
+const maxDe = (x, id) => {
+  const a = adicional(x);
+  if (!a?.max) return MAX_EXTRA;
+  const receita = LOJA.cardapio.find(i => i.id === id)?.camadas ?? [];
+  return Math.max(0, a.max - receita.filter(c => c === x).length);
+};
 
 // preço sempre vem do cardápio: o que está salvo no navegador pode ter sido alterado
 // edição: linha que já estava no pedido (fixo) mantém o preço da época; o que entra agora vale o cardápio.
@@ -64,7 +73,8 @@ const MAX_EXTRA = 5; // por adicional, por burger
 const validar = lista => lista.flatMap(i => {
   const m = itemDe(i?.id);
   const qtd = Math.min(99, Math.max(1, parseInt(i.qtd) || 1));
-  const extras = (Array.isArray(i.extras) ? i.extras : []).filter(x => loja.adicionais?.some(a => a.id === x));
+  const n = {}; // sacola antiga ou mexida não passa do teto de cada adicional
+  const extras = (Array.isArray(i.extras) ? i.extras : []).filter(x => adicional(x) && (n[x] = (n[x] || 0) + 1) <= maxDe(x, i.id));
   return m && Array.isArray(i.escolhas) && Array.isArray(i.sem)
     ? [{ ...i, nome: m.nome, extras, unit: EDITAR && i.fixo ? i.unit : precoItem(loja, { id: i.id, extras }), qtd, obs: String(i.obs || '').slice(0, 200) }] : [];
 });
@@ -243,7 +253,7 @@ function abrirItem(item) {
       <md-chip-set>${item.tira.map(t => `<md-filter-chip label="Sem ${esc(t.toLowerCase())}" data-v="${esc(t)}"></md-filter-chip>`).join('')}</md-chip-set>
     </fieldset>
     ${loja.adicionais?.length ? `<fieldset id="extras"><legend>Adicionais</legend>
-      ${loja.adicionais.map(a => `<div class="extra"><span>${esc(a.nome)} <small>+ ${brl(a.preco)}</small></span>
+      ${loja.adicionais.map(a => `<div class="extra">${LOJA.monta?.camadas?.[a.id] ? `<img class="mini" src="img/monta/${esc(a.id)}.webp" alt="" width="44" height="26" loading="lazy">` : ""}<span>${esc(a.nome)} <small>+ ${brl(a.preco)}</small></span>
         <div class="stepper">
           <md-icon-button data-x="${esc(a.id)}" data-d="-1" aria-label="Menos ${esc(a.nome)}"><md-icon>remove</md-icon></md-icon-button>
           <span data-n="${esc(a.id)}">0</span>
@@ -254,18 +264,67 @@ function abrirItem(item) {
       placeholder="Ex.: cortar ao meio, molho à parte…"></md-outlined-text-field>
     </div>`;
   opinioes(item);
+  // receita e calibragem vêm do arquivo (o item do banco não tem as camadas)
+  const receita = LOJA.cardapio.find(x => x.id === item.id);
+  const foto = $('#itemCorpo .item-foto');
+  // 52 = faixa das abas no topo da foto; o burger fica numa tábua (Pedro, 29/10)
+  const monta = receita?.camadas && foto ? montar(foto, receita, LOJA, 340, 52, 'tabua') : null;
+  // abas Foto | Monte o seu: o cliente escolhe ver o lanche se montando; a escolha vale pros próximos burgers
+  let montando = false, convite = null;
+  const abas = monta && Object.assign(document.createElement('div'), { className: 'monta-abas', role: 'tablist',
+    innerHTML: '<button type="button" role="tab" data-m="0">📷 Foto</button><button type="button" role="tab" data-m="1">🍔 Monte o seu</button>' });
+  const alterna = liga => {
+    montando = liga;
+    store.set('montar', liga);
+    if (liga) store.set('montarUsou', true); // experimentou: o convite não volta
+    liga ? monta.atualizar(marcados('v'), extrasDe(), null) : monta.desligar(); // ligar mostra o que já foi escolhido, sem voo
+    abas.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(+b.dataset.m === +liga)));
+    foto.prepend(abas);
+  };
+  // mexeu com a foto na tela: convida a ver montando, até ele experimentar (no máximo 3 vezes, uma por burger aberto)
+  const convidar = () => {
+    const vezes = store.get('montarConvites', 0);
+    if (convite || store.get('montarUsou', false) || vezes >= 3) return;
+    store.set('montarConvites', vezes + 1);
+    convite = Object.assign(document.createElement('button'), { type: 'button', className: 'monta-convite',
+      innerHTML: 'Quer ver seu lanche sendo montado? <b>Ver ▶</b>' });
+    convite.onclick = () => { convite.remove(); alterna(true); };
+    // celular: a foto já rolou pra fora da tela, então o convite flutua acima do "Adicionar"
+    matchMedia('(min-width: 800px)').matches ? foto.append(convite) : foto.closest('[slot]').append(convite);
+    setTimeout(() => convite?.remove(), 7000);
+  };
+  const mexeu = origem => monta && (montando ? monta.atualizar(marcados('v'), extrasDe(), origem) : convidar());
+  if (monta) {
+    // troca com fade curto em vez de corte seco (sem animação pra quem pede menos movimento)
+    abas.onclick = e => {
+      const b = e.target.closest('[data-m]');
+      if (!b || +b.dataset.m === +montando) return;
+      alterna(!!+b.dataset.m);
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) foto.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
+    };
+    alterna(store.get('montar', false));
+  }
+  $('#itemCorpo md-chip-set')?.addEventListener('click', e => {
+    const c = e.target.closest('md-filter-chip');
+    if (c) requestAnimationFrame(() => mexeu(c)); // o chip troca o "selected" depois do clique
+  });
   // ponto escolhido fica destacado igual aos adicionais (o md-radio não expõe o "marcado" pro CSS)
   $('#itemCorpo').addEventListener('change', () =>
     $('#itemCorpo').querySelectorAll('.opt').forEach(o => o.classList.toggle('on', o.querySelector('md-radio').checked)));
   $('#extras')?.addEventListener('click', e => {
     const b = e.target.closest('[data-x]');
     if (!b) return;
-    const x = b.dataset.x, n = Math.min(MAX_EXTRA, Math.max(0, (atual.extras[x] || 0) + +b.dataset.d));
+    const x = b.dataset.x, antes = atual.extras[x] || 0;
+    const teto = maxDe(x, atual.item.id);
+    if (+b.dataset.d > 0 && antes >= teto && adicional(x)?.maxMsg) return toast(adicional(x).maxMsg, true);
+    const n = Math.min(teto, Math.max(0, antes + +b.dataset.d));
+    if (n === antes) return;
     atual.extras[x] = n;
     const contador = $('#itemCorpo').querySelector(`[data-n="${x}"]`);
     contador.textContent = n;
     contador.closest('.extra').classList.toggle('on', n > 0);
     atualizarItem();
+    mexeu(b);
   });
   atualizarItem();
   dItem.show();
@@ -552,8 +611,8 @@ $('#enviar').onclick = () => {
   const bairro = c.bairro === 'outro' ? c.bairroOutro : c.bairro;
   const cod = Date.now().toString(36).slice(-5).toUpperCase();
   const comPix = pag === 'Pix' && loja.pix;
-  // grava sem esperar: o WhatsApp abre de qualquer jeito (o pedido nunca se perde) e o pop-up não é bloqueado.
-  // sem banco (plano B) não grava: a mensagem avisa a loja que o pedido não está no painel
+  // grava sem esperar: o pedido já está feito ao tocar aqui, o WhatsApp vira um aviso a mais na comanda.
+  // sem banco (plano B) não grava: aí o pedido só chega pela mensagem, e a comanda diz que precisa enviar
   let painel = null;
   if (aoVivo) {
     const { db, doc, collection, setDoc, serverTimestamp } = banco;
@@ -566,17 +625,84 @@ $('#enviar').onclick = () => {
       itens: paraBanco(),
     };
     if (BALCAO) return lancar(ref, { ...pedido, status: 'preparo', aceitoEm: serverTimestamp(), local });
-    setDoc(ref, pedido).catch(e => console.error('pedido não foi pro painel', e));
+    // não gravou: a loja só fica sabendo pela mensagem, então a comanda passa a pedir o envio
+    setDoc(ref, pedido).catch(e => { console.error('pedido não foi pro painel', e); precisaWhats(true); });
     painel = `${new URL('painel/', location.href).href}#${ref.id}`;
   }
   const url = `https://api.whatsapp.com/send?phone=${loja.whatsapp}&text=${encodeURIComponent(
     mensagem(c, entrega, bairro, pag, troco, sub, tx, f('obsGeral'), cod, comPix, painel))}`;
-  window.open(url, '_blank', 'noopener');
+  // desenha com a sacola antes de esvaziar; Pix: o copia e cola vem na própria comanda
+  comanda({ cod, total, tx, forma, entrega, url, feito: !!painel, pix: comPix ? { valor: tx === null ? null : total, cod } : null });
   carrinho = [];
   salvar();
   dCart.close();
-  toast('Pedido pronto! É só enviar no WhatsApp ✅');
-  if (comPix) abrirPix(tx === null ? null : total, cod);
+};
+
+// comanda "na brasa": confirma o pedido feito; a comanda sai da impressora, o 1º burger pousa na grelha, a barra enche
+// e aparece o botão do WhatsApp (opcional quando o pedido já está no painel; o iPhone só abre o WhatsApp direto num toque)
+const dComanda = $('#comanda');
+let urlComanda = null, pixComanda = null;
+const precisaWhats = sim => {
+  $('.comanda-passo').textContent = sim ? 'Pra loja receber, envie no WhatsApp 👇' : 'Pedido feito! A loja já recebeu ✅';
+  $('#comandaEnviar').textContent = sim ? 'Enviar no WhatsApp 🔥' : 'Mandar também no WhatsApp';
+};
+function comanda({ cod, total, tx, forma, entrega, url, feito, pix }) {
+  urlComanda = url;
+  pixComanda = pix;
+  precisaWhats(!feito);
+  $('.comanda-pix').hidden = !pix;
+  if (pix) $('.comanda-pix p').textContent = pix.valor
+    ? `Pague ${brl(pix.valor)} no Pix: copie o código e cole em "Pix copia e cola" no app do banco. Depois mande o comprovante no WhatsApp.`
+    : 'A taxa de entrega é confirmada no WhatsApp: copie o código, cole em "Pix copia e cola" e digite o valor. Depois mande o comprovante.';
+  $('.comanda-loja').textContent = loja.nome;
+  $('.comanda-num').textContent = `Pedido #${cod}`;
+  const linha = (a, b = '', cls = '') => `<div class="cl ${cls}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
+  $('.comanda-itens').innerHTML = carrinho.map(i => linha(`${i.qtd}x ${i.nome}`, brl(i.unit * i.qtd))
+    + (i.extras.length ? linha(extrasTxt(i, loja.adicionais), '', 'sub') : '')
+    + (i.sem.length ? linha(`sem ${i.sem.join(', ').toLowerCase()}`, '', 'sub') : '')).join('')
+    + linha(entrega ? 'Entrega' : 'Retirada', entrega ? (tx === null ? 'a confirmar' : brl(tx)) : '', 'tracejado')
+    + linha(`Total · ${forma}`, brl(total), 'total');
+  // até 3 burgers na grelha, lado a lado, pousando um depois do outro (cada unidade conta; passou de 3, selo "+N").
+  // Cada um é a pilha do lanche com as escolhas do cliente (receita e calibragem vêm do arquivo)
+  const grelha = $('.comanda-grelha');
+  grelha.querySelectorAll('.comanda-burger, .comanda-mais').forEach(e => e.remove());
+  const burgers = carrinho.flatMap(i => {
+    const r = LOJA.cardapio.find(x => x.id === i.id);
+    return r?.camadas ? Array(i.qtd).fill([i, r]) : [];
+  });
+  const mostra = burgers.slice(0, 3), lugares = [[50], [32, 68], [22, 50, 78]][mostra.length - 1] ?? [];
+  const els = mostra.map((_, k) => {
+    const el = Object.assign(document.createElement('div'), { className: 'comanda-burger' });
+    Object.assign(el.style, { left: lugares[k] + '%', width: [46, 36, 29][mostra.length - 1] + '%', animationDelay: .3 + k * .35 + 's' });
+    grelha.insertBefore(el, grelha.querySelector('.fumaca'));
+    return el;
+  });
+  if (burgers.length > 3) grelha.insertAdjacentHTML('beforeend', `<span class="comanda-mais">+${burgers.length - 3}</span>`);
+  grelha.hidden = !burgers.length;
+  // grelha da altura do burger mais alto: ele ocupa a largura da sua vaga (pão de 302 em 360) e pousa a 14% da base
+  const fr = [46, 36, 29][mostra.length - 1] / 100, alto = Math.max(0, ...mostra.map(([i, r]) => altura(r, i.sem, i.extras, LOJA)));
+  grelha.style.aspectRatio = String(Math.min(2.2, 0.82 * 360 / (alto * fr)));
+  dComanda.classList.remove('rodando');
+  dComanda.showModal(); // antes de montar: a pilha mede o espaço que tem
+  mostra.forEach(([i, r], k) => montar(els[k], r, LOJA, 520).atualizar(i.sem, i.extras, null));
+  void dComanda.offsetWidth; // recomeça as animações a cada pedido
+  dComanda.classList.add('rodando');
+}
+$('#comandaEnviar').onclick = () => { window.open(urlComanda, '_blank', 'noopener'); dComanda.close(); };
+$('.comanda-fechar').onclick = () => dComanda.close();
+// área de transferência; sem ela (página sem HTTPS, navegador antigo) copia por uma caixa de texto escondida.
+// dentro = o dialog aberto: fora dele (modal) a caixa não recebe a seleção
+async function copiar(txt, dentro = document.body) {
+  try { await navigator.clipboard.writeText(txt); return true; } catch {}
+  const c = Object.assign(document.createElement('textarea'), { value: txt, readOnly: true });
+  c.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+  dentro.append(c); c.select();
+  try { return document.execCommand('copy'); } catch { return false; } finally { c.remove(); }
+}
+// copia direto; só se nenhum jeito funcionar abre a tela do Pix com o código pra selecionar na mão
+$('#comandaPix').onclick = async () => {
+  if (await copiar(codigoPix(pixComanda.valor, pixComanda.cod), dComanda)) toast('Código Pix copiado ✅');
+  else abrirPix(pixComanda.valor, pixComanda.cod);
 };
 
 // Firestore não aceita lista dentro de lista: escolhas vira { 'Ponto da carne': 'Ao ponto' }
@@ -658,16 +784,17 @@ async function lancar(ref, p) {
 
 // ---------- Pix copia e cola ----------
 // bairro fora da tabela: código sem valor, o cliente digita depois de confirmar a taxa
+const codigoPix = (valor, cod) => pix({ chave: loja.pix, nome: loja.nome, cidade: loja.cidade.split(' - ')[0], valor, txid: cod });
 function abrirPix(valor, cod) {
-  $('#pixCodigo').value = pix({ chave: loja.pix, nome: loja.nome, cidade: loja.cidade.split(' - ')[0], valor, txid: cod });
+  $('#pixCodigo').value = codigoPix(valor, cod);
   $('#pixInfo').textContent = valor
     ? `Valor: ${brl(valor)}. Copie o código e cole na opção "Pix copia e cola" do app do seu banco.`
     : 'Confirme o valor com a taxa de entrega no WhatsApp, depois copie o código, cole na opção "Pix copia e cola" do app do seu banco e digite o valor.';
   $('#pixDialog').show();
 }
 $('#pixCopiar').onclick = async () => {
-  try { await navigator.clipboard.writeText($('#pixCodigo').value); toast('Código Pix copiado ✅'); }
-  catch { $('#pixCodigo').select(); toast('Selecione o código e copie', true); }
+  if (await copiar($('#pixCodigo').value, $('#pixDialog'))) toast('Código Pix copiado ✅');
+  else { $('#pixCodigo').select(); toast('Selecione o código e copie', true); }
 };
 
 function mensagem(c, entrega, bairro, pag, troco, sub, tx, obs, cod, comPix, painel) {

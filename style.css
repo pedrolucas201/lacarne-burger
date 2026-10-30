@@ -128,6 +128,54 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px;
 .item-foto img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .item-foto.com-boi img { object-fit: contain; padding: 6%; box-sizing: border-box; }
 @keyframes expandir { from { opacity: 0; transform: scale(.85) translateY(12px); } }
+/* burger se montando (monta.js): a foto vira palco no 1º toque num adicional ou num "Sem…" */
+/* clip, não hidden: a tábua passa da largura e uma caixa hidden ainda rola de lado (o burger ficava torto) */
+.item-foto.com-pilha { position: relative; overflow: clip; background: radial-gradient(ellipse 80% 70% at 50% 45%, #fdf5e6, var(--creme) 65%, #e6cfa6); }
+/* tábua embaixo do burger, dentro da pilha (encolhe junto): arte do Gemini (mesma conversa das camadas),
+   achatada pra bater com a câmera na altura do burger; o pão de baixo assenta a 52 px do pé dela, onde fica a sombra de contato */
+.monta-chao.tabua {
+  position: absolute; left: 50%; bottom: -42px; translate: -50% 0; z-index: 0; pointer-events: none; width: 460px; height: 154px;
+  background: url(img/monta/chao-tabua.webp) center / 100% 100%; filter: drop-shadow(0 8px 8px rgb(40 20 10 / .35));
+}
+.monta-chao.tabua::after {
+  content: ''; position: absolute; left: 50%; bottom: 33px; width: 300px; height: 38px; translate: -50% 0;
+  background: radial-gradient(closest-side, rgb(50 25 10 / .55), rgb(50 25 10 / .25) 55%, transparent);
+}
+.monta-selo {
+  position: absolute; right: 50%; margin-right: 110px; /* lado esquerdo: a ferramenta sai pela direita */ z-index: 100; pointer-events: none; white-space: nowrap;
+  padding: 5px 14px; border-radius: 999px; font: 700 32px/1 var(--md-ref-typeface-brand); color: #fff;
+  background: var(--md-sys-color-primary); box-shadow: 0 4px 10px rgb(0 0 0 / .25);
+}
+.monta-palco { position: absolute; left: 50%; top: 50%; width: 360px; height: 340px; translate: -50% -50%; }
+.monta-pilha { position: absolute; inset: 0; transform-origin: 50% 100%; transition: scale .3s ease-out; }
+.monta-pilha .camada { position: absolute; left: 50%; translate: -50% 0; transition: bottom .25s ease-out; }
+.monta-pilha .camada img { filter: drop-shadow(0 4px 3px rgb(40 20 10 / .45)); } /* sombra de contato: a camada assenta na de baixo em vez de flutuar */
+#itemCorpo > .item-foto.com-pilha img, .item-foto.com-pilha img { position: static; display: block; object-fit: fill; }
+.monta-voo { position: fixed; left: 0; top: 0; z-index: 10; pointer-events: none; }
+.monta-voo img { position: absolute; display: block; }
+.item-foto:has(.monta-abas) { position: relative; }
+/* abas Foto | Monte o seu, no topo da foto (no celular sobem junto com a pilha presa) */
+.monta-abas {
+  position: absolute; top: 10px; left: 50%; translate: -50% 0; z-index: 5; display: flex; padding: 3px; border-radius: 999px;
+  background: rgb(255 255 255 / .85); backdrop-filter: blur(6px); box-shadow: 0 2px 10px rgb(0 0 0 / .18);
+}
+.monta-abas button {
+  border: 0; background: none; border-radius: 999px; padding: 7px 14px; cursor: pointer; white-space: nowrap;
+  font: 600 13px/1 var(--md-ref-typeface-brand); color: var(--md-sys-color-on-surface-variant);
+}
+.monta-abas [aria-selected="true"] { background: #fff; color: var(--md-sys-color-primary); box-shadow: 0 1px 4px rgb(0 0 0 / .15); }
+.monta-convite {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 5; display: flex; gap: 8px; align-items: center; border: 0; cursor: pointer;
+  border-radius: 14px; padding: 10px 12px; text-align: left; font: 500 13px/1.3 var(--md-ref-typeface-brand);
+  color: #fff; background: var(--md-sys-color-on-surface); animation: surgir .4s both;
+}
+.monta-convite b { margin-left: auto; padding: 6px 12px; border-radius: 999px; background: var(--md-sys-color-primary); white-space: nowrap; }
+/* celular: a pilha fica presa no topo enquanto o cliente rola até os adicionais (senão ele nem vê o lanche mudar) */
+@media (max-width: 799px) {
+  /* topo reto: presa no topo, o canto arredondado deixava ver os chips passando por baixo */
+  .item-foto.com-pilha { position: sticky; top: 0; z-index: 3; aspect-ratio: auto; height: 250px; border-radius: 0 0 18px 18px; box-shadow: 0 8px 16px -12px rgb(0 0 0 / .35); }
+  .monta-convite { position: fixed; left: 16px; right: 16px; bottom: 96px; z-index: 10; box-shadow: 0 6px 20px rgb(0 0 0 / .3); }
+}
 /* computador: burger aberto em tela larga e sem rolagem; foto à esquerda na altura do conteúdo, opções compactas à direita */
 @media (min-width: 800px) {
   #itemDialog { width: min(1100px, calc(100% - 64px)); max-width: 1100px; }
@@ -329,6 +377,9 @@ md-dialog { width: min(560px, calc(100% - 32px)); max-width: 560px; max-height: 
 #extras .extra.on, #itemCorpo .opt.on { background: var(--rosa); border-color: var(--md-sys-color-primary); }
 #itemCorpo .opt { background: transparent; }
 #extras .extra > span { min-width: 0; display: grid; line-height: 1.2; }
+/* miniatura da arte da montagem (a camada que entra no burger) */
+#extras .extra .mini { flex: none; width: 44px; height: 26px; object-fit: contain; margin-left: -4px; }
+#extras .extra .mini + span { flex: 1; }
 #extras .extra.on [data-n] { color: var(--md-sys-color-primary); }
 .desc { margin-top: 0; color: var(--md-sys-color-on-surface-variant); }
 fieldset { border: 0; margin: 0 0 16px; padding: 0; }
@@ -513,3 +564,58 @@ md-outlined-text-field { width: 100%; }
 .opiniao small { color: var(--md-sys-color-on-surface-variant); }
 .opiniao p { margin: 2px 0 0; font-size: .85rem; }
 .mais-op { justify-self: start; padding: 4px 0; border: 0; background: none; font: 600 .85rem 'Poppins', sans-serif; color: var(--md-sys-color-primary); cursor: pointer; }
+
+/* comanda "na brasa" (antes do WhatsApp): papel de comanda, burger pousando na grelha, barra enchendo, botão no fim */
+.comanda { border: 0; padding: 0; background: none; width: min(380px, 100% - 32px); max-width: none; overflow: visible; }
+.comanda::backdrop { background: rgb(44 26 21 / .6); }
+.comanda .papel {
+  position: relative; background: #fffdf8; border-radius: 6px; padding: 18px 16px 22px; box-shadow: 0 10px 30px rgb(0 0 0 / .35);
+  font-family: 'Courier New', monospace; color: var(--md-sys-color-on-surface);
+}
+.comanda .papel::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px;
+  background: linear-gradient(135deg, #fffdf8 4px, transparent 0) 0 0 / 12px 8px, linear-gradient(-135deg, #fffdf8 4px, transparent 0) 0 0 / 12px 8px;
+}
+.comanda-fechar { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 16px; cursor: pointer; color: var(--md-sys-color-on-surface-variant); }
+.comanda-loja { text-align: center; font: 28px 'Bebas Neue', sans-serif; letter-spacing: 1px; color: var(--md-sys-color-primary); }
+.comanda-num { text-align: center; font-weight: 700; font-size: 18px; margin: 2px 0 6px; }
+.comanda-grelha { position: relative; aspect-ratio: 5 / 4; margin: 4px 0 12px; }
+.comanda-grelha .ferro { position: absolute; left: 5%; bottom: 0; width: 90%; }
+.comanda-burger { position: absolute; left: 50%; bottom: 14%; width: 46%; aspect-ratio: 360 / 520; translate: -50% 0; transform-origin: 50% 100%; }
+/* pilha apoiada na grade: o palco escala a partir da base (no diálogo ele fica centralizado) */
+.comanda-burger .monta-palco { top: auto; bottom: 0; transform-origin: 50% 100%; translate: -50% 0; }
+.comanda-mais { position: absolute; right: 7%; top: 6%; padding: 3px 9px; border-radius: 999px; font: 700 13px var(--md-ref-typeface-brand); color: #fff; background: var(--md-sys-color-primary); }
+.comanda-grelha .fumaca { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: rgb(136 136 136 / .27); filter: blur(4px); bottom: 40%; left: 42%; opacity: 0; }
+.comanda-grelha .fumaca + .fumaca { left: 56%; }
+.comanda-barra { height: 10px; border-radius: 99px; background: rgb(0 0 0 / .07); overflow: hidden; }
+.comanda-barra i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #ffb347, #ff6a00, #c0261b); }
+.comanda-itens { margin-top: 10px; border-top: 1px dashed #999; padding-top: 8px; font-size: 13px; }
+.comanda-itens .cl { display: flex; justify-content: space-between; gap: 12px; margin: 3px 0; }
+.comanda-itens .sub { padding-left: 2ch; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+.comanda-itens .tracejado { border-top: 1px dashed #999; padding-top: 6px; margin-top: 8px; }
+.comanda-itens .total { font-weight: 700; }
+.comanda-pix { margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--md-sys-color-primary); border-radius: 10px; text-align: center; }
+.comanda-pix p { margin: 0 0 8px; font: 12px/1.4 var(--md-ref-typeface-brand); color: var(--md-sys-color-on-surface-variant); }
+#comandaPix { border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; font: 600 13px var(--md-ref-typeface-brand); color: #fff; background: var(--md-sys-color-primary); }
+.comanda-passo { font: 12.5px var(--md-ref-typeface-brand); text-align: center; color: var(--md-sys-color-on-surface-variant); margin: 12px 0 0; }
+.comanda-enviar {
+  display: block; margin: 10px auto 0; border: 0; border-radius: 999px; padding: 9px 18px; cursor: pointer;
+  font: 600 13px var(--md-ref-typeface-brand); color: #fff; background: #1f9d55;
+}
+.comanda.rodando .papel { animation: imprimir .6s ease-out both; }
+.comanda.rodando .comanda-burger { animation: pousar .7s .3s cubic-bezier(.5, 0, .75, 0) both; }
+.comanda.rodando .ferro { animation: brasa 1.1s ease-in-out infinite alternate; }
+.comanda.rodando .fumaca { animation: fumacar 2.2s 1s linear infinite; }
+.comanda.rodando .fumaca + .fumaca { animation-delay: 1.8s; }
+.comanda.rodando .comanda-barra i { animation: encher 2.2s .3s cubic-bezier(.3, .6, .4, 1) forwards; }
+.comanda.rodando .comanda-enviar { animation: aparecer .35s 2.4s both; }
+@keyframes imprimir { from { clip-path: inset(0 0 100% 0); transform: translateY(-20px); } }
+@keyframes pousar { 0% { transform: translateY(-60%); opacity: 0; } 70% { transform: none; opacity: 1; } 82% { transform: scale(1.04, .94); } }
+@keyframes brasa { to { filter: brightness(1.18) saturate(1.15); } }
+@keyframes fumacar { from { transform: translateY(0) scale(.6); opacity: .8; } to { transform: translateY(-70px) scale(1.6); opacity: 0; } }
+@keyframes encher { to { width: 100%; } }
+@keyframes aparecer { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) {
+  .comanda.rodando * { animation: none !important; }
+  .comanda-barra i { width: 100%; }
+}
