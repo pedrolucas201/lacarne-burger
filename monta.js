@@ -73,7 +73,7 @@ export function montar(foto, item, loja, H = 340, reserva = 0, chao = '') {
 
   // corte = quanto do topo do palco fica atrás das abas (px do desenho)
   const cabe = () => {
-    k = Math.min(foto.clientWidth / W, foto.clientHeight / H);
+    k = Math.min(1, foto.clientWidth / W, foto.clientHeight / H); // até o tamanho natural: no computador o burger ficava enorme
     palco.style.scale = k;
     corte = Math.max(0, reserva - (foto.clientHeight - H * k) / 2) / k;
     if (topo) arruma();

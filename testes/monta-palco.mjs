@@ -9,7 +9,7 @@ const b = await puppeteer.launch({ executablePath: process.env.CHROME || 'C:/Pro
   args: process.env.CI ? ['--no-sandbox'] : [] });
 const falhas = [];
 try {
-  for (const [w, h] of [[360, 740], [390, 844], [1280, 800]]) {
+  for (const [w, h] of [[360, 740], [390, 844], [1280, 800], [1366, 768]]) {
     const p = await b.newPage();
     await p.setViewport({ width: w, height: h });
     await p.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]); // sem voo: a pilha vai direto pro lugar
