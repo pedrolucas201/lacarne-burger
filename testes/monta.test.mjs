@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { pilha } from '../camadas.js';
 import { LOJA } from '../lojas/lacarne.mjs';
@@ -55,4 +56,14 @@ test('tiraCamada só usa textos do "tira" e aponta pra camada da receita', () =>
       assert.ok(b.tira.includes(t), `${b.nome}: "${t}" não está no tira`);
       assert.ok(b.camadas.includes(c), `${b.nome}: ${c} não está na receita`);
     }
+});
+
+// o adicional entra na pilha pela camada de mesmo id: sem camada ou sem arte, some da montagem sem erro
+test('todo adicional e toda camada de receita têm config e arte na montagem', () => {
+  const usadas = new Set([...LOJA.adicionais.map(a => a.id), ...LOJA.cardapio.flatMap(i => i.camadas || [])]);
+  for (const id of usadas) {
+    assert.ok(LOJA.monta.camadas[id], `${id}: falta em monta.camadas`);
+    assert.ok(LOJA.monta.ordem.includes(id) || id === 'carne' || LOJA.monta.queijos.includes(id), `${id}: falta em monta.ordem`);
+    assert.ok(existsSync(new URL(`../img/monta/${id}.webp`, import.meta.url)), `${id}: falta img/monta/${id}.webp`);
+  }
 });
